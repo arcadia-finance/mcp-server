@@ -6,7 +6,7 @@ user-invokable: true
 
 # Arcadia Finance — clAMM Agent Guide
 
-Arcadia lets you deposit LP positions as collateral, borrow against them, and automate management via asset manager contracts. This skill covers everything needed to manage clAMM positions as an agent.
+Arcadia is a platform for managing concentrated liquidity positions — with built-in leverage, automated rebalancing, compounding, and yield optimization. Positions live in Arcadia accounts, which can also borrow against their collateral. This skill covers everything needed to manage clAMM positions as an agent.
 
 ## Key Constraints
 

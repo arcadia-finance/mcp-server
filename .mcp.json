@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "arcadia-finance": {
+      "command": "/Users/thomassmets/.nvm/versions/node/v22.22.0/bin/node",
+      "args": ["/Users/thomassmets/Documents/Arcadia/repos/mcp-server/dist/index.js"]
+    }
+  }
+}

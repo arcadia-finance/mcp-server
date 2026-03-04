@@ -1,6 +1,6 @@
 # Arcadia Finance MCP Server
 
-MCP server for the [Arcadia Finance](https://arcadia.finance) lending protocol. Read protocol data and build unsigned transactions for deposits, borrows, LP management, and more.
+MCP server for [Arcadia Finance](https://arcadia.finance), a platform to manage concentrated liquidity positions with built-in leverage, automated rebalancing, and yield optimization. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
 Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 

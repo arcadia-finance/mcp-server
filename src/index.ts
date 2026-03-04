@@ -14,7 +14,7 @@ const server = new McpServer({
   name: "arcadia-finance",
   version: pkg.version,
   description:
-    "Arcadia Finance protocol — read account data, lending pools, strategies, and build unsigned transactions for deposits, borrows, LP management, and more.",
+    "Arcadia Finance — manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.",
 });
 
 const apiClient = new ArcadiaApiClient();
