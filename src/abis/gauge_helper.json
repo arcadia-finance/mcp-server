@@ -1,0 +1,84 @@
+[
+  {
+    "type": "function",
+    "name": "getStakedPositions",
+    "constant": false,
+    "anonymous": false,
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "storage_location": "default",
+        "offset": 0,
+        "index": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "indexed": false,
+        "simple_type": {
+          "type": "address"
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "name": "positions",
+        "type": "tuple[]",
+        "storage_location": "default",
+        "components": [
+          {
+            "name": "gauge",
+            "type": "address",
+            "storage_location": "default",
+            "offset": 0,
+            "index": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "indexed": false,
+            "simple_type": {
+              "type": "address"
+            }
+          },
+          {
+            "name": "version",
+            "type": "uint8",
+            "storage_location": "default",
+            "offset": 0,
+            "index": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "indexed": false,
+            "simple_type": {
+              "type": "uint"
+            }
+          },
+          {
+            "name": "balance",
+            "type": "uint256",
+            "storage_location": "default",
+            "offset": 0,
+            "index": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "indexed": false,
+            "simple_type": {
+              "type": "uint"
+            }
+          },
+          {
+            "name": "ids",
+            "type": "uint256[]",
+            "storage_location": "default",
+            "offset": 0,
+            "index": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "indexed": false,
+            "simple_type": {
+              "type": "slice",
+              "nested_type": {
+                "type": "uint"
+              }
+            }
+          }
+        ],
+        "offset": 0,
+        "index": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "indexed": false,
+        "simple_type": {
+          "type": "slice"
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,64 @@
+{
+  "name": "@arcadia-finance/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Arcadia Finance — read protocol data and build unsigned transactions for deposits, borrows, LP management, and more.",
+  "type": "module",
+  "license": "BUSL-1.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arcadia-finance/mcp-server.git"
+  },
+  "homepage": "https://arcadia.finance",
+  "keywords": [
+    "mcp",
+    "arcadia",
+    "defi",
+    "lending",
+    "clamm",
+    "liquidity",
+    "base",
+    "optimism"
+  ],
+  "files": [
+    "dist",
+    "!dist/**/*.d.ts",
+    "!dist/**/*.js.map",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "bin": {
+    "arcadia-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc && cp src/abis/*.json dist/abis/",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "prepublishOnly": "yarn build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "viem": "^2.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}

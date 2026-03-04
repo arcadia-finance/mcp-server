@@ -1,0 +1,21 @@
+# Source & tests
+src/
+skills/
+dist/**/*.test.*
+dist/test-utils.*
+
+# Config
+tsconfig.json
+eslint.config.js
+vitest.config.ts
+.prettierrc
+.yarnrc.yml
+
+# Declarations & source maps (CLI-only, not importable)
+dist/**/*.d.ts
+dist/**/*.js.map
+
+# Dev artifacts
+*.tsbuildinfo
+.github/
+.claude/
