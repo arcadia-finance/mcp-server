@@ -6,6 +6,7 @@ dist/
 *.tsbuildinfo
 scripts/
 .mcp.json
+.vscode/
 
 # Yarn
 .yarn/*

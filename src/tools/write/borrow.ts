@@ -4,6 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { poolAbi } from "../../abis/index.js";
+import { appendDataSuffix } from "../../utils/attribution.js";
 
 export function registerBorrowTool(
   server: McpServer,
@@ -62,16 +63,18 @@ export function registerBorrowTool(
           };
         }
 
-        const data = encodeFunctionData({
-          abi: poolAbi,
-          functionName: "borrow",
-          args: [
-            BigInt(params.amount),
-            params.account_address as `0x${string}`,
-            params.to as `0x${string}`,
-            "0x000000" as `0x${string}`,
-          ],
-        });
+        const data = appendDataSuffix(
+          encodeFunctionData({
+            abi: poolAbi,
+            functionName: "borrow",
+            args: [
+              BigInt(params.amount),
+              params.account_address as `0x${string}`,
+              params.to as `0x${string}`,
+              "0x000000" as `0x${string}`,
+            ],
+          }),
+        );
 
         return {
           content: [

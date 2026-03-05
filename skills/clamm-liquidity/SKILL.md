@@ -1,6 +1,6 @@
 ---
 name: clamm-liquidity
-description: Agent guide for clAMM management on Arcadia Finance. Covers 24 MCP tools (+1 dev), automation setup (rebalancers, compounders, yield claimers, Merkl, CoW swapper), strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
+description: Agent guide for clAMM management on Arcadia Finance. Covers 25 MCP tools (+1 dev), automation setup (rebalancers, compounders, yield claimers, Merkl, CoW swapper), strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
 user-invokable: true
 ---
 
@@ -13,6 +13,7 @@ Arcadia is a platform for managing concentrated liquidity positions — with bui
 - **All `build_*_tx` tools return unsigned transactions** (`{ to, data, value, chainId }`) — you must sign and broadcast them. See "Transaction Signing" below.
 - **Automation strategy config** (tick range, rebalance thresholds) is not currently settable via MCP — this requires Arcadia platform access.
 - **Health factor** = `1 - (used_margin / liquidation_value)`. Higher is safer. `1` = no debt, `>0` = healthy, `0` = liquidation threshold, `<0` = past liquidation. Keep above 0.5 for leveraged positions; act immediately below 0.2.
+- **Minimum margin** — each lending pool enforces a fixed minimum margin denominated in the pool's numeraire (e.g. WETH for the WETH pool, USDC for the USDC pool), typically a few dollars in value. This gets **added to the debt** when computing `used_margin` (i.e. `used_margin = open_debt + minimum_margin`). It ensures liquidations remain profitable (covering gas costs) and prevents dust attacks. For small positions the fixed minimum margin dominates the used margin, pushing health factor lower than the leverage ratio alone would suggest (e.g. HF ~0.3 at 2× leverage). Increase position size for a healthier starting HF. `build_add_liquidity_tx` also validates deposits against per-asset minimum amounts from strategy risk factors.
 
 ## Transaction Signing
 
@@ -27,7 +28,7 @@ How you sign depends on your setup:
 - **MPC wallet** (Fireblocks, Dfns, Turnkey) — pass the unsigned tx to your provider's signing API
 - **Smart account** (Safe, Biconomy) — wrap the tx as a UserOperation or Safe transaction
 - **Embedded wallet** (Privy, Dynamic) — use the provider's `sendTransaction` method
-- **Direct private key** (development only) — use viem/ethers `sendTransaction` with a local signer
+- **Direct private key** (development only) — use the built-in `sign_and_send_tx` tool (set `PK` in a `.env` file or MCP client config), or viem/ethers `sendTransaction` with a local signer
 
 Example with viem:
 
@@ -42,9 +43,9 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 
 **When to split:** In high-volatility markets or for low-liquidity pools, batched transactions may revert because on-chain state changes between when the backend computes calldata and when the transaction executes. If a batched tool fails, fall back to individual tools with tighter slippage. Always try batched first, split only on failure.
 
-**All advanced tools return time-sensitive calldata** — sign and broadcast within 30 seconds. If a transaction reverts due to price movement, rebuild and retry at least once before falling back to individual tools.
+**All advanced tools return time-sensitive calldata** — sign and broadcast promptly; calldata may expire after 30–60 seconds depending on market conditions. If a transaction reverts due to price movement, rebuild and retry at least once before falling back to individual tools.
 
-## MCP Tools (24 + 1 dev)
+## MCP Tools (25 + 1 dev)
 
 ### Read Tools
 
@@ -55,6 +56,7 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 | `get_account_pnl`     | PnL and yield earned — use to check if a strategy is still profitable.                                                                                                                                                                                                                                                                                |
 | `get_assets`          | Supported collateral assets with prices. Pass `asset_addresses` (single or comma-separated) for price lookup.                                                                                                                                                                                                                                         |
 | `get_wallet_balances` | On-chain ERC20 balances and native ETH for a wallet. Use to pre-check if the wallet has enough tokens before depositing or adding liquidity.                                                                                                                                                                                                          |
+| `get_allowance`       | Check ERC20 token allowances for a spender. Use before `build_approve_tx` to avoid redundant approvals — skip if the current allowance is already sufficient.                                                                                                                                                                                         |
 | `get_lending_pools`   | Pool TVL, APY, utilization, liquidity. Pass `pool_address` for detail + APY history (optional `days`, default 14).                                                                                                                                                                                                                                    |
 | `get_strategies`      | LP strategies with fee APY, underlyings, pool protocol. List view shows 7d avg APY for the strategy's default range (e.g. ±7.5% for volatile pairs). **Pass `strategy_id` to see APY per range width** (very_narrow → full_range) — narrower range = higher APY but more rebalancing cost/risk. Use `featured_only: true` for curated top strategies. |
 | `get_points`          | Points for a wallet or leaderboard. No `chain_id` needed — points are cross-chain.                                                                                                                                                                                                                                                                    |
@@ -74,18 +76,18 @@ These tools batch multiple operations into ONE atomic transaction. Always prefer
 
 ### Individual Write Tools (use when batched tools fail or for standalone operations)
 
-| Tool                         | When to use                                                                                                                                                                                     |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `build_approve_tx`           | Approve a token for spending. **Required before `build_deposit_tx`** and before `build_add_liquidity_tx` (when depositing from wallet).                                                         |
-| `build_create_account_tx`    | Create a new Arcadia account (one-time setup). Use `account_version: 0` for the latest version (recommended).                                                                                   |
-| `build_deposit_tx`           | Deposit ERC20 tokens as collateral. NOT needed before `build_add_liquidity_tx` — that tool handles deposits atomically.                                                                         |
-| `build_withdraw_tx`          | Withdraw assets to account owner. Account version auto-detected on-chain. Params: `asset_addresses[]`, `asset_amounts[]` (exact amounts, no max_uint256), optional `asset_ids[]` (0 for ERC20). |
-| `build_borrow_tx`            | Borrow from a lending pool. NOT needed for leveraged LP — `build_add_liquidity_tx` handles borrowing internally.                                                                                |
-| `build_repay_tx`             | Repay debt from wallet (approve pool first). Use `amount: "max_uint256"` to repay in full. For repaying with account collateral, prefer `build_repay_with_collateral_tx`.                       |
-| `build_swap_tx`              | Swap assets within account (backend handles routing). For closing positions, prefer `build_close_position_tx`.                                                                                  |
-| `build_remove_liquidity_tx`  | PARTIAL liquidity decrease only (position stays open). For full LP removal/exit, use `build_close_position_tx`.                                                                                 |
-| `build_position_action_tx`   | Stake, unstake, or claim rewards for an LP position. Direction auto-detected from `asset_address`.                                                                                              |
-| `build_set_asset_manager_tx` | Grant/revoke AM permission only (no configuration). Use to revoke; for full setup prefer `build_configure_asset_manager_tx`.                                                                    |
+| Tool                         | When to use                                                                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `build_approve_tx`           | Approve a token for spending. **Required before `build_deposit_tx`** and before `build_add_liquidity_tx` (when depositing from wallet). Call `get_allowance` first to check if already approved. |
+| `build_create_account_tx`    | Create a new Arcadia account (one-time setup). Use `account_version: 0` for the latest version (recommended).                                                                                    |
+| `build_deposit_tx`           | Deposit ERC20 tokens as collateral. NOT needed before `build_add_liquidity_tx` — that tool handles deposits atomically.                                                                          |
+| `build_withdraw_tx`          | Withdraw assets to account owner. Account version auto-detected on-chain. Params: `asset_addresses[]`, `asset_amounts[]` (exact amounts, no max_uint256), optional `asset_ids[]` (0 for ERC20).  |
+| `build_borrow_tx`            | Borrow from a lending pool. NOT needed for leveraged LP — `build_add_liquidity_tx` handles borrowing internally.                                                                                 |
+| `build_repay_tx`             | Repay debt from wallet (approve pool first). Use `amount: "max_uint256"` to repay in full. For repaying with account collateral, prefer `build_repay_with_collateral_tx`.                        |
+| `build_swap_tx`              | Swap assets within account (backend handles routing). For closing positions, prefer `build_close_position_tx`.                                                                                   |
+| `build_remove_liquidity_tx`  | PARTIAL liquidity decrease only (position stays open). For full LP removal/exit, use `build_close_position_tx`.                                                                                  |
+| `build_position_action_tx`   | Stake, unstake, or claim rewards for an LP position. Direction auto-detected from `asset_address`.                                                                                               |
+| `build_set_asset_manager_tx` | Grant/revoke AM permission only (no configuration). Use to revoke; for full setup prefer `build_configure_asset_manager_tx`.                                                                     |
 
 ### Dev Tools (only available when `PK` env var is set)
 

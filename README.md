@@ -15,6 +15,7 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 | `get_account_pnl`     | PnL and yield data for an account.                                                                                           |
 | `get_assets`          | Supported collateral assets with addresses, types, decimals. Optional USD price lookup.                                      |
 | `get_wallet_balances` | On-chain ERC20 balances and native ETH for a wallet address.                                                                 |
+| `get_allowance`       | Check ERC20 token allowances for a spender. Use before `build_approve_tx` to avoid redundant approvals.                      |
 | `get_points`          | Points balance for a wallet, or leaderboard.                                                                                 |
 | `get_lending_pools`   | Pool data: TVL, APY, utilization, liquidity. Optional single-pool detail with APY history.                                   |
 | `get_strategies`      | LP strategies with APY, underlyings, pool info. Optional detail or featured filter.                                          |
@@ -27,7 +28,7 @@ Direct calldata encoding via viem. Each returns `{ to, data, value, chainId }`.
 
 | Tool                               | Description                                                                                                                                                              |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `build_approve_tx`                 | Approve an ERC20 token for spending. Required before depositing into an account.                                                                                         |
+| `build_approve_tx`                 | Approve an ERC20 token for spending. Required before depositing into an account. Call `get_allowance` first to check if already approved.                                |
 | `build_create_account_tx`          | Create a new Arcadia account via Factory.                                                                                                                                |
 | `build_deposit_tx`                 | Deposit ERC20 tokens into an account.                                                                                                                                    |
 | `build_withdraw_tx`                | Withdraw assets from an account.                                                                                                                                         |
@@ -80,17 +81,18 @@ const client = createWalletClient({ account, chain: base, transport: http() });
 const hash = await client.sendTransaction(tx);
 ```
 
-**Simple signing script (development only, not recommended for production):**
-A minimal Node.js script that reads a private key from `.env` and signs+broadcasts. Useful for local testing but not suitable for production — private keys in `.env` files are a security risk.
+**Built-in `sign_and_send_tx` tool (development only):**
+The server includes a dev-only signing tool that reads a private key from the `PK` environment variable. Set `PK` via a `.env` file or your MCP client config:
 
 ```bash
-# .env (never commit this)
+# .env in the server directory (never commit — already gitignored)
 PK=0xYourPrivateKeyHex
-RPC_URL_BASE=<your_base_rpc_url>
-
-# Usage — pipe the JSON output from any build_*_tx tool:
-npx tsx scripts/sign-tx.ts '{"to":"0x...","data":"0x...","value":"0","chainId":8453}'
+RPC_URL_BASE=https://base-mainnet.g.alchemy.com/v2/your-key
 ```
+
+The server loads `.env` automatically on startup. Works with any MCP client (Claude Desktop, Claude Code, VSCode, Cursor). MCP client `env` block settings take precedence if both are set.
+
+Not for production — use a dedicated wallet MCP server (Fireblocks, Turnkey, Safe) instead.
 
 ## Setup
 

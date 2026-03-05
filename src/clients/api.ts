@@ -7,6 +7,7 @@ import type {
 
 const DEFAULT_BASE_URL = "https://api.arcadia.finance";
 const API_PREFIX = "/v1/api";
+const DEFAULT_HEADERS = { "User-Agent": "arcadia-mcp/0.1.0" };
 
 export class ArcadiaApiClient {
   private baseUrl: string;
@@ -55,6 +56,7 @@ export class ArcadiaApiClient {
       }
     }
     const resp = await fetch(url.toString(), {
+      headers: DEFAULT_HEADERS,
       signal: AbortSignal.timeout(this.timeout),
     });
     if (!resp.ok) await this.throwApiError(resp, path);
@@ -65,7 +67,7 @@ export class ArcadiaApiClient {
     const url = `${this.baseUrl}${API_PREFIX}${path}`;
     const resp = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...DEFAULT_HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(this.timeout),
     });
@@ -129,6 +131,7 @@ export class ArcadiaApiClient {
       url.searchParams.append("assets", a);
     }
     const resp = await fetch(url.toString(), {
+      headers: DEFAULT_HEADERS,
       signal: AbortSignal.timeout(this.timeout),
     });
     if (!resp.ok) await this.throwApiError(resp, "/assets/prices");

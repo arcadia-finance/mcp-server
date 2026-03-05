@@ -8,6 +8,7 @@ import { registerProtocolTools } from "./read/protocol.js";
 import { registerPointsTools } from "./read/points.js";
 import { registerGuideTools } from "./read/guides.js";
 import { registerBalanceTools } from "./read/balances.js";
+import { registerAllowanceTools } from "./read/allowances.js";
 import { registerCreateAccountTool } from "./write/create-account.js";
 import { registerDepositTool } from "./write/deposit.js";
 import { registerWithdrawTool } from "./write/withdraw.js";
@@ -37,6 +38,7 @@ export function registerAllTools(
   registerPointsTools(server, api);
   registerGuideTools(server);
   registerBalanceTools(server, chains);
+  registerAllowanceTools(server, chains);
 
   // Simple write tools
   registerCreateAccountTool(server, chains);

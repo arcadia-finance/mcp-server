@@ -3,6 +3,7 @@ import { encodeAbiParameters, encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { ASSET_MANAGERS, MINIMAL_STRATEGY_HOOK } from "../../config/addresses.js";
+import { appendDataSuffix } from "../../utils/attribution.js";
 
 // Arcadia's bot initiator addresses per asset manager type
 const REBALANCER_INITIATOR = "0x163CcA8F161CBBB401a96aDf4Cbf4D74f3faD1Ed" as const;
@@ -306,11 +307,13 @@ export function registerConfigureAssetManagerTool(
           }
         }
 
-        const data = encodeFunctionData({
-          abi: SET_ASSET_MANAGERS_ABI,
-          functionName: "setAssetManagers",
-          args: [[amAddress as `0x${string}`], [true], [callbackData]],
-        });
+        const data = appendDataSuffix(
+          encodeFunctionData({
+            abi: SET_ASSET_MANAGERS_ABI,
+            functionName: "setAssetManagers",
+            args: [[amAddress as `0x${string}`], [true], [callbackData]],
+          }),
+        );
 
         return {
           content: [

@@ -5,6 +5,7 @@ import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { factoryAbi } from "../../abis/index.js";
 import { PROTOCOL } from "../../config/addresses.js";
 import { getPublicClient } from "../../clients/chain.js";
+import { appendDataSuffix } from "../../utils/attribution.js";
 
 // Arcadia Proxy bytecode from CreateProxyLib.sol — used to compute CREATE2 addresses.
 const PROXY_BYTECODE =
@@ -65,15 +66,17 @@ export function registerCreateAccountTool(server: McpServer, chains: Record<Chai
     },
     async (params) => {
       try {
-        const data = encodeFunctionData({
-          abi: factoryAbi,
-          functionName: "createAccount",
-          args: [
-            params.salt,
-            BigInt(params.account_version),
-            (params.creditor ?? "0x0000000000000000000000000000000000000000") as `0x${string}`,
-          ],
-        });
+        const data = appendDataSuffix(
+          encodeFunctionData({
+            abi: factoryAbi,
+            functionName: "createAccount",
+            args: [
+              params.salt,
+              BigInt(params.account_version),
+              (params.creditor ?? "0x0000000000000000000000000000000000000000") as `0x${string}`,
+            ],
+          }),
+        );
 
         // Try to predict the account address via CREATE2 (requires RPC)
         let predictedAddress: string | undefined;

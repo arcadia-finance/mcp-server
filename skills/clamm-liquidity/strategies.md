@@ -4,7 +4,7 @@ These are templates and examples — not the only valid approaches. Adapt parame
 
 ## Key Parameter Notes
 
-- **`build_add_liquidity_tx`** capital sources: `deposits` array (wallet tokens), `use_account_assets=true` (existing account collateral), or both. Supports depositing multiple tokens and minting multiple LP positions in one tx. The backend swaps everything to the optimal ratio for the LP. You do NOT need to `build_deposit_tx` first — `build_add_liquidity_tx` handles the wallet transfer atomically. Approve each wallet token first (`build_approve_tx`).
+- **`build_add_liquidity_tx`** capital sources: `deposits` array (wallet tokens), `use_account_assets=true` (existing account collateral), or both. Supports depositing multiple tokens and minting multiple LP positions in one tx. The backend swaps everything to the optimal ratio for the LP. You do NOT need to `build_deposit_tx` first — `build_add_liquidity_tx` handles the wallet transfer atomically. Check allowances first (`get_allowance`), then approve if needed (`build_approve_tx`).
 - **V4 spot accounts CAN mint LP** but cannot leverage (set `leverage: 0`). V3 margin accounts (created with a `creditor`) can both mint LP and leverage. If the user wants leveraged LP, create a V3 margin account with a creditor (`account_version: 3`).
 - **`numeraire`** in `build_repay_with_collateral_tx`: the debt token you're repaying (e.g. WETH when repaying WETH debt). `build_add_liquidity_tx` auto-detects numeraire — no param needed.
 - **`leverage`**: `0` = no leverage. `2` = 2x. Do NOT use `1` for no leverage — use `0`. When `leverage > 0`, borrowing is handled internally by `build_add_liquidity_tx` — do NOT call `build_borrow_tx` separately.
@@ -21,7 +21,7 @@ These are templates and examples — not the only valid approaches. Adapt parame
 ## Core Lifecycle (all strategies)
 
 ```
-Open:    approve tokens → create account → add liquidity (atomic: deposit + swap + mint + borrow) → enable automation
+Open:    check allowances → approve tokens if needed → create account → add liquidity (atomic: deposit + swap + mint + borrow) → enable automation
 Monitor: get_account_info (health), get_account_pnl (profitability)
 Adjust:  add collateral or repay debt if health drops; remove + re-add liquidity to manually rebalance range
 Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay) → withdraw
@@ -73,7 +73,14 @@ build_create_account_tx(
 → Submit tx, note deployed account address from tx receipt
 → Or call get_account_info(wallet_address: ...) to find the new account address
 
-// 4. APPROVE WALLET TOKEN (so the account can pull USDC from your wallet atomically)
+// 4. CHECK ALLOWANCE + APPROVE (skip approve if already sufficient)
+get_allowance(
+  owner_address: <owner_wallet>,
+  spender_address: <account_address>,
+  token_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"],  // USDC
+  chain_id: 8453
+)
+// → If allowance is insufficient or zero:
 build_approve_tx(
   token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  // USDC
   spender_address: <account_address>,
@@ -129,6 +136,12 @@ get_account_info(account_address: <account_address>, chain_id: 8453)
     0        → liquidation threshold
     < 0      → past liquidation
 
+Note: Each lending pool adds a fixed minimum margin (denominated in the pool's numeraire,
+typically a few dollars in value) to the debt when computing used_margin
+(used_margin = open_debt + minimum_margin). For small positions this fixed overhead
+dominates, pushing HF lower than the leverage ratio suggests — e.g. HF ~0.3 at 2×
+instead of ~0.5–0.7. Increase position size for a healthier starting HF.
+
 get_account_pnl(account_address: <account_address>, chain_id: 8453)
 → If net yield is consistently negative → evaluate exit
 
@@ -140,11 +153,14 @@ get_lending_pools(chain_id: 8453)
 
 ```
 // Option A: Add collateral (raises health factor, cheapest)
+// Check allowance first — skip approve if already sufficient
+get_allowance(owner_address: <wallet>, spender_address: <account>, token_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], chain_id: 8453)
 build_approve_tx(token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender_address: <account>, amount: "max_uint256", chain_id: 8453)
 build_deposit_tx(account_address: <account>, asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], asset_amounts: ["<amount>"], chain_id: 8453)
 
 // Option B: Repay some WETH debt (reduces leverage)
-// NOTE: you must approve the WETH pool to spend WETH from your wallet first
+// NOTE: you must approve the WETH pool to spend WETH from your wallet first — check allowance, then approve if needed
+get_allowance(owner_address: <wallet>, spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", token_addresses: ["0x4200000000000000000000000000000000000006"], chain_id: 8453)
 build_approve_tx(token_address: "0x4200000000000000000000000000000000000006", spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", amount: "max_uint256", chain_id: 8453)
 build_repay_tx(
   pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",  // WETH pool
@@ -264,7 +280,8 @@ The `protocol_owned_liquidity` strategy type uses a dynamic range algorithm (k1/
 ```
 // Same tools, different intent — no leverage, wider slippage tolerance
 
-// 1. Approve treasury tokens
+// 1. Check allowance + approve treasury tokens (skip approve if already sufficient)
+get_allowance(owner_address: <treasury_wallet>, spender_address: <account>, token_addresses: [<token>], chain_id: 8453)
 build_approve_tx(token_address: <token>, spender_address: <account>, amount: "max_uint256", chain_id: 8453)
 
 // 2. Create account (separate from retail positions)

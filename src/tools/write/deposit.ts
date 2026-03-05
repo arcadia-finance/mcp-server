@@ -4,6 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { getAccountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
+import { appendDataSuffix } from "../../utils/attribution.js";
 
 const ACCOUNT_VERSION_ABI = [
   {
@@ -18,7 +19,7 @@ const ACCOUNT_VERSION_ABI = [
 export function registerDepositTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.tool(
     "build_deposit_tx",
-    "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before build_add_liquidity_tx — that tool deposits from wallet atomically. Ensure the account is approved first (build_approve_tx with asset_type matching the token type). Account version is auto-detected on-chain (override with account_version if needed).",
+    "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before build_add_liquidity_tx — that tool deposits from wallet atomically. Ensure the account is approved first (call get_allowance to check, then build_approve_tx if needed). Account version is auto-detected on-chain (override with account_version if needed).",
     {
       account_address: z.string().describe("Arcadia account address"),
       asset_addresses: z.array(z.string()).describe("Token contract addresses to deposit"),
@@ -81,11 +82,13 @@ export function registerDepositTool(server: McpServer, chains: Record<ChainId, C
           args.push(assetTypes);
         }
 
-        const data = encodeFunctionData({
-          abi,
-          functionName: "deposit",
-          args,
-        });
+        const data = appendDataSuffix(
+          encodeFunctionData({
+            abi,
+            functionName: "deposit",
+            args,
+          }),
+        );
 
         return {
           content: [

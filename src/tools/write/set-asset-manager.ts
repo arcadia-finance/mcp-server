@@ -2,6 +2,7 @@ import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { appendDataSuffix } from "../../utils/attribution.js";
 
 const SET_ASSET_MANAGERS_ABI = [
   {
@@ -37,11 +38,13 @@ export function registerSetAssetManagerTool(
     },
     async (params) => {
       try {
-        const data = encodeFunctionData({
-          abi: SET_ASSET_MANAGERS_ABI,
-          functionName: "setAssetManagers",
-          args: [[params.asset_manager_address as `0x${string}`], [params.enabled], ["0x"]],
-        });
+        const data = appendDataSuffix(
+          encodeFunctionData({
+            abi: SET_ASSET_MANAGERS_ABI,
+            functionName: "setAssetManagers",
+            args: [[params.asset_manager_address as `0x${string}`], [params.enabled], ["0x"]],
+          }),
+        );
 
         return {
           content: [

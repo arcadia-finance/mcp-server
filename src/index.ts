@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 
+try {
+  const existing = { ...process.env };
+  process.loadEnvFile();
+  // MCP client env block takes precedence over .env
+  Object.assign(process.env, existing);
+} catch {
+  // No .env file — expected in production / npx usage
+}
+
 import { createRequire } from "module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
