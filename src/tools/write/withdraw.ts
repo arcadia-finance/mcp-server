@@ -4,6 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { getAccountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
+import { appendDataSuffix } from "../../utils/attribution.js";
 
 const ACCOUNT_VERSION_ABI = [
   {
@@ -91,11 +92,13 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
           args.push(assetTypes);
         }
 
-        const data = encodeFunctionData({
-          abi,
-          functionName: "withdraw",
-          args,
-        });
+        const data = appendDataSuffix(
+          encodeFunctionData({
+            abi,
+            functionName: "withdraw",
+            args,
+          }),
+        );
 
         return {
           content: [

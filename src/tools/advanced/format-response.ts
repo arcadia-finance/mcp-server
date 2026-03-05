@@ -1,6 +1,8 @@
+import { appendDataSuffix } from "../../utils/attribution.js";
+
 export function formatAdvancedResponse(result: Record<string, unknown>, chainId: number) {
   const to = (result.fx_call_to ?? "") as string;
-  const data = (result.calldata ?? "") as string;
+  const data = appendDataSuffix((result.calldata ?? "") as string);
 
   const response: Record<string, unknown> = {
     transaction: { to, data, value: "0", chainId },

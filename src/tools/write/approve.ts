@@ -2,6 +2,7 @@ import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { appendDataSuffix } from "../../utils/attribution.js";
 
 const ERC20_APPROVE_ABI = [
   {
@@ -34,7 +35,7 @@ const MAX_UINT256 = 2n ** 256n - 1n;
 export function registerApproveTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.tool(
     "build_approve_tx",
-    "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before build_deposit_tx or build_add_liquidity_tx (when depositing from wallet).",
+    "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before build_deposit_tx or build_add_liquidity_tx (when depositing from wallet). Tip: call get_allowance first to check if approval already exists — skip this if the current allowance is sufficient.",
     {
       token_address: z.string().describe("Token contract address to approve"),
       spender_address: z
@@ -79,6 +80,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
           });
           description = `Approve ${params.spender_address} to spend ${params.token_address}`;
         }
+        data = appendDataSuffix(data) as `0x${string}`;
 
         return {
           content: [

@@ -110,6 +110,8 @@ Leverage multiplies both fee income and liquidation risk.
 | 2×                            | Classic delta neutral, volatile/stable pair | ~1.5–2×                   | ~0.5–0.7               |
 | 3×+                           | Aggressive yield, only in stable conditions | < 1.5× — watch carefully  | < 0.5 — watch closely  |
 
+**Minimum margin and small positions:** Each lending pool enforces a fixed minimum margin denominated in the pool's numeraire (e.g. WETH, USDC, cbBTC), typically a few dollars in value. This gets added to the debt in the health factor formula: `used_margin = open_debt + minimum_margin`. It ensures liquidations remain profitable (gas costs) and prevents dust attacks. For small positions, this fixed overhead dominates used margin, pushing health factor lower than the leverage ratio alone would suggest — e.g. 2× leverage normally targets HF ~0.5–0.7, but a small position might start at HF ~0.3. Increase position size for a healthier starting HF.
+
 **Profitability check:**
 
 ```

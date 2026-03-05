@@ -194,8 +194,8 @@ describe("build_close_position_tx", () => {
     });
 
     const data = parseToolResponse(result);
-    // Must be the hex calldata, NOT the function name "flashAction"
-    expect(data.transaction.data).toBe("0xabcdef1234567890");
+    // Must start with the hex calldata, NOT the function name "flashAction"
+    expect(data.transaction.data).toMatch(/^0xabcdef1234567890/);
     expect(data.transaction.data).not.toBe("flashAction");
   });
 });

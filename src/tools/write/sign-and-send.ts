@@ -31,7 +31,7 @@ export function registerSignAndSendTool(server: McpServer, chains: Record<ChainI
             content: [
               {
                 type: "text" as const,
-                text: "Error: PK env var not set. Set PK to a private key (hex) to enable transaction signing. This tool is for development only — use a dedicated wallet MCP server for production.",
+                text: "Error: PK not set. Either create a .env file with PK=0x... in the server directory, or set PK in your MCP client config env block. This tool is for development only — use a dedicated wallet MCP server for production.",
               },
             ],
             isError: true,
@@ -54,10 +54,19 @@ export function registerSignAndSendTool(server: McpServer, chains: Record<ChainI
         const wallet = createWalletClient({ account, chain, transport });
         const client = createPublicClient({ chain, transport });
 
+        const gasEstimate = await client.estimateGas({
+          account: account.address,
+          to: params.to as `0x${string}`,
+          data: params.data as `0x${string}`,
+          value: BigInt(params.value),
+        });
+        const gasLimit = (gasEstimate * 120n) / 100n;
+
         const hash = await wallet.sendTransaction({
           to: params.to as `0x${string}`,
           data: params.data as `0x${string}`,
           value: BigInt(params.value),
+          gas: gasLimit,
           chain,
         });
 
@@ -73,6 +82,7 @@ export function registerSignAndSendTool(server: McpServer, chains: Record<ChainI
                   txHash: receipt.transactionHash,
                   status: receipt.status,
                   blockNumber: Number(receipt.blockNumber),
+                  gasLimit: Number(gasLimit),
                   gasUsed: Number(receipt.gasUsed),
                 },
                 null,
