@@ -37,7 +37,7 @@ describe("build_repay_tx", () => {
     expect(decoded.args[1].toLowerCase()).toBe(TEST_ACCOUNT.toLowerCase());
   });
 
-  it("handles max uint256 for full repayment", async () => {
+  it("handles full max uint256 numeric string", async () => {
     const handler = setup();
     const result = await handler({
       pool_address: TEST_POOL,
@@ -50,6 +50,21 @@ describe("build_repay_tx", () => {
     const decoded = decodeFunctionData({ abi: poolAbi, data: transaction.data });
 
     expect(decoded.args[0]).toBe(BigInt(MAX_UINT256));
+  });
+
+  it("handles 'max_uint256' string shorthand", async () => {
+    const handler = setup();
+    const result = await handler({
+      pool_address: TEST_POOL,
+      account_address: TEST_ACCOUNT,
+      amount: "max_uint256",
+      chain_id: 8453,
+    });
+
+    const { transaction } = parseToolResponse(result);
+    const decoded = decodeFunctionData({ abi: poolAbi, data: transaction.data });
+
+    expect(decoded.args[0]).toBe(2n ** 256n - 1n);
   });
 
   it("returns tx 'to' as the pool address", async () => {

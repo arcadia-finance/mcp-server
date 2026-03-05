@@ -7,7 +7,7 @@ import { poolAbi } from "../../abis/index.js";
 export function registerRepayTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.tool(
     "build_repay_tx",
-    "Build an unsigned transaction to repay debt to an Arcadia lending pool. Approve the pool to spend the repayment token first.",
+    "Build an unsigned transaction to repay debt to an Arcadia lending pool from your wallet. Approve the pool first (build_approve_tx). To repay using account collateral instead, use build_repay_with_collateral_tx.",
     {
       pool_address: z
         .string()
@@ -18,7 +18,10 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
       amount: z
         .string()
         .describe("Amount in raw units, or 'max_uint256' to repay all debt in full"),
-      chain_id: z.number().default(8453).describe("Chain ID (default: Base 8453)"),
+      chain_id: z
+        .number()
+        .default(8453)
+        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
     },
     async (params) => {
       try {

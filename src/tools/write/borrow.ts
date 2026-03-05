@@ -2,12 +2,17 @@ import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import type { ArcadiaApiClient } from "../../clients/api.js";
 import { poolAbi } from "../../abis/index.js";
 
-export function registerBorrowTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
+export function registerBorrowTool(
+  server: McpServer,
+  _chains: Record<ChainId, ChainConfig>,
+  api: ArcadiaApiClient,
+) {
   server.tool(
     "build_borrow_tx",
-    "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral.",
+    "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral. Only works with margin accounts (created with a creditor/lending pool). Spot accounts (no creditor) cannot borrow — the tool will validate this and reject. Before borrowing, verify the account has positive free margin via get_account_info: collateral_value must exceed used_margin.",
     {
       pool_address: z
         .string()
@@ -17,10 +22,46 @@ export function registerBorrowTool(server: McpServer, _chains: Record<ChainId, C
       account_address: z.string().describe("Arcadia account address used as collateral"),
       amount: z.string().describe("Amount in raw units"),
       to: z.string().describe("Address to receive borrowed tokens"),
-      chain_id: z.number().default(8453).describe("Chain ID (default: Base 8453)"),
+      chain_id: z
+        .number()
+        .default(8453)
+        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
     },
     async (params) => {
       try {
+        // Validate: account must have a creditor (margin account)
+        const overview = (await api.getAccountOverview(
+          params.chain_id,
+          params.account_address,
+        )) as Record<string, unknown>;
+        const creditor = (overview.creditor as string) ?? "";
+        if (!creditor || creditor === "0x0000000000000000000000000000000000000000") {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "Error: This account has no creditor (spot account) and cannot borrow. Create a margin account with a creditor (lending pool) using build_create_account_tx.",
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // Pre-check: account must have free margin to absorb new debt
+        const collateralValue = Number(overview.collateral_value ?? 0);
+        const usedMargin = Number(overview.used_margin ?? 0);
+        if (collateralValue <= usedMargin) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Error: Account has no free margin (collateral_value: ${collateralValue}, used_margin: ${usedMargin}). Add more collateral before borrowing.`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
         const data = encodeFunctionData({
           abi: poolAbi,
           functionName: "borrow",

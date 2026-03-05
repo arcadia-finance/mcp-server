@@ -45,6 +45,8 @@ Must be positive to justify the leverage cost. Higher leverage amplifies both si
 
 Range width is the central tradeoff in any LP strategy. It is set in the Arcadia platform after enabling the rebalancer. Understanding the full tradeoff is essential for choosing parameters — a simple fee APY comparison is not enough.
 
+**Core principle:** The `strategy_apy` from `get_strategies` (list view) is the 7-day average APY computed for that strategy's **default range width** (configured per strategy — e.g. very narrow for stables, ±7.5% / balanced for most volatile pairs). It is sampled every ~3 hours and averaged over 7d. It already reflects a concentrated range — NOT a full-range / pool-level number. Choosing a different range width changes your actual yield: narrower = higher fee capture but more rebalancing cost/risk, wider = lower fees but fewer rebalances. Call `get_strategies(strategy_id: <id>)` to see APY broken down by range width (very_narrow, narrow, balanced, wide, very_wide, full_range). The net return after rebalancing costs, IL, and gas determines the optimal width — see the model below.
+
 ### The full tradeoff
 
 **Narrower range → higher fee capture, but three compounding costs:**
@@ -102,11 +104,11 @@ Vary range width in the model and pick the width that maximizes expected net ret
 
 Leverage multiplies both fee income and liquidation risk.
 
-| Leverage                      | Use case                                    | Health at entry          |
-| ----------------------------- | ------------------------------------------- | ------------------------ |
-| 1× (no borrow, `leverage: 0`) | Safe LP, no liquidation risk                | N/A                      |
-| 2×                            | Classic delta neutral, volatile/stable pair | ~1.5–2×                  |
-| 3×+                           | Aggressive yield, only in stable conditions | < 1.5× — watch carefully |
+| Leverage                      | Use case                                    | Collateral ratio at entry | Health factor at entry |
+| ----------------------------- | ------------------------------------------- | ------------------------- | ---------------------- |
+| 1× (no borrow, `leverage: 0`) | Safe LP, no liquidation risk                | N/A                       | 1.0 (no debt)          |
+| 2×                            | Classic delta neutral, volatile/stable pair | ~1.5–2×                   | ~0.5–0.7               |
+| 3×+                           | Aggressive yield, only in stable conditions | < 1.5× — watch carefully  | < 0.5 — watch closely  |
 
 **Profitability check:**
 
@@ -114,22 +116,26 @@ Leverage multiplies both fee income and liquidation risk.
 borrow_APY × (leverage - 1) < fee_APY × leverage   → leverage is profitable
 ```
 
-**Health factor at entry (rough estimate):**
+**Two safety metrics — collateral ratio vs health factor:**
+
+The API returns `health_factor = 1 - (used_margin / liquidation_value)`. This is between 0 and 1: higher is safer. `1` = no debt, `0` = liquidation threshold. See SKILL.md Key Constraints.
+
+A useful complementary metric is the **collateral ratio** — a rough estimate of how much buffer you have:
 
 ```
 collateral_value × collateral_factor
-─────────────────────────────────────  ≈ starting health factor
+─────────────────────────────────────  ≈ collateral ratio
          debt_value
 ```
 
-Target ≥ 1.5 at entry. Never open below 1.3.
+Target collateral ratio ≥ 1.5 at entry (≈ health factor ~0.5+). Never open below 1.3 (≈ health factor ~0.3).
 
 **When to use less leverage:**
 
 - Borrow APY rising (utilization climbing in lending pool)
 - Market showing high volatility (gap risk)
 - Position already near support/resistance — a breakout would spike debt fast
-- Health factor drifting toward 1.3
+- Health factor dropping toward 0.5 (check with `get_account_info`)
 
 ---
 
@@ -152,22 +158,24 @@ Monitor periodically with `get_account_info` and `get_account_pnl`. Exit or adju
 | Signal                           | Threshold               | Action                                |
 | -------------------------------- | ----------------------- | ------------------------------------- |
 | Borrow APY > fee APY             | Persists 3+ checks      | Exit strategy — no longer profitable  |
-| Health factor falling            | < 1.3                   | Add collateral or reduce debt         |
-| Health factor critical           | < 1.2                   | Immediate action required             |
+| Health factor falling            | < 0.5                   | Add collateral or reduce debt         |
+| Health factor critical           | < 0.2                   | Immediate action required             |
 | Position out-of-range repeatedly | Bot can't keep up       | Widen range or reduce leverage        |
 | Net PnL negative over time       | Check `get_account_pnl` | Evaluate whether IL is outpacing fees |
+
+**Closing in volatile conditions:** Atomic close (`build_close_position_tx`) may revert during high volatility or for low-liquidity pools because on-chain state diverges from when the backend computed the calldata. If atomic close fails, fall back to individual tools with tighter slippage — see strategies.md closing section for the full fallback sequence.
 
 ---
 
 ## 6. Quick Checklist Before Opening a Position
 
 ```
-[ ] get_strategies → fee_APY noted
+[ ] get_strategies → fee_APY noted (7d avg for default range; call with strategy_id for per-range APY)
 [ ] get_lending_pools → borrow_APY noted (if leveraged)
 [ ] net_APY = fee_APY - (leverage-1) × borrow_APY > 0
 [ ] Pair type matches strategy (volatile/stable for delta neutral)
 [ ] Range width: modeled or estimated for pair volatility + stAAA quota
-[ ] Leverage targets health factor ≥ 1.5 at entry
+[ ] Leverage targets collateral ratio ≥ 1.5 at entry (health factor ≥ 0.5)
 [ ] Merkl rewards active? → plan to enable Merkl Operator
 [ ] Prefer compounding or cash flow? → Compounder vs. Yield Claimer
 ```

@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { decodeFunctionData } from "viem";
-import { accountAbi } from "../../abis/index.js";
 import {
   createMockServer,
   createMockChains,
@@ -12,6 +11,20 @@ import { registerSetAssetManagerTool } from "./set-asset-manager.js";
 
 const REBALANCER_SLIPSTREAM_V2 = "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea" as const;
 
+const SET_ASSET_MANAGERS_ABI = [
+  {
+    type: "function",
+    name: "setAssetManagers",
+    inputs: [
+      { name: "assetManagers", type: "address[]" },
+      { name: "statuses", type: "bool[]" },
+      { name: "datas", type: "bytes[]" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+] as const;
+
 function setup() {
   const mock = createMockServer();
   registerSetAssetManagerTool(mock.server, createMockChains());
@@ -19,7 +32,7 @@ function setup() {
 }
 
 describe("build_set_asset_manager_tx", () => {
-  it("encodes setAssetManager(address, true) correctly", async () => {
+  it("encodes setAssetManagers(address[], bool[], bytes[]) correctly", async () => {
     const handler = setup();
     const result = await handler({
       account_address: TEST_ACCOUNT,
@@ -29,14 +42,15 @@ describe("build_set_asset_manager_tx", () => {
     });
 
     const { transaction } = parseToolResponse(result);
-    const decoded = decodeFunctionData({ abi: accountAbi, data: transaction.data });
+    const decoded = decodeFunctionData({ abi: SET_ASSET_MANAGERS_ABI, data: transaction.data });
 
-    expect(decoded.functionName).toBe("setAssetManager");
-    expect((decoded.args[0] as string).toLowerCase()).toBe(TEST_ADDRESS.toLowerCase());
-    expect(decoded.args[1]).toBe(true);
+    expect(decoded.functionName).toBe("setAssetManagers");
+    expect((decoded.args[0][0] as string).toLowerCase()).toBe(TEST_ADDRESS.toLowerCase());
+    expect(decoded.args[1][0]).toBe(true);
+    expect(decoded.args[2][0]).toBe("0x");
   });
 
-  it("encodes setAssetManager(address, false) for revocation", async () => {
+  it("encodes revocation (enabled=false)", async () => {
     const handler = setup();
     const result = await handler({
       account_address: TEST_ACCOUNT,
@@ -46,10 +60,10 @@ describe("build_set_asset_manager_tx", () => {
     });
 
     const { transaction } = parseToolResponse(result);
-    const decoded = decodeFunctionData({ abi: accountAbi, data: transaction.data });
+    const decoded = decodeFunctionData({ abi: SET_ASSET_MANAGERS_ABI, data: transaction.data });
 
-    expect(decoded.functionName).toBe("setAssetManager");
-    expect(decoded.args[1]).toBe(false);
+    expect(decoded.functionName).toBe("setAssetManagers");
+    expect(decoded.args[1][0]).toBe(false);
   });
 
   it("returns tx 'to' as the account address", async () => {
@@ -75,10 +89,12 @@ describe("build_set_asset_manager_tx", () => {
     });
 
     const { transaction } = parseToolResponse(result);
-    const decoded = decodeFunctionData({ abi: accountAbi, data: transaction.data });
+    const decoded = decodeFunctionData({ abi: SET_ASSET_MANAGERS_ABI, data: transaction.data });
 
-    expect(decoded.functionName).toBe("setAssetManager");
-    expect((decoded.args[0] as string).toLowerCase()).toBe(REBALANCER_SLIPSTREAM_V2.toLowerCase());
-    expect(decoded.args[1]).toBe(true);
+    expect(decoded.functionName).toBe("setAssetManagers");
+    expect((decoded.args[0][0] as string).toLowerCase()).toBe(
+      REBALANCER_SLIPSTREAM_V2.toLowerCase(),
+    );
+    expect(decoded.args[1][0]).toBe(true);
   });
 });

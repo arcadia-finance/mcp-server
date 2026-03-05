@@ -62,5 +62,23 @@ export function parseToolResponse(result: { content: Array<{ type: string; text:
 
 export const TEST_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`;
 export const TEST_ACCOUNT = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`;
+export const TEST_SPOT_ACCOUNT = "0x00000000000000000000000000000000000000aa" as `0x${string}`;
 export const TEST_POOL = "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2" as `0x${string}`;
 export const TEST_CHAIN_ID = 8453;
+
+export function createMockApi(overrides?: Record<string, unknown>) {
+  return {
+    getAccountOverview: vi.fn(async (_chainId: number, account: string) => {
+      if (account.toLowerCase() === TEST_SPOT_ACCOUNT.toLowerCase()) {
+        return { creditor: "0x0000000000000000000000000000000000000000", assets: [], ...overrides };
+      }
+      return {
+        creditor: TEST_POOL,
+        collateral_value: 1000,
+        used_margin: 100,
+        assets: [],
+        ...overrides,
+      };
+    }),
+  } as Record<string, unknown>;
+}

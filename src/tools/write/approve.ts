@@ -16,33 +16,69 @@ const ERC20_APPROVE_ABI = [
   },
 ] as const;
 
+const ERC721_SET_APPROVAL_FOR_ALL_ABI = [
+  {
+    type: "function",
+    name: "setApprovalForAll",
+    inputs: [
+      { name: "operator", type: "address" },
+      { name: "approved", type: "bool" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+] as const;
+
 const MAX_UINT256 = 2n ** 256n - 1n;
 
 export function registerApproveTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.tool(
     "build_approve_tx",
-    "Build an unsigned ERC20 approval transaction. Required before depositing tokens into an Arcadia account — the account contract must be approved to pull tokens from your wallet. Use amount 'max_uint256' for unlimited approval.",
+    "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before build_deposit_tx or build_add_liquidity_tx (when depositing from wallet).",
     {
-      token_address: z.string().describe("ERC20 token contract address to approve"),
+      token_address: z.string().describe("Token contract address to approve"),
       spender_address: z
         .string()
         .describe("Address being approved — use the Arcadia account address for deposits"),
+      asset_type: z
+        .enum(["erc20", "erc721", "erc1155"])
+        .default("erc20")
+        .describe(
+          "Token type: 'erc20' (default) for fungible tokens, 'erc721' or 'erc1155' for NFTs (LP positions)",
+        ),
       amount: z
         .string()
         .default("max_uint256")
-        .describe("Amount in raw units, or 'max_uint256' for unlimited approval"),
-      chain_id: z.number().default(8453).describe("Chain ID (default: Base 8453)"),
+        .describe(
+          "ERC20 only: amount in raw units, or 'max_uint256' for unlimited. Ignored for NFTs.",
+        ),
+      chain_id: z
+        .number()
+        .default(8453)
+        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
     },
     async (params) => {
       try {
-        const amount =
-          !params.amount || params.amount === "max_uint256" ? MAX_UINT256 : BigInt(params.amount);
+        let data: `0x${string}`;
+        let description: string;
 
-        const data = encodeFunctionData({
-          abi: ERC20_APPROVE_ABI,
-          functionName: "approve",
-          args: [params.spender_address as `0x${string}`, amount],
-        });
+        if (params.asset_type === "erc721" || params.asset_type === "erc1155") {
+          data = encodeFunctionData({
+            abi: ERC721_SET_APPROVAL_FOR_ALL_ABI,
+            functionName: "setApprovalForAll",
+            args: [params.spender_address as `0x${string}`, true],
+          });
+          description = `Approve ${params.spender_address} to transfer all ${params.asset_type.toUpperCase()} tokens from ${params.token_address}`;
+        } else {
+          const amount =
+            !params.amount || params.amount === "max_uint256" ? MAX_UINT256 : BigInt(params.amount);
+          data = encodeFunctionData({
+            abi: ERC20_APPROVE_ABI,
+            functionName: "approve",
+            args: [params.spender_address as `0x${string}`, amount],
+          });
+          description = `Approve ${params.spender_address} to spend ${params.token_address}`;
+        }
 
         return {
           content: [
@@ -50,7 +86,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
               type: "text" as const,
               text: JSON.stringify(
                 {
-                  description: `Approve ${params.spender_address} to spend ${params.token_address}`,
+                  description,
                   transaction: {
                     to: params.token_address as `0x${string}`,
                     data,

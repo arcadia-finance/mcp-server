@@ -18,6 +18,7 @@ export interface TestAccount {
   accountAddress: string;
   owner: string;
   hasDebt: boolean;
+  creditor: string;
   lpPositions: LPPosition[];
 }
 
@@ -51,6 +52,7 @@ export async function discoverTestAccounts(api?: ArcadiaApiClient): Promise<Test
       const overview = (await client.getAccountOverview(CHAIN_ID, entry.account_address)) as {
         owner: string;
         debt: number;
+        creditor: string;
         assets: Array<{
           name: string;
           address: string;
@@ -73,6 +75,7 @@ export async function discoverTestAccounts(api?: ArcadiaApiClient): Promise<Test
           accountAddress: entry.account_address,
           owner: overview.owner,
           hasDebt: entry.open_debt > 0,
+          creditor: overview.creditor ?? "",
           lpPositions: lps,
         });
       }
@@ -104,4 +107,27 @@ export function findAccountWithStakedLP(accounts: TestAccount[]) {
   if (!account) return null;
   const lp = account.lpPositions.find((lp) => lp.isStaked)!;
   return { account, lp };
+}
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+/** Find a margin account (has creditor) — required for add-liquidity. */
+export function findMarginAccount(accounts: TestAccount[]) {
+  return accounts.find((a) => a.creditor && a.creditor !== ZERO_ADDRESS) ?? null;
+}
+
+interface StrategyStub {
+  strategy_id: number;
+  underlyings: Array<{ underlying_address: string; underlying_symbol: string }>;
+}
+
+/** Find a strategy that has USDC as one of its underlyings (good for testing add-liquidity). */
+export async function findUsdcStrategy(api: ArcadiaApiClient): Promise<StrategyStub | null> {
+  const USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+  const strategies = (await api.getStrategies(CHAIN_ID)) as unknown as StrategyStub[];
+  return (
+    strategies.find((s) =>
+      s.underlyings?.some((u) => u.underlying_address.toLowerCase() === USDC_BASE),
+    ) ?? null
+  );
 }

@@ -6,6 +6,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const load = (name: string) => JSON.parse(readFileSync(join(__dirname, `${name}.json`), "utf-8"));
 
 export const accountAbi = load("account");
+export const accountV4Abi = load("account_v4");
+
+export function getAccountAbi(version: number) {
+  return version >= 4 ? accountV4Abi : accountAbi;
+}
 export const factoryAbi = load("factory");
 export const poolAbi = load("pool");
 export const erc20Abi = load("erc20");

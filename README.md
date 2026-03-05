@@ -14,11 +14,13 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 | `get_account_history` | Historical account value over time.                                                                                          |
 | `get_account_pnl`     | PnL and yield data for an account.                                                                                           |
 | `get_assets`          | Supported collateral assets with addresses, types, decimals. Optional USD price lookup.                                      |
+| `get_wallet_balances` | On-chain ERC20 balances and native ETH for a wallet address.                                                                 |
 | `get_points`          | Points balance for a wallet, or leaderboard.                                                                                 |
 | `get_lending_pools`   | Pool data: TVL, APY, utilization, liquidity. Optional single-pool detail with APY history.                                   |
 | `get_protocol_stats`  | Protocol-wide stats: TVL, borrowed, pool count, AAA supply.                                                                  |
 | `get_strategies`      | LP strategies with APY, underlyings, pool info. Optional detail or featured filter.                                          |
 | `get_recommendation`  | Rebalancing recommendation for an account.                                                                                   |
+| `get_guide`           | Reference guides: automation setup, strategy selection, strategy templates.                                                  |
 
 ### Write Tools
 
@@ -32,7 +34,7 @@ Direct calldata encoding via viem. Each returns `{ to, data, value, chainId }`.
 | `build_withdraw_tx`                | Withdraw assets from an account.                                                                                                                                         |
 | `build_borrow_tx`                  | Borrow from a lending pool.                                                                                                                                              |
 | `build_repay_tx`                   | Repay debt to a lending pool.                                                                                                                                            |
-| `build_set_asset_manager_tx`       | Grant or revoke an asset manager contract's permission on an account (V1/V2 accounts, no config data).                                                                   |
+| `build_set_asset_manager_tx`       | Grant or revoke an asset manager contract's permission on a V3/V4 account. For full setup with config, use `build_configure_asset_manager_tx`.                           |
 | `build_configure_asset_manager_tx` | Enable AND configure an asset manager in one tx for V3/V4 accounts: sets initiator, fee limits, and strategy parameters (trigger thresholds, compound mode, recipients). |
 
 ### Advanced Tools
@@ -46,6 +48,41 @@ Proxied via backend API. Handles swap routing, Tenderly simulation, optimal rati
 | `build_swap_tx`                  | Swap assets within an account (backend-routed).                         |
 | `build_repay_with_collateral_tx` | Repay debt by selling collateral (swap + repay in one tx).              |
 | `build_position_action_tx`       | Stake, unstake, or claim rewards for LP positions.                      |
+
+## Transaction Signing
+
+All write and advanced tools return **unsigned transactions** as `{ to, data, value, chainId }`. This server does NOT sign or broadcast — your agent or application is responsible for that.
+
+### Options
+
+**Wallet infrastructure (recommended for production):**
+Use your existing wallet setup — MPC wallets (Fireblocks, Dfns, Turnkey), smart accounts (Safe, Biconomy), or embedded wallets (Privy, Dynamic). Pass the unsigned tx object to your provider's signing method.
+
+**viem/ethers in your agent:**
+
+```typescript
+import { createWalletClient, http } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { base } from "viem/chains";
+
+const account = privateKeyToAccount("0x...");
+const client = createWalletClient({ account, chain: base, transport: http() });
+
+// tx = result from any build_*_tx tool
+const hash = await client.sendTransaction(tx);
+```
+
+**Simple signing script (development only, not recommended for production):**
+A minimal Node.js script that reads a private key from `.env` and signs+broadcasts. Useful for local testing but not suitable for production — private keys in `.env` files are a security risk.
+
+```bash
+# .env (never commit this)
+PK=0xYourPrivateKeyHex
+RPC_URL_BASE=<your_base_rpc_url>
+
+# Usage — pipe the JSON output from any build_*_tx tool:
+npx tsx scripts/sign-tx.ts '{"to":"0x...","data":"0x...","value":"0","chainId":8453}'
+```
 
 ## Setup
 

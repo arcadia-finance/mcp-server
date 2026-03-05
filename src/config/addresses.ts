@@ -116,6 +116,20 @@ export const ASSET_MANAGERS = {
   },
 } as const;
 
+// Minimal strategy hook — required for rebalancer onSetAssetManager callback
+export const MINIMAL_STRATEGY_HOOK = "0x13beD1A58d87c0454872656c5328103aAe5eB86A" as const;
+
+// Position manager → protocol mapping (for Slipstream V1/V2 detection)
+// Staked and wrapped staked variants use the same asset managers as their base protocol.
+export const POSITION_MANAGERS: Record<string, string> = {
+  "0x827922686190790b37229fd06084350e74485b72": "slipstream",
+  "0x1dc7a0f5336f52724b650e39174cfcbbedd67bf1": "slipstream",
+  "0xd74339e0f10fce96894916b93e5cc7de89c98272": "slipstream",
+  "0xa990c6a764b73bf43cee5bb40339c3322fb9d55f": "slipstream_v2",
+  "0xbed6c3e35b9b1e044b3bc71465769edfdc0fdd4c": "slipstream_v2",
+  "0x147a2ccbaf4521ad209a2875ae0b3c496f4b25a4": "slipstream_v2",
+};
+
 // Chain-specific addresses
 export const STATE_VIEWERS: Partial<Record<ChainId, `0x${string}`>> = {
   8453: "0xA3c0c9b65baD0b08107Aa264b0f3dB444b867A71",

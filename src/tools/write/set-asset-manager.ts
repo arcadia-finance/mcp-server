@@ -2,7 +2,20 @@ import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
-import { accountAbi } from "../../abis/index.js";
+
+const SET_ASSET_MANAGERS_ABI = [
+  {
+    type: "function",
+    name: "setAssetManagers",
+    inputs: [
+      { name: "assetManagers", type: "address[]" },
+      { name: "statuses", type: "bool[]" },
+      { name: "datas", type: "bytes[]" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+] as const;
 
 export function registerSetAssetManagerTool(
   server: McpServer,
@@ -10,21 +23,24 @@ export function registerSetAssetManagerTool(
 ) {
   server.tool(
     "build_set_asset_manager_tx",
-    "Build an unsigned transaction to grant or revoke an asset manager contract's permission to act on an Arcadia account. Asset managers are contracts that automate position management (rebalancers, compounders, yield claimers, Merkl operators, CoW swappers). See the clamm-liquidity skill for known addresses.",
+    "Build an unsigned transaction to grant or revoke an asset manager's permission on an Arcadia V3/V4 account via setAssetManagers. This ONLY toggles the permission flag — it does NOT configure initiator, fees, or strategy parameters. For full setup (enable + configure in one tx), use build_configure_asset_manager_tx instead. For asset manager addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
     {
-      account_address: z.string().describe("Arcadia account address"),
+      account_address: z.string().describe("Arcadia account address (V3 or V4)"),
       asset_manager_address: z
         .string()
         .describe("Asset manager contract address to grant or revoke"),
       enabled: z.boolean().describe("True to grant permission, false to revoke"),
-      chain_id: z.number().default(8453).describe("Chain ID (default: Base 8453)"),
+      chain_id: z
+        .number()
+        .default(8453)
+        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
     },
     async (params) => {
       try {
         const data = encodeFunctionData({
-          abi: accountAbi,
-          functionName: "setAssetManager",
-          args: [params.asset_manager_address as `0x${string}`, params.enabled],
+          abi: SET_ASSET_MANAGERS_ABI,
+          functionName: "setAssetManagers",
+          args: [[params.asset_manager_address as `0x${string}`], [params.enabled], ["0x"]],
         });
 
         return {

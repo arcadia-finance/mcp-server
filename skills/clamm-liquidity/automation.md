@@ -1,14 +1,14 @@
 # Automation Setup
 
-All automation on Arcadia uses one of two tools depending on your account version, then Arcadia's backend bots do the work.
+All automation on Arcadia uses one of two tools (both V3/V4 accounts only), then Arcadia's backend bots do the work.
 
 ## Which tool to use
 
-**For V3/V4 accounts (recommended for new accounts):** Use `build_configure_asset_manager_tx`. This grants permission AND sets strategy parameters (initiator, fee limits, trigger thresholds, fee recipient, etc.) in a single transaction.
+**To enable + configure (recommended):** Use `build_configure_asset_manager_tx`. This grants permission AND sets strategy parameters (initiator, fee limits, trigger thresholds, fee recipient, etc.) in a single transaction.
 
-**For V1/V2 accounts (legacy):** Use `build_set_asset_manager_tx`. This only grants permission — strategy parameters must be configured separately in the Arcadia platform.
+**To grant/revoke only:** Use `build_set_asset_manager_tx`. This only grants or revokes permission — no configuration. Use this to revoke an asset manager.
 
-## Configure + enable (V3/V4)
+## Configure + enable
 
 ```
 build_configure_asset_manager_tx(
@@ -29,7 +29,7 @@ build_configure_asset_manager_tx(
 
 ```
 
-## Grant only (V1/V2)
+## Grant/revoke only
 
 ```
 build_set_asset_manager_tx(
@@ -73,7 +73,7 @@ Quota is also bypassed automatically when: gas cost < pending fees ÷ 2, or posi
 
 **Fees:** 7.5% of yield earned, max 1% liquidity decrease per rebalance (MDL).
 
-**`strategy_hook`** (optional): For POL, pass `strategy_hook: "0xed332137b463D98868132791EC3f641c8eE3bE71"` to use the dynamic range algorithm. Omit for standard rebalancer behavior.
+**`strategy_hook`** (optional): For POL, pass `strategy_hook: "0x13beD1A58d87c0454872656c5328103aAe5eB86A"` to use the dynamic range algorithm. Omit for standard rebalancer behavior.
 
 **Strategy config:** Range width and reposition mode are configured in the Arcadia platform after enabling the rebalancer — not settable via MCP.
 

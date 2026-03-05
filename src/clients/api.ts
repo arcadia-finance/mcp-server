@@ -17,6 +17,31 @@ export class ArcadiaApiClient {
     this.timeout = timeout;
   }
 
+  private async throwApiError(resp: Response, path: string): Promise<never> {
+    const body = await resp.text().catch(() => "");
+    const status = resp.status;
+
+    let hint = "";
+    if (status === 400) {
+      hint =
+        " Check that all parameters are valid (correct address format, supported chain_id, valid amounts).";
+    } else if (status === 404) {
+      hint = " The resource was not found. Verify the account/pool/strategy exists on this chain.";
+    } else if (status === 422) {
+      hint = " Invalid input. The API rejected the request parameters.";
+    } else if (status === 500) {
+      hint =
+        " Internal backend error. Common causes: account has no creditor (spot account used where margin account is required), unsupported asset type, or transient backend issue. Retry once — if it persists, check account type and parameters.";
+    } else if (status === 502 || status === 503 || status === 504) {
+      hint = " Backend is temporarily unavailable. Retry after a few seconds.";
+    }
+
+    const detail = body.length > 500 ? body.slice(0, 500) + "..." : body;
+    throw new Error(
+      `Arcadia API error (${status} on ${path}): ${detail || resp.statusText}${hint}`,
+    );
+  }
+
   private async get<T = ApiResponse>(
     path: string,
     params?: Record<string, string | number>,
@@ -32,10 +57,7 @@ export class ArcadiaApiClient {
     const resp = await fetch(url.toString(), {
       signal: AbortSignal.timeout(this.timeout),
     });
-    if (!resp.ok) {
-      const body = await resp.text().catch(() => "");
-      throw new Error(`Arcadia API ${resp.status} ${resp.statusText}: ${body}`);
-    }
+    if (!resp.ok) await this.throwApiError(resp, path);
     return resp.json() as Promise<T>;
   }
 
@@ -47,10 +69,7 @@ export class ArcadiaApiClient {
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(this.timeout),
     });
-    if (!resp.ok) {
-      const text = await resp.text().catch(() => "");
-      throw new Error(`Arcadia API ${resp.status} ${resp.statusText}: ${text}`);
-    }
+    if (!resp.ok) await this.throwApiError(resp, path);
     return resp.json() as Promise<T>;
   }
 
@@ -77,10 +96,13 @@ export class ArcadiaApiClient {
   }
 
   async getAccountHistory(chainId: number, account: string, days = 14) {
+    const end = Math.floor(Date.now() / 1000);
+    const start = end - days * 86400;
     return this.get("/accounts/historic_account_values", {
       chain_id: chainId,
       account_address: account,
-      days,
+      start,
+      end,
     });
   }
 
@@ -94,12 +116,12 @@ export class ArcadiaApiClient {
 
   // ── PnL & Yield ─────────────────────────────────────────────────
 
-  async getPnl(chainId: number, account: string) {
-    return this.get("/pnl/total/account", { chain_id: chainId, account_address: account });
+  async getPnlCostBasis(chainId: number, account: string) {
+    return this.get("/accounts/pnl_cost_basis", { chain_id: chainId, account_address: account });
   }
 
-  async getYield(chainId: number, account: string) {
-    return this.get("/yield/total/account", { chain_id: chainId, account_address: account });
+  async getYieldEarned(chainId: number, account: string) {
+    return this.get("/accounts/yield_earned", { chain_id: chainId, account_address: account });
   }
 
   // ── Assets & Prices ─────────────────────────────────────────────
@@ -121,10 +143,7 @@ export class ArcadiaApiClient {
     const resp = await fetch(url.toString(), {
       signal: AbortSignal.timeout(this.timeout),
     });
-    if (!resp.ok) {
-      const body = await resp.text().catch(() => "");
-      throw new Error(`Arcadia API ${resp.status} ${resp.statusText}: ${body}`);
-    }
+    if (!resp.ok) await this.throwApiError(resp, "/assets/prices");
     return resp.json() as Promise<Record<string, number>>;
   }
 
@@ -222,9 +241,10 @@ export class ArcadiaApiClient {
     asset_id: number;
     adjustment: string;
   }) {
-    const { asset_id, ...rest } = params;
+    const { asset_id, asset_address, ...rest } = params;
     return this.get("/bundles/decrease_liquidity", {
       ...rest,
+      asset: asset_address,
       position_id: asset_id,
     } as Record<string, string | number>);
   }
@@ -235,9 +255,10 @@ export class ArcadiaApiClient {
     asset_address: string;
     asset_id: number;
   }) {
-    const { asset_id, ...rest } = params;
+    const { asset_id, asset_address, ...rest } = params;
     return this.get("/bundles/stake", {
       ...rest,
+      asset: asset_address,
       position_id: asset_id,
     } as Record<string, string | number>);
   }
@@ -248,9 +269,10 @@ export class ArcadiaApiClient {
     asset_address: string;
     asset_id: number;
   }) {
-    const { asset_id, ...rest } = params;
+    const { asset_id, asset_address, ...rest } = params;
     return this.get("/bundles/claim", {
       ...rest,
+      asset: asset_address,
       position_id: asset_id,
     } as Record<string, string | number>);
   }

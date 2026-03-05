@@ -2,18 +2,45 @@ import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
-import { accountAbi } from "../../abis/index.js";
+import { getAccountAbi } from "../../abis/index.js";
+import { getPublicClient } from "../../clients/chain.js";
 
-export function registerDepositTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
+const ACCOUNT_VERSION_ABI = [
+  {
+    type: "function",
+    name: "ACCOUNT_VERSION",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+] as const;
+
+export function registerDepositTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.tool(
     "build_deposit_tx",
-    "Build an unsigned transaction to deposit ERC20 tokens into an Arcadia account. Ensure the account is approved to spend your tokens first.",
+    "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before build_add_liquidity_tx — that tool deposits from wallet atomically. Ensure the account is approved first (build_approve_tx with asset_type matching the token type). Account version is auto-detected on-chain (override with account_version if needed).",
     {
       account_address: z.string().describe("Arcadia account address"),
       asset_addresses: z.array(z.string()).describe("Token contract addresses to deposit"),
       asset_amounts: z.array(z.string()).describe("Amounts in raw units/wei, one per asset"),
-      asset_ids: z.array(z.number()).optional().describe("Token IDs, use 0 for ERC20"),
-      chain_id: z.number().default(8453).describe("Chain ID (default: Base 8453)"),
+      asset_ids: z
+        .array(z.number())
+        .optional()
+        .describe("Token IDs: 0 for ERC20, NFT token ID for ERC721"),
+      asset_types: z
+        .array(z.number())
+        .optional()
+        .describe(
+          "V4 only. Asset types per asset: 1=ERC20, 2=ERC721, 3=ERC1155. If omitted, inferred from asset_ids (non-zero → ERC721).",
+        ),
+      account_version: z
+        .number()
+        .optional()
+        .describe("Override account version (3 or 4). Auto-detected on-chain if omitted."),
+      chain_id: z
+        .number()
+        .default(8453)
+        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
     },
     async (params) => {
       try {
@@ -28,13 +55,36 @@ export function registerDepositTool(server: McpServer, _chains: Record<ChainId, 
             isError: true,
           };
         }
+
+        // Auto-detect account version on-chain, or use override
+        let version = params.account_version ?? 0;
+        if (!version) {
+          const client = getPublicClient(params.chain_id as ChainId, chains);
+          version = Number(
+            await client.readContract({
+              address: params.account_address as `0x${string}`,
+              abi: ACCOUNT_VERSION_ABI,
+              functionName: "ACCOUNT_VERSION",
+            }),
+          );
+        }
+
         const ids = (params.asset_ids ?? params.asset_addresses.map(() => 0)).map((n) => BigInt(n));
         const amounts = params.asset_amounts.map((a) => BigInt(a));
+        const abi = getAccountAbi(version);
+
+        const args: unknown[] = [params.asset_addresses as `0x${string}`[], ids, amounts];
+        if (version >= 4) {
+          const assetTypes = params.asset_types
+            ? params.asset_types.map((t) => BigInt(t))
+            : ids.map((id) => (id > 0n ? 2n : 1n)); // 0 → ERC20 (1), non-zero → ERC721 (2)
+          args.push(assetTypes);
+        }
 
         const data = encodeFunctionData({
-          abi: accountAbi,
+          abi,
           functionName: "deposit",
-          args: [params.asset_addresses as `0x${string}`[], ids, amounts],
+          args,
         });
 
         return {
@@ -43,7 +93,7 @@ export function registerDepositTool(server: McpServer, _chains: Record<ChainId, 
               type: "text" as const,
               text: JSON.stringify(
                 {
-                  description: "Deposit assets into Arcadia account",
+                  description: `Deposit assets into Arcadia account (V${version})`,
                   transaction: {
                     to: params.account_address as `0x${string}`,
                     data,

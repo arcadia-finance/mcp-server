@@ -4,18 +4,15 @@ These are templates and examples — not the only valid approaches. Adapt parame
 
 ## Key Parameter Notes
 
-- **`build_add_liquidity_tx`** takes one `deposit_asset` — the backend swaps it to the optimal ratio for the LP. You do NOT pass both tokens — deposit one asset and the backend handles the split. If you deposited both tokens, only `deposit_asset` is used for the LP mint; the other remains as separate collateral in the account.
-- **`deposit_amount`** refers to collateral already in the account (deposited via `build_deposit_tx`). The backend uses this from account collateral — it does NOT pull from the wallet again.
-- **`numeraire`** meaning depends on the tool:
-  - In `build_add_liquidity_tx`: base currency for the account (typically the stable side, e.g. USDC).
-  - In `build_repay_with_collateral_tx`: the debt token you're repaying (e.g. WETH when repaying WETH debt).
+- **`build_add_liquidity_tx`** capital sources: `deposit_asset`/`deposit_amount` (wallet tokens), `use_account_assets=true` (existing account collateral), or both. The backend swaps everything to the optimal ratio for the LP. You do NOT need to `build_deposit_tx` first — `build_add_liquidity_tx` handles the wallet transfer atomically. Approve wallet token first (`build_approve_tx`).
+- **V4 spot accounts CAN mint LP** but cannot leverage (set `leverage: 0`). V3 margin accounts (created with a `creditor`) can both mint LP and leverage. If the user wants leveraged LP, create a V3 margin account with a creditor (`account_version: 3`).
+- **`numeraire`** in `build_repay_with_collateral_tx`: the debt token you're repaying (e.g. WETH when repaying WETH debt). `build_add_liquidity_tx` auto-detects numeraire — no param needed.
 - **`leverage`**: `0` = no leverage. `2` = 2x. Do NOT use `1` for no leverage — use `0`. When `leverage > 0`, borrowing is handled internally by `build_add_liquidity_tx` — do NOT call `build_borrow_tx` separately.
 - **LP NFT details**: after `build_add_liquidity_tx`, call `get_account_info` to find `asset_address` (the position manager contract) and `asset_id` (NFT token ID) in the positions list — needed for unstake/remove/claim actions.
 - **`amount: "max_uint256"`** in `build_repay_tx` repays all debt in full.
-- **`account_version`**: always pass `account_version: 0` (latest). Applies to both `build_create_account_tx` and `build_add_liquidity_tx`.
 - **`slippage`** is in basis points: 100 = 1%, 50 = 0.5%.
 - **`salt`** in `build_create_account_tx` is a random uint32 used for deterministic address derivation. Use any random 32-bit integer (e.g. `Math.floor(Math.random() * 2**32)`).
-- **`creditor`** = the lending pool address you want to borrow from. Set at account creation via `build_create_account_tx`. Determines which asset the account can borrow. Omit for spot-only accounts (no borrowing). `build_add_liquidity_tx` infers the creditor from the account's config — no separate creditor param needed.
+- **`creditor`** = the lending pool address you want to borrow from. Set at account creation via `build_create_account_tx`. Determines which asset the account can borrow. **Required for leveraged LP strategies.** Omit for spot-only accounts (no borrowing, but LP minting still works with `leverage: 0`).
 - **`build_withdraw_tx`**: pass exact amounts from `get_account_info`. Does NOT support `"max_uint256"` — will error.
 - **Getting the account address after creation:** The address is deterministic from the salt. It's visible in the tx receipt events. Or call `get_account_info(wallet_address: ...)` after creation to list all accounts.
 
@@ -24,11 +21,17 @@ These are templates and examples — not the only valid approaches. Adapt parame
 ## Core Lifecycle (all strategies)
 
 ```
-Open:    approve tokens → create account → deposit collateral → add liquidity → enable automation
+Open:    approve tokens → create account → add liquidity (atomic: deposit + swap + mint + borrow) → enable automation
 Monitor: get_account_info (health), get_account_pnl (profitability)
-Adjust:  add collateral or repay debt if health drops; remove + re-add liquidity to manually rebalance range; remove liquidity to reduce exposure
-Close:   disable rebalancer → unstake → claim → remove liquidity → repay debt → withdraw
+Adjust:  add collateral or repay debt if health drops; remove + re-add liquidity to manually rebalance range
+Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay) → withdraw
 ```
+
+### Batching vs splitting
+
+**Default: always use atomic tools.** `build_add_liquidity_tx` batches opening, `build_close_position_tx` batches closing, `build_repay_with_collateral_tx` batches debt repayment from collateral. These reduce transaction count and eliminate exposure to price movement between steps.
+
+**When to split:** In high-volatility markets or for low-liquidity pools, atomic transactions may revert because on-chain state diverges from when the backend computed the calldata. If an atomic tool fails, fall back to individual tools with tighter slippage. Always try atomic first — split only on failure.
 
 ---
 
@@ -60,48 +63,39 @@ get_lending_pools(chain_id: 8453)
 → Find the WETH lending pool (address: 0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2)
 → If borrow_apy > fee_apy → stop, strategy not profitable
 
-// 3. CREATE ACCOUNT
+// 3. CREATE MARGIN ACCOUNT (V3 + creditor = can borrow/leverage)
 build_create_account_tx(
   salt: <random uint32, e.g. 3141592653>,
-  account_version: 0,   // 0 = latest version (V4) — required for build_configure_asset_manager_tx
-  creditor: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",  // WETH lending pool — enables margin/borrow
+  account_version: 3,   // V3 margin — required for leverage
+  creditor: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",  // WETH lending pool — enables borrow
   chain_id: 8453
 )
 → Submit tx, note deployed account address from tx receipt
 → Or call get_account_info(wallet_address: ...) to find the new account address
 
-// 4. APPROVE + DEPOSIT COLLATERAL
+// 4. APPROVE WALLET TOKEN (so the account can pull USDC from your wallet atomically)
 build_approve_tx(
   token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  // USDC
   spender_address: <account_address>,
   amount: "max_uint256",
   chain_id: 8453
 )
-build_deposit_tx(
-  account_address: <account_address>,
-  asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"],  // USDC
-  asset_amounts: ["10000000000"],  // 10,000 USDC (6 decimals: 10000 × 10^6)
-  chain_id: 8453
-)
 
-// 6. OPEN LEVERAGED LP (atomic: borrow + swap + mint)
-// The backend takes your deposited USDC, borrows WETH, swaps to optimal ratio, and mints the LP.
+// 5. OPEN LEVERAGED LP (atomic: pull USDC from wallet + borrow WETH + swap to ratio + mint LP)
+// No separate build_deposit_tx needed — build_add_liquidity_tx handles the wallet transfer atomically.
 build_add_liquidity_tx(
   account_address: <account_address>,
   wallet_address: <owner_wallet>,
   strategy_id: <integer from step 1>,
-  deposit_asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",   // USDC — the asset already in account
-  deposit_amount: "10000000000",   // 10,000 USDC
+  deposit_asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",   // USDC — pulled from wallet
+  deposit_amount: "10000000000",   // 10,000 USDC (wallet must hold this)
   deposit_decimals: 6,
-  numeraire: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  // USDC = base currency of this account
-  numeraire_decimals: 6,
   leverage: 2,        // 2 = 2x leverage (0 = no leverage, 3 = 3x, etc.)
   slippage: 100,      // 100 = 1% slippage tolerance (basis points)
-  account_version: 0, // must match the account version (0 = latest)
   chain_id: 8453
 )
 
-// 7. ENABLE AND CONFIGURE REBALANCER (match address to LP protocol from step 1)
+// 6. ENABLE AND CONFIGURE REBALANCER (match address to LP protocol from step 1)
 build_configure_asset_manager_tx(
   account_address: <account_address>,
   asset_manager_address: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",  // Slipstream V2
@@ -114,7 +108,7 @@ build_configure_asset_manager_tx(
 )
 // → Range width and reposition mode must be configured in the Arcadia platform
 
-// 8. ENABLE MERKL (if pool has Merkl incentives — check fee APY breakdown in step 1)
+// 7. ENABLE MERKL (if pool has Merkl incentives — check fee APY breakdown in step 1)
 build_configure_asset_manager_tx(
   account_address: <account_address>,
   asset_manager_address: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
@@ -129,10 +123,13 @@ build_configure_asset_manager_tx(
 ```
 // Run periodically (daily or on request)
 get_account_info(account_address: <account_address>, chain_id: 8453)
-→ health_factor:
-    > 1.5    → safe
-    1.2–1.5  → monitor closely, consider adding collateral
-    < 1.2    → ACTION REQUIRED
+→ health_factor = 1 - (used_margin / liquidation_value). Higher = safer.
+    1        → no debt (safest)
+    > 0.5    → healthy
+    0.2–0.5  → monitor closely, consider adding collateral or reducing debt
+    < 0.2    → ACTION REQUIRED — close to liquidation
+    0        → liquidation threshold
+    < 0      → past liquidation
 
 get_account_pnl(account_address: <account_address>, chain_id: 8453)
 → If net yield is consistently negative → evaluate exit
@@ -144,7 +141,7 @@ get_lending_pools(chain_id: 8453)
 ### Responding to health factor drops
 
 ```
-// Option A: Add collateral (increases health, cheapest)
+// Option A: Add collateral (raises health factor, cheapest)
 build_approve_tx(token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender_address: <account>, amount: "max_uint256", chain_id: 8453)
 build_deposit_tx(account_address: <account>, asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], asset_amounts: ["<amount>"], chain_id: 8453)
 
@@ -172,8 +169,12 @@ build_repay_with_collateral_tx(
 
 ### Closing
 
+**ALWAYS try the atomic close first** — it batches everything into 1-2 transactions instead of 6+.
+
+#### Preferred: Atomic close (1-2 transactions)
+
 ```
-// 0. First disable the rebalancer (prevents it from acting during close)
+// 0. Disable automation first (prevents rebalancer from acting during close)
 build_set_asset_manager_tx(
   account_address: <account>,
   asset_manager_address: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
@@ -181,42 +182,55 @@ build_set_asset_manager_tx(
   chain_id: 8453
 )
 
-// 1. Find LP NFT details — call get_account_info and read the positions list:
-//    asset_address = the position manager contract
-//    asset_id = the NFT token ID
+// 1. Get account state — need asset list for the close call
 get_account_info(account_address: <account>, chain_id: 8453)
 
-// 2. Unstake (must unstake before removing liquidity), claim, remove
-// Pass the STAKED position manager as asset_address to trigger unstaking (auto-detected)
+// 2. Unstake if staked (required before close)
 build_position_action_tx(action: "unstake", asset_address: <staked_pm_address>, asset_id: <nft_id>, account_address: <account>, chain_id: 8453)
-build_position_action_tx(action: "claim", asset_address: <lp_nft_address>, asset_id: <nft_id>, account_address: <account>, chain_id: 8453)
-build_remove_liquidity_tx(account_address: <account>, asset_address: <lp_nft_address>, asset_id: <nft_id>, adjustment: <liquidity_amount>, chain_id: 8453)
-// ⚠ Removing liquidity drops collateral while debt remains — health factor drops.
-// Submit the repay tx immediately after to minimize liquidation risk window.
 
-// 3. Repay all WETH debt (build_repay_tx sends from wallet — approve the pool to spend your WETH first)
-build_approve_tx(token_address: "0x4200000000000000000000000000000000000006", spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", amount: "max_uint256", chain_id: 8453)
-build_repay_tx(
-  pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",
+// 3. Atomic close: burns LP + swaps all tokens to USDC + repays debt — ONE transaction
+build_close_position_tx(
   account_address: <account>,
-  amount: "max_uint256",  // repay all
+  assets: [
+    { asset_address: "<position_manager>", asset_id: <nft_id>, amount: "1", decimals: 1 }
+  ],
+  receive_asset: { asset_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6 },  // receive USDC
+  slippage: 100,
   chain_id: 8453
 )
 
-// 4. Withdraw all remaining assets to wallet (always goes to account owner)
-// Call get_account_info first to get exact balances — no max_uint256 supported
+// 4. Withdraw remaining assets to wallet
 build_withdraw_tx(
   account_address: <account>,
-  asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "0x4200000000000000000000000000000000000006"],  // USDC + WETH
-  asset_amounts: ["<usdc_balance>", "<weth_balance>"],  // exact amounts from get_account_info
+  asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"],
+  asset_amounts: ["<balance>"],
   chain_id: 8453
 )
+```
+
+#### Fallback: Two-step close (if atomic fails)
+
+If the full atomic close fails, split into two steps:
+
+1. `build_close_position_tx(close_lp_only=true)` — burns LP only, tokens stay in account
+2. Then use individual tools: `build_repay_with_collateral_tx` → `build_withdraw_tx`
+
+#### Last resort: Manual step-by-step
+
+Only if both atomic approaches fail:
+
+```
+build_position_action_tx(action: "claim", ...)   // claim fees
+build_remove_liquidity_tx(adjustment: <amount>)   // partial decrease
+build_repay_with_collateral_tx(...)               // swap collateral → repay debt
+build_repay_tx(amount: "max_uint256")             // repay remaining from wallet
+build_withdraw_tx(...)                            // withdraw all to wallet
 ```
 
 **Key risks:**
 
 - IL: WETH price deviation from entry accumulates IL. Rebalancer mitigates but doesn't eliminate.
-- Liquidation: If WETH pumps sharply, health factor drops fast. Keep buffer > 1.3.
+- Liquidation: If WETH pumps sharply, health factor drops toward 0. Keep health factor above 0.5.
 - Borrow cost: WETH utilization spikes can make strategy unprofitable quickly.
 - Agent role: periodic health monitoring only — the rebalancer handles range management.
 
@@ -256,23 +270,28 @@ The `protocol_owned_liquidity` strategy type uses a dynamic range algorithm (k1/
 build_approve_tx(token_address: <token>, spender_address: <account>, amount: "max_uint256", chain_id: 8453)
 
 // 2. Create account (separate from retail positions)
+// For POL without leverage, a spot account (V4) works fine.
+// Use V3 + creditor only if you want the option to leverage later.
 build_create_account_tx(
   salt: <random uint32>,
-  account_version: 0,  // latest version
+  account_version: 0,  // V4 spot — no leverage needed for POL
   chain_id: 8453
-  // no creditor = spot account (no leverage, no liquidation risk)
 )
 
 // 3. Deposit treasury tokens
 build_deposit_tx(account_address: <account>, ...)
 
-// 4. Open LP (no leverage)
+// 4. Open LP (no leverage — deposit_amount is pulled from wallet)
 build_add_liquidity_tx(
-  ...,
+  account_address: <account>,
+  wallet_address: <treasury_wallet>,
+  strategy_id: <from step 1>,
+  deposit_asset: <token_address>,
+  deposit_amount: <raw_amount>,
+  deposit_decimals: <decimals>,
   leverage: 0,        // 0 = no leverage (NOT 1 — use 0 for unleveraged)
   slippage: 200,      // 2% — wider tolerance for POL
-  account_version: 0,
-  ...
+  chain_id: 8453
 )
 
 // 5. Enable rebalancer with POL strategy hook
@@ -280,7 +299,7 @@ build_configure_asset_manager_tx(
   account_address: <account>,
   asset_manager_address: <rebalancer matching LP protocol>,
   am_type: "rebalancer",
-  strategy_hook: "0xed332137b463D98868132791EC3f641c8eE3bE71",  // POL dynamic range algorithm
+  strategy_hook: "0x13beD1A58d87c0454872656c5328103aAe5eB86A",  // POL dynamic range algorithm
   trigger_lower_ratio: 0,
   trigger_upper_ratio: 0,
   compound_leftovers: "all",

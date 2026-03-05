@@ -30,7 +30,7 @@
     "arcadia-mcp": "./dist/index.js"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc && cp src/abis/*.json dist/abis/",
+    "build": "rm -rf dist && tsc && cp src/abis/*.json dist/abis/ && cp -r skills dist/skills",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run",

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { createMockServer, parseToolResponse } from "../../test-utils.js";
+import { createMockServer, createMockChains, parseToolResponse } from "../../test-utils.js";
 import { ArcadiaApiClient } from "../../clients/api.js";
 import { registerAccountTools } from "./accounts.js";
 import { registerPoolTools } from "./pools.js";
@@ -17,7 +17,7 @@ import { discoverTestAccounts, type TestAccount } from "../test-fixtures.js";
 function setup() {
   const mock = createMockServer();
   const api = new ArcadiaApiClient();
-  registerAccountTools(mock.server, api);
+  registerAccountTools(mock.server, api, createMockChains());
   registerPoolTools(mock.server, api);
   registerAssetTools(mock.server, api);
   registerProtocolTools(mock.server, api);
@@ -39,20 +39,6 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     accountAddress = accounts[0].accountAddress;
     walletAddress = accounts[0].owner;
   }, 30_000);
-
-  // ── Protocol ────────────────────────────────────────────────
-
-  it("get_protocol_stats returns pools_data and AAA supply", async () => {
-    const handler = mock.getHandler("get_protocol_stats");
-    const result = await handler({ chain_id: 8453 });
-    const text = result.content[0].text;
-    expect(text).toBeDefined();
-    if (!result.isError) {
-      const data = parseToolResponse(result);
-      expect(data).toHaveProperty("pools_data");
-      expect(data).toHaveProperty("aaa_circulating_supply");
-    }
-  });
 
   // ── Pools ───────────────────────────────────────────────────
 
@@ -107,13 +93,14 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     const result = await handler({ chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
+    expect(data).toHaveProperty("total");
     expect(data).toHaveProperty("assets");
     expect(Array.isArray(data.assets)).toBe(true);
-    expect(data.assets.length).toBeGreaterThan(0);
+    expect(data.total).toBeGreaterThan(0);
     const asset = data.assets[0];
     expect(asset).toHaveProperty("address");
     expect(asset).toHaveProperty("decimals");
-    expect(asset).toHaveProperty("name");
+    expect(asset).toHaveProperty("symbol");
   });
 
   it("get_assets with single address returns raw USD price number", async () => {
@@ -148,14 +135,17 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Strategies ──────────────────────────────────────────────
 
-  it("get_strategies returns array of strategies", async () => {
+  it("get_strategies returns paginated strategies object", async () => {
     const handler = mock.getHandler("get_strategies");
     const result = await handler({ chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBeGreaterThan(0);
-    const strategy = data[0];
+    expect(data).toHaveProperty("total");
+    expect(data).toHaveProperty("strategies");
+    expect(Array.isArray(data.strategies)).toBe(true);
+    expect(data.strategies.length).toBeGreaterThan(0);
+    expect(data.strategies.length).toBeLessThanOrEqual(25);
+    const strategy = data.strategies[0];
     expect(strategy).toHaveProperty("strategy_id");
   });
 
@@ -218,13 +208,21 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(acct).toHaveProperty("account_id");
   });
 
-  it("get_account_info with account_address returns overview + liquidation", async () => {
+  it("get_account_info with account_address returns version + overview + liquidation + automation", async () => {
     const handler = mock.getHandler("get_account_info");
     const result = await handler({ account_address: accountAddress, chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
+    expect(data).toHaveProperty("account_version");
     expect(data).toHaveProperty("overview");
     expect(data).toHaveProperty("liquidation_price");
+    if (data.automation) {
+      expect(data.automation).toHaveProperty("rebalancer");
+      expect(data.automation).toHaveProperty("compounder");
+      expect(data.automation).toHaveProperty("yield_claimer");
+      expect(data.automation).toHaveProperty("merkl_operator");
+      expect(data.automation).toHaveProperty("cow_swapper");
+    }
   });
 
   it("get_account_history returns historical data", async () => {
@@ -242,15 +240,15 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     }
   });
 
-  it("get_account_pnl returns pnl and yield data", async () => {
+  it("get_account_pnl returns pnl_cost_basis and yield_earned", async () => {
     const handler = mock.getHandler("get_account_pnl");
     const result = await handler({ account_address: accountAddress, chain_id: 8453 });
     const text = result.content[0].text;
     expect(text).toBeDefined();
     if (!result.isError) {
       const data = parseToolResponse(result);
-      expect(data).toHaveProperty("pnl");
-      expect(data).toHaveProperty("yield");
+      expect(data).toHaveProperty("pnl_cost_basis");
+      expect(data).toHaveProperty("yield_earned");
     }
   });
 

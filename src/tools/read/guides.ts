@@ -7,19 +7,23 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 const TOPICS = {
   overview: {
     file: "SKILL.md",
-    summary: "Tool catalog, token/contract/lending pool addresses, asset manager addresses, account versions",
+    summary:
+      "Tool catalog, token/contract/lending pool addresses, asset manager addresses, account versions",
   },
   automation: {
     file: "automation.md",
-    summary: "Rebalancer, compounder, yield claimer, merkl operator, CoW swapper setup and addresses",
+    summary:
+      "Rebalancer, compounder, yield claimer, merkl operator, CoW swapper setup and addresses",
   },
   strategies: {
     file: "strategies.md",
-    summary: "Step-by-step strategy templates: delta neutral leveraged LP, protocol owned liquidity, closing sequences",
+    summary:
+      "Step-by-step strategy templates: delta neutral leveraged LP, protocol owned liquidity, closing sequences",
   },
   selection: {
     file: "selection.md",
-    summary: "Strategy evaluation framework: pool selection, range width, leverage sizing, automation combos, exit signals",
+    summary:
+      "Strategy evaluation framework: pool selection, range width, leverage sizing, automation combos, exit signals",
   },
 } as const;
 
@@ -50,14 +54,21 @@ export function registerGuideTools(server: McpServer) {
         ),
     },
     async ({ topic }) => {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: guides.get(topic)!,
-          },
-        ],
-      };
+      try {
+        return {
+          content: [{ type: "text" as const, text: guides.get(topic)! }],
+        };
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
     },
   );
 }

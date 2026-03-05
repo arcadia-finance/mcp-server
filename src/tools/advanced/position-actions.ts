@@ -1,11 +1,12 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
+import { formatAdvancedResponse } from "./format-response.js";
 
 export function registerPositionActionsTool(server: McpServer, api: ArcadiaApiClient) {
   server.tool(
     "build_position_action_tx",
-    "Build an unsigned transaction to stake, unstake, or claim rewards for an LP position. The stake/unstake direction is auto-detected from asset_address: pass the non-staked position manager to stake, or the staked position manager to unstake.",
+    "Flash-action: stake, unstake, or claim rewards for an LP position in one atomic transaction. The stake/unstake direction is auto-detected from asset_address: pass the non-staked position manager to stake, or the staked position manager to unstake. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up).",
     {
       account_address: z.string().describe("Arcadia account address"),
       action: z.enum(["stake", "unstake", "claim"]).describe("Action to perform"),
@@ -25,7 +26,34 @@ export function registerPositionActionsTool(server: McpServer, api: ArcadiaApiCl
             asset_address,
             asset_id,
           });
-          return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+
+          const claimRes = result as Record<string, unknown>;
+          if (claimRes.tenderly_sim_status === "false") {
+            const simUrl = claimRes.tenderly_sim_url
+              ? `\nTenderly simulation: ${claimRes.tenderly_sim_url}`
+              : "";
+            const simError = claimRes.tenderly_sim_error
+              ? `\nRevert reason: ${claimRes.tenderly_sim_error}`
+              : "";
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Error: Transaction simulation FAILED — do NOT broadcast.${simError}${simUrl}`,
+                },
+              ],
+              isError: true,
+            };
+          }
+
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(formatAdvancedResponse(claimRes, chain_id), null, 2),
+              },
+            ],
+          };
         }
 
         const result = await api.getStakeCalldata({
@@ -34,7 +62,34 @@ export function registerPositionActionsTool(server: McpServer, api: ArcadiaApiCl
           asset_address,
           asset_id,
         });
-        return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+
+        const res = result as Record<string, unknown>;
+        if (res.tenderly_sim_status === "false") {
+          const simUrl = res.tenderly_sim_url
+            ? `\nTenderly simulation: ${res.tenderly_sim_url}`
+            : "";
+          const simError = res.tenderly_sim_error
+            ? `\nRevert reason: ${res.tenderly_sim_error}`
+            : "";
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Error: Transaction simulation FAILED — do NOT broadcast.${simError}${simUrl}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(formatAdvancedResponse(res, chain_id), null, 2),
+            },
+          ],
+        };
       } catch (err) {
         return {
           content: [

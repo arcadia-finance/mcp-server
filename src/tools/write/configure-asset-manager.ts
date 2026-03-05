@@ -2,6 +2,7 @@ import { z } from "zod";
 import { encodeAbiParameters, encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { ASSET_MANAGERS, MINIMAL_STRATEGY_HOOK } from "../../config/addresses.js";
 
 // Arcadia's bot initiator addresses per asset manager type
 const REBALANCER_INITIATOR = "0x163CcA8F161CBBB401a96aDf4Cbf4D74f3faD1Ed" as const;
@@ -69,6 +70,11 @@ function encodeRebalancerCallbackData(
   strategyHook: `0x${string}`,
   metaData: `0x${string}`,
 ): `0x${string}` {
+  // strategyData must be ABI-encoded empty bytes, not raw "0x".
+  // The hook's setStrategy does abi.decode(strategyData, (bytes)) which needs
+  // at least 64 bytes (offset + length) to decode successfully.
+  const emptyStrategyData = encodeAbiParameters([{ type: "bytes" }], ["0x"]);
+
   return encodeAbiParameters(
     [
       { name: "initiator", type: "address" },
@@ -87,7 +93,7 @@ function encodeRebalancerCallbackData(
       DEFAULT_MAX_TOLERANCE,
       DEFAULT_MIN_LIQUIDITY_RATIO,
       strategyHook,
-      "0x",
+      emptyStrategyData,
       metaData,
     ],
   );
@@ -144,16 +150,49 @@ function encodeMerklOperatorCallbackData(
   );
 }
 
+type AmType = "rebalancer" | "compounder" | "yield_claimer" | "merkl_operator";
+type PoolProtocol = "slipstream" | "slipstream_v2" | "uniV3" | "uniV4";
+
+const PROTOCOL_TO_AM_KEY: Record<PoolProtocol, keyof typeof ASSET_MANAGERS.base.rebalancers> = {
+  slipstream: "slipstreamV1",
+  slipstream_v2: "slipstreamV2",
+  uniV3: "uniV3",
+  uniV4: "uniV4",
+};
+
+function resolveAmAddress(amType: AmType, protocol: PoolProtocol): string | undefined {
+  const key = PROTOCOL_TO_AM_KEY[protocol];
+  switch (amType) {
+    case "rebalancer":
+      return ASSET_MANAGERS.base.rebalancers[key];
+    case "compounder":
+      return ASSET_MANAGERS.base.compounders[key];
+    case "yield_claimer":
+      return ASSET_MANAGERS.base.yieldClaimers[key];
+    case "merkl_operator":
+      return ASSET_MANAGERS.base.merklOperator;
+  }
+}
+
 export function registerConfigureAssetManagerTool(
   server: McpServer,
   _chains: Record<ChainId, ChainConfig>,
 ) {
   server.tool(
     "build_configure_asset_manager_tx",
-    "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike build_set_asset_manager_tx (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient).",
+    "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike build_set_asset_manager_tx (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient). Pass pool_protocol to auto-resolve the correct AM address, or pass asset_manager_address directly. For addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
     {
       account_address: z.string().describe("Arcadia account address (must be V3 or V4)"),
-      asset_manager_address: z.string().describe("Asset manager contract address to enable"),
+      asset_manager_address: z
+        .string()
+        .optional()
+        .describe("Asset manager contract address. Optional if pool_protocol is provided."),
+      pool_protocol: z
+        .enum(["slipstream", "slipstream_v2", "uniV3", "uniV4"])
+        .optional()
+        .describe(
+          "LP protocol — auto-resolves the correct AM address. Use instead of asset_manager_address.",
+        ),
       am_type: z
         .enum(["rebalancer", "compounder", "yield_claimer", "merkl_operator"])
         .describe("Type of asset manager"),
@@ -187,7 +226,7 @@ export function registerConfigureAssetManagerTool(
         .string()
         .optional()
         .describe(
-          "Rebalancer: optional strategy hook contract address. For POL use 0xed332137b463D98868132791EC3f641c8eE3bE71.",
+          "Rebalancer: strategy hook address. Defaults to minimal hook (0x13beD1A58d87c0454872656c5328103aAe5eB86A). Only override for POL or custom hooks.",
         ),
       // Yield Claimer / Merkl Operator
       fee_recipient: z
@@ -198,10 +237,31 @@ export function registerConfigureAssetManagerTool(
         .string()
         .optional()
         .describe("merkl_operator: address to receive Merkl rewards (required for merkl_operator)"),
-      chain_id: z.number().default(8453).describe("Chain ID (default: Base 8453)"),
+      chain_id: z
+        .number()
+        .default(8453)
+        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
     },
     async (params) => {
       try {
+        // Resolve asset manager address from pool_protocol or direct address
+        const amAddress =
+          params.asset_manager_address ??
+          (params.pool_protocol
+            ? resolveAmAddress(params.am_type, params.pool_protocol)
+            : undefined);
+        if (!amAddress) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "Error: Provide asset_manager_address or pool_protocol to resolve the AM address.",
+              },
+            ],
+            isError: true,
+          };
+        }
+
         let callbackData: `0x${string}`;
 
         switch (params.am_type) {
@@ -212,8 +272,7 @@ export function registerConfigureAssetManagerTool(
               params.compound_leftovers,
               params.min_rebalance_time,
             );
-            const strategyHook = (params.strategy_hook ??
-              "0x0000000000000000000000000000000000000000") as `0x${string}`;
+            const strategyHook = (params.strategy_hook ?? MINIMAL_STRATEGY_HOOK) as `0x${string}`;
             callbackData = encodeRebalancerCallbackData(
               REBALANCER_INITIATOR,
               strategyHook,
@@ -250,7 +309,7 @@ export function registerConfigureAssetManagerTool(
         const data = encodeFunctionData({
           abi: SET_ASSET_MANAGERS_ABI,
           functionName: "setAssetManagers",
-          args: [[params.asset_manager_address as `0x${string}`], [true], [callbackData]],
+          args: [[amAddress as `0x${string}`], [true], [callbackData]],
         });
 
         return {
@@ -259,7 +318,7 @@ export function registerConfigureAssetManagerTool(
               type: "text" as const,
               text: JSON.stringify(
                 {
-                  description: `Configure and enable ${params.am_type} ${params.asset_manager_address} on account ${params.account_address}`,
+                  description: `Configure and enable ${params.am_type} ${amAddress} on account ${params.account_address}`,
                   transaction: {
                     to: params.account_address as `0x${string}`,
                     data,
