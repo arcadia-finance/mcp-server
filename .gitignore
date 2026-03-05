@@ -4,6 +4,7 @@ dist/
 .env.*
 !.env.example
 *.tsbuildinfo
+.mcpregistry_*
 scripts/
 .vscode/
 
