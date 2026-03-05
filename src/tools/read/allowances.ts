@@ -2,31 +2,8 @@ import { z } from "zod";
 import { formatUnits } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { erc20Abi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
-
-const ERC20_ABI = [
-  {
-    type: "function",
-    name: "allowance",
-    inputs: [{ type: "address" }, { type: "address" }],
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "decimals",
-    inputs: [],
-    outputs: [{ type: "uint8" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "symbol",
-    inputs: [],
-    outputs: [{ type: "string" }],
-    stateMutability: "view",
-  },
-] as const;
 
 const MAX_UINT256 = 2n ** 256n - 1n;
 
@@ -54,12 +31,12 @@ export function registerAllowanceTools(server: McpServer, chains: Record<ChainId
         const calls = token_addresses.flatMap((addr) => [
           {
             address: addr as `0x${string}`,
-            abi: ERC20_ABI,
+            abi: erc20Abi,
             functionName: "allowance" as const,
             args: [owner, spender],
           },
-          { address: addr as `0x${string}`, abi: ERC20_ABI, functionName: "decimals" as const },
-          { address: addr as `0x${string}`, abi: ERC20_ABI, functionName: "symbol" as const },
+          { address: addr as `0x${string}`, abi: erc20Abi, functionName: "decimals" as const },
+          { address: addr as `0x${string}`, abi: erc20Abi, functionName: "symbol" as const },
         ]);
 
         const results = (await client.multicall({ contracts: calls, allowFailure: true })) as {

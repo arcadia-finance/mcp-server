@@ -2,31 +2,8 @@ import { z } from "zod";
 import { formatUnits } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { erc20Abi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
-
-const ERC20_ABI = [
-  {
-    type: "function",
-    name: "balanceOf",
-    inputs: [{ type: "address" }],
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "decimals",
-    inputs: [],
-    outputs: [{ type: "uint8" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "symbol",
-    inputs: [],
-    outputs: [{ type: "string" }],
-    stateMutability: "view",
-  },
-] as const;
 
 export function registerBalanceTools(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.tool(
@@ -49,12 +26,12 @@ export function registerBalanceTools(server: McpServer, chains: Record<ChainId, 
         const calls = token_addresses.flatMap((addr) => [
           {
             address: addr as `0x${string}`,
-            abi: ERC20_ABI,
+            abi: erc20Abi,
             functionName: "balanceOf" as const,
             args: [wallet],
           },
-          { address: addr as `0x${string}`, abi: ERC20_ABI, functionName: "decimals" as const },
-          { address: addr as `0x${string}`, abi: ERC20_ABI, functionName: "symbol" as const },
+          { address: addr as `0x${string}`, abi: erc20Abi, functionName: "decimals" as const },
+          { address: addr as `0x${string}`, abi: erc20Abi, functionName: "symbol" as const },
         ]);
 
         const [nativeBalance, ...multicallResults] = await Promise.all([

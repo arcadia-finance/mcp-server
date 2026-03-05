@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "MCP server for Arcadia Finance — manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization.",
   "type": "module",
-  "license": "(BUSL-1.1)",
+  "license": "BUSL-1.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/arcadia-finance/mcp-server.git"

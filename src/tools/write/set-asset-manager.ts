@@ -2,21 +2,8 @@ import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { accountAbi } from "../../abis/index.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
-
-const SET_ASSET_MANAGERS_ABI = [
-  {
-    type: "function",
-    name: "setAssetManagers",
-    inputs: [
-      { name: "assetManagers", type: "address[]" },
-      { name: "statuses", type: "bool[]" },
-      { name: "datas", type: "bytes[]" },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-] as const;
 
 export function registerSetAssetManagerTool(
   server: McpServer,
@@ -40,7 +27,7 @@ export function registerSetAssetManagerTool(
       try {
         const data = appendDataSuffix(
           encodeFunctionData({
-            abi: SET_ASSET_MANAGERS_ABI,
+            abi: accountAbi,
             functionName: "setAssetManagers",
             args: [[params.asset_manager_address as `0x${string}`], [params.enabled], ["0x"]],
           }),

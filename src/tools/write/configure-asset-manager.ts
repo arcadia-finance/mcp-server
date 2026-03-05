@@ -3,6 +3,7 @@ import { encodeAbiParameters, encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { ASSET_MANAGERS, MINIMAL_STRATEGY_HOOK } from "../../config/addresses.js";
+import { accountAbi } from "../../abis/index.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
 
 // Arcadia's bot initiator addresses per asset manager type
@@ -16,20 +17,6 @@ const DEFAULT_MAX_CLAIM_FEE = BigInt("100000000000000000"); // 10% (0.1 * 1e18)
 const DEFAULT_MAX_SWAP_FEE = BigInt("500000000000000"); // 0.05% (0.0005 * 1e18)
 const DEFAULT_MAX_TOLERANCE = BigInt("5000000000000000"); // 0.5% (0.005 * 1e18)
 const DEFAULT_MIN_LIQUIDITY_RATIO = BigInt("990000000000000000"); // 99% (0.99 * 1e18)
-
-const SET_ASSET_MANAGERS_ABI = [
-  {
-    type: "function",
-    name: "setAssetManagers",
-    inputs: [
-      { name: "assetManagers", type: "address[]" },
-      { name: "statuses", type: "bool[]" },
-      { name: "datas", type: "bytes[]" },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-] as const;
 
 function encodeRebalancerMetadata(
   triggerLowerRatio: number,
@@ -309,7 +296,7 @@ export function registerConfigureAssetManagerTool(
 
         const data = appendDataSuffix(
           encodeFunctionData({
-            abi: SET_ASSET_MANAGERS_ABI,
+            abi: accountAbi,
             functionName: "setAssetManagers",
             args: [[amAddress as `0x${string}`], [true], [callbackData]],
           }),
