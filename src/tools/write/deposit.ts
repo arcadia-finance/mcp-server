@@ -2,19 +2,9 @@ import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
-import { getAccountAbi } from "../../abis/index.js";
+import { accountAbi, getAccountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
-
-const ACCOUNT_VERSION_ABI = [
-  {
-    type: "function",
-    name: "ACCOUNT_VERSION",
-    inputs: [],
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-  },
-] as const;
 
 export function registerDepositTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.tool(
@@ -64,7 +54,7 @@ export function registerDepositTool(server: McpServer, chains: Record<ChainId, C
           version = Number(
             await client.readContract({
               address: params.account_address as `0x${string}`,
-              abi: ACCOUNT_VERSION_ABI,
+              abi: accountAbi,
               functionName: "ACCOUNT_VERSION",
             }),
           );

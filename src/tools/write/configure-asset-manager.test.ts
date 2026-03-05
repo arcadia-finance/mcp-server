@@ -8,6 +8,7 @@ import {
   TEST_ADDRESS,
 } from "../../test-utils.js";
 import { registerConfigureAssetManagerTool } from "./configure-asset-manager.js";
+import { accountAbi } from "../../abis/index.js";
 
 const REBALANCER_SLIPSTREAM_V2 = "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea" as const;
 const MERKL_OPERATOR = "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6" as const;
@@ -17,20 +18,6 @@ const REBALANCER_INITIATOR = "0x163CcA8F161CBBB401a96aDf4Cbf4D74f3faD1Ed";
 const COMPOUNDER_INITIATOR = "0xb0f46DB8B96e265C1D93396444Eee952086C6f3D";
 const CLAIMER_INITIATOR = "0xDc9B596ce15F859673D1Be72e2Aadd41DD3aC4fE";
 const MERKL_INITIATOR = "0x521541D932B15631e8a1B037f17457C801722bA0";
-
-const SET_ASSET_MANAGERS_ABI = [
-  {
-    type: "function",
-    name: "setAssetManagers",
-    inputs: [
-      { name: "assetManagers", type: "address[]" },
-      { name: "statuses", type: "bool[]" },
-      { name: "datas", type: "bytes[]" },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-] as const;
 
 function setup() {
   const mock = createMockServer();
@@ -54,7 +41,7 @@ describe("build_configure_asset_manager_tx", () => {
 
     const { transaction } = parseToolResponse(result);
     const decoded = decodeFunctionData({
-      abi: SET_ASSET_MANAGERS_ABI,
+      abi: accountAbi,
       data: transaction.data,
     });
 
@@ -98,7 +85,7 @@ describe("build_configure_asset_manager_tx", () => {
 
     const { transaction } = parseToolResponse(result);
     const decoded = decodeFunctionData({
-      abi: SET_ASSET_MANAGERS_ABI,
+      abi: accountAbi,
       data: transaction.data,
     });
 
@@ -119,7 +106,7 @@ describe("build_configure_asset_manager_tx", () => {
 
     const { transaction } = parseToolResponse(result);
     const decoded = decodeFunctionData({
-      abi: SET_ASSET_MANAGERS_ABI,
+      abi: accountAbi,
       data: transaction.data,
     });
 
@@ -153,7 +140,7 @@ describe("build_configure_asset_manager_tx", () => {
 
     const { transaction } = parseToolResponse(result);
     const decoded = decodeFunctionData({
-      abi: SET_ASSET_MANAGERS_ABI,
+      abi: accountAbi,
       data: transaction.data,
     });
 

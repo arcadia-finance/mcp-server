@@ -665,6 +665,29 @@
   },
   {
     "type": "function",
+    "name": "setAssetManagers",
+    "inputs": [
+      {
+        "name": "assetManagers",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "statuses",
+        "type": "bool[]",
+        "internalType": "bool[]"
+      },
+      {
+        "name": "datas",
+        "type": "bytes[]",
+        "internalType": "bytes[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setNumeraire",
     "inputs": [
       {

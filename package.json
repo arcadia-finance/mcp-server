@@ -4,6 +4,7 @@
   "description": "MCP server for Arcadia Finance — manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization.",
   "type": "module",
   "license": "BUSL-1.1",
+  "packageManager": "yarn@4.13.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/arcadia-finance/mcp-server.git"
@@ -23,6 +24,7 @@
     "dist",
     "!dist/**/*.d.ts",
     "!dist/**/*.js.map",
+    "skills",
     "README.md",
     "LICENSE.md"
   ],
@@ -30,7 +32,7 @@
     "arcadia-mcp": "./dist/index.js"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc && cp src/abis/*.json dist/abis/ && cp -r skills dist/skills",
+    "build": "rm -rf dist && tsc && cp src/abis/*.json dist/abis/",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run",

@@ -2,28 +2,9 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { accountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
 import { ASSET_MANAGERS } from "../../config/addresses.js";
-
-const ACCOUNT_VERSION_ABI = [
-  {
-    type: "function",
-    name: "ACCOUNT_VERSION",
-    inputs: [],
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-  },
-] as const;
-
-const IS_ASSET_MANAGER_ABI = [
-  {
-    type: "function",
-    name: "isAssetManager",
-    inputs: [{ type: "address" }, { type: "address" }],
-    outputs: [{ type: "bool" }],
-    stateMutability: "view",
-  },
-] as const;
 
 export function registerAccountTools(
   server: McpServer,
@@ -60,7 +41,7 @@ export function registerAccountTools(
             client
               .readContract({
                 address: account_address as `0x${string}`,
-                abi: ACCOUNT_VERSION_ABI,
+                abi: accountAbi,
                 functionName: "ACCOUNT_VERSION",
               })
               .then((v: bigint) => Number(v))
@@ -134,7 +115,7 @@ export function registerAccountTools(
               .multicall({
                 contracts: amChecks.map((c) => ({
                   address: account_address as `0x${string}`,
-                  abi: IS_ASSET_MANAGER_ABI,
+                  abi: accountAbi,
                   functionName: "isAssetManager",
                   args: [owner as `0x${string}`, c.address as `0x${string}`],
                 })),

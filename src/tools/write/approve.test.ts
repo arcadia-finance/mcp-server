@@ -8,32 +8,7 @@ import {
   TEST_ACCOUNT,
 } from "../../test-utils.js";
 import { registerApproveTool } from "./approve.js";
-
-const ERC20_APPROVE_ABI = [
-  {
-    type: "function",
-    name: "approve",
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-  },
-] as const;
-
-const ERC721_SET_APPROVAL_FOR_ALL_ABI = [
-  {
-    type: "function",
-    name: "setApprovalForAll",
-    inputs: [
-      { name: "operator", type: "address" },
-      { name: "approved", type: "bool" },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-] as const;
+import { erc20Abi, nftmanagerAbi } from "../../abis/index.js";
 
 const MAX_UINT256 = 2n ** 256n - 1n;
 
@@ -56,7 +31,7 @@ describe("build_approve_tx", () => {
     const { transaction } = parseToolResponse(result);
     expect(transaction.to.toLowerCase()).toBe(TEST_ADDRESS.toLowerCase());
 
-    const decoded = decodeFunctionData({ abi: ERC20_APPROVE_ABI, data: transaction.data });
+    const decoded = decodeFunctionData({ abi: erc20Abi, data: transaction.data });
     expect(decoded.functionName).toBe("approve");
     expect((decoded.args[0] as string).toLowerCase()).toBe(TEST_ACCOUNT.toLowerCase());
     expect(decoded.args[1]).toBe(1000000000n);
@@ -72,7 +47,7 @@ describe("build_approve_tx", () => {
     });
 
     const { transaction } = parseToolResponse(result);
-    const decoded = decodeFunctionData({ abi: ERC20_APPROVE_ABI, data: transaction.data });
+    const decoded = decodeFunctionData({ abi: erc20Abi, data: transaction.data });
     expect(decoded.args[1]).toBe(MAX_UINT256);
   });
 
@@ -85,7 +60,7 @@ describe("build_approve_tx", () => {
     });
 
     const { transaction } = parseToolResponse(result);
-    const decoded = decodeFunctionData({ abi: ERC20_APPROVE_ABI, data: transaction.data });
+    const decoded = decodeFunctionData({ abi: erc20Abi, data: transaction.data });
     expect(decoded.args[1]).toBe(MAX_UINT256);
   });
 
@@ -114,7 +89,7 @@ describe("build_approve_tx", () => {
 
     const { transaction } = parseToolResponse(result);
     const decoded = decodeFunctionData({
-      abi: ERC721_SET_APPROVAL_FOR_ALL_ABI,
+      abi: nftmanagerAbi,
       data: transaction.data,
     });
     expect(decoded.functionName).toBe("setApprovalForAll");
@@ -133,7 +108,7 @@ describe("build_approve_tx", () => {
 
     const { transaction } = parseToolResponse(result);
     const decoded = decodeFunctionData({
-      abi: ERC721_SET_APPROVAL_FOR_ALL_ABI,
+      abi: nftmanagerAbi,
       data: transaction.data,
     });
     expect(decoded.functionName).toBe("setApprovalForAll");
@@ -152,7 +127,7 @@ describe("build_approve_tx", () => {
 
     const { transaction } = parseToolResponse(result);
     const decoded = decodeFunctionData({
-      abi: ERC721_SET_APPROVAL_FOR_ALL_ABI,
+      abi: nftmanagerAbi,
       data: transaction.data,
     });
     expect(decoded.functionName).toBe("setApprovalForAll");
@@ -167,7 +142,7 @@ describe("build_approve_tx", () => {
     });
 
     const { transaction } = parseToolResponse(result);
-    const decoded = decodeFunctionData({ abi: ERC20_APPROVE_ABI, data: transaction.data });
+    const decoded = decodeFunctionData({ abi: erc20Abi, data: transaction.data });
     expect(decoded.functionName).toBe("approve");
   });
 });

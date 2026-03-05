@@ -2,33 +2,8 @@ import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { erc20Abi, nftmanagerAbi } from "../../abis/index.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
-
-const ERC20_APPROVE_ABI = [
-  {
-    type: "function",
-    name: "approve",
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "nonpayable",
-  },
-] as const;
-
-const ERC721_SET_APPROVAL_FOR_ALL_ABI = [
-  {
-    type: "function",
-    name: "setApprovalForAll",
-    inputs: [
-      { name: "operator", type: "address" },
-      { name: "approved", type: "bool" },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-] as const;
 
 const MAX_UINT256 = 2n ** 256n - 1n;
 
@@ -65,7 +40,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
 
         if (params.asset_type === "erc721" || params.asset_type === "erc1155") {
           data = encodeFunctionData({
-            abi: ERC721_SET_APPROVAL_FOR_ALL_ABI,
+            abi: nftmanagerAbi,
             functionName: "setApprovalForAll",
             args: [params.spender_address as `0x${string}`, true],
           });
@@ -74,7 +49,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
           const amount =
             !params.amount || params.amount === "max_uint256" ? MAX_UINT256 : BigInt(params.amount);
           data = encodeFunctionData({
-            abi: ERC20_APPROVE_ABI,
+            abi: erc20Abi,
             functionName: "approve",
             args: [params.spender_address as `0x${string}`, amount],
           });
