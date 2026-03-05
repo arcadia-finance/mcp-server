@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type {
   ApiResponse,
   ApiListResponse,
@@ -5,9 +8,13 @@ import type {
   BundleCalldataResponse,
 } from "../types/api.js";
 
+const pkg = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "package.json"), "utf-8"),
+);
+
 const DEFAULT_BASE_URL = "https://api.arcadia.finance";
 const API_PREFIX = "/v1/api";
-const DEFAULT_HEADERS = { "User-Agent": "arcadia-mcp/0.1.0" };
+const DEFAULT_HEADERS = { "User-Agent": `arcadia-mcp/${pkg.version}` };
 
 export class ArcadiaApiClient {
   private baseUrl: string;
