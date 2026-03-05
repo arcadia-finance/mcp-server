@@ -2,9 +2,14 @@ import { z } from "zod";
 import { encodeAbiParameters, encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
-import { ASSET_MANAGERS, MINIMAL_STRATEGY_HOOK } from "../../config/addresses.js";
+import {
+  ASSET_MANAGERS,
+  MINIMAL_STRATEGY_HOOK,
+  type AssetManagerAddresses,
+} from "../../config/addresses.js";
 import { accountAbi } from "../../abis/index.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
+import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 // Arcadia's bot initiator addresses per asset manager type
 const REBALANCER_INITIATOR = "0x163CcA8F161CBBB401a96aDf4Cbf4D74f3faD1Ed" as const;
@@ -141,24 +146,29 @@ function encodeMerklOperatorCallbackData(
 type AmType = "rebalancer" | "compounder" | "yield_claimer" | "merkl_operator";
 type PoolProtocol = "slipstream" | "slipstream_v2" | "uniV3" | "uniV4";
 
-const PROTOCOL_TO_AM_KEY: Record<PoolProtocol, keyof typeof ASSET_MANAGERS.base.rebalancers> = {
+const PROTOCOL_TO_AM_KEY: Record<PoolProtocol, keyof AssetManagerAddresses["rebalancers"]> = {
   slipstream: "slipstreamV1",
   slipstream_v2: "slipstreamV2",
   uniV3: "uniV3",
   uniV4: "uniV4",
 };
 
-function resolveAmAddress(amType: AmType, protocol: PoolProtocol): string | undefined {
+function resolveAmAddress(
+  chainId: ChainId,
+  amType: AmType,
+  protocol?: PoolProtocol,
+): string | undefined {
+  const am = ASSET_MANAGERS[chainId];
+  if (amType === "merkl_operator") return am.merklOperator;
+  if (!protocol) return undefined;
   const key = PROTOCOL_TO_AM_KEY[protocol];
   switch (amType) {
     case "rebalancer":
-      return ASSET_MANAGERS.base.rebalancers[key];
+      return am.rebalancers[key];
     case "compounder":
-      return ASSET_MANAGERS.base.compounders[key];
+      return am.compounders[key];
     case "yield_claimer":
-      return ASSET_MANAGERS.base.yieldClaimers[key];
-    case "merkl_operator":
-      return ASSET_MANAGERS.base.merklOperator;
+      return am.yieldClaimers[key];
   }
 }
 
@@ -170,7 +180,7 @@ export function registerConfigureAssetManagerTool(
     "build_configure_asset_manager_tx",
     {
       description:
-        "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike build_set_asset_manager_tx (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient). Pass pool_protocol to auto-resolve the correct AM address, or pass asset_manager_address directly. For addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
+        "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike build_set_asset_manager_tx (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient). For cow_swapper, use build_set_asset_manager_tx instead (no callback data needed). Pass pool_protocol to auto-resolve the correct AM address (required for rebalancer/compounder/yield_claimer), or pass asset_manager_address directly. merkl_operator is protocol-agnostic and auto-resolves without pool_protocol. For addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address (must be V3 or V4)"),
         asset_manager_address: z
@@ -229,26 +239,24 @@ export function registerConfigureAssetManagerTool(
           .describe(
             "merkl_operator: address to receive Merkl rewards (required for merkl_operator)",
           ),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async (params) => {
       try {
-        // Resolve asset manager address from pool_protocol or direct address
+        const validChainId = validateChainId(params.chain_id);
+        const validAccount = validateAddress(params.account_address, "account_address");
+
+        // Resolve asset manager address: direct address > pool_protocol > protocol-agnostic AMs
         const amAddress =
           params.asset_manager_address ??
-          (params.pool_protocol
-            ? resolveAmAddress(params.am_type, params.pool_protocol)
-            : undefined);
+          resolveAmAddress(validChainId, params.am_type, params.pool_protocol);
         if (!amAddress) {
           return {
             content: [
               {
                 type: "text" as const,
-                text: "Error: Provide asset_manager_address or pool_protocol to resolve the AM address.",
+                text: "Error: Provide asset_manager_address or pool_protocol to resolve the AM address. Protocol-specific AMs (rebalancer, compounder, yield_claimer) require pool_protocol.",
               },
             ],
             isError: true,
@@ -265,7 +273,9 @@ export function registerConfigureAssetManagerTool(
               params.compound_leftovers,
               params.min_rebalance_time,
             );
-            const strategyHook = (params.strategy_hook ?? MINIMAL_STRATEGY_HOOK) as `0x${string}`;
+            const strategyHook = params.strategy_hook
+              ? validateAddress(params.strategy_hook, "strategy_hook")
+              : MINIMAL_STRATEGY_HOOK;
             callbackData = encodeRebalancerCallbackData(
               REBALANCER_INITIATOR,
               strategyHook,
@@ -281,20 +291,19 @@ export function registerConfigureAssetManagerTool(
             if (!params.fee_recipient) {
               throw new Error("fee_recipient is required for yield_claimer");
             }
-            callbackData = encodeYieldClaimerCallbackData(
-              CLAIMER_INITIATOR,
-              params.fee_recipient as `0x${string}`,
-            );
+            const validFeeRecipient = validateAddress(params.fee_recipient, "fee_recipient");
+            callbackData = encodeYieldClaimerCallbackData(CLAIMER_INITIATOR, validFeeRecipient);
             break;
           }
           case "merkl_operator": {
             if (!params.reward_recipient) {
               throw new Error("reward_recipient is required for merkl_operator");
             }
-            callbackData = encodeMerklOperatorCallbackData(
-              MERKL_INITIATOR,
-              params.reward_recipient as `0x${string}`,
+            const validRewardRecipient = validateAddress(
+              params.reward_recipient,
+              "reward_recipient",
             );
+            callbackData = encodeMerklOperatorCallbackData(MERKL_INITIATOR, validRewardRecipient);
             break;
           }
         }
@@ -303,7 +312,7 @@ export function registerConfigureAssetManagerTool(
           encodeFunctionData({
             abi: accountAbi,
             functionName: "setAssetManagers",
-            args: [[amAddress as `0x${string}`], [true], [callbackData]],
+            args: [[validateAddress(amAddress, "asset_manager_address")], [true], [callbackData]],
           }),
         );
 
@@ -315,10 +324,10 @@ export function registerConfigureAssetManagerTool(
                 {
                   description: `Configure and enable ${params.am_type} ${amAddress} on account ${params.account_address}`,
                   transaction: {
-                    to: params.account_address as `0x${string}`,
+                    to: validAccount,
                     data,
                     value: "0",
-                    chainId: params.chain_id,
+                    chainId: validChainId,
                   },
                 },
                 null,

@@ -61,13 +61,10 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
       pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",
       chain_id: 8453,
     });
-    const text = result.content[0].text;
-    expect(text).toBeDefined();
-    if (!result.isError) {
-      const data = parseToolResponse(result);
-      expect(data).toHaveProperty("pool");
-      expect(data).toHaveProperty("apy_history");
-    }
+    expect(result.isError).toBeFalsy();
+    const data = parseToolResponse(result);
+    expect(data).toHaveProperty("pool");
+    expect(data).toHaveProperty("apy_history");
   });
 
   it("get_lending_pools APY history returns array with date and pool_apy", async () => {
@@ -76,13 +73,12 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
       pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",
       chain_id: 8453,
     });
-    if (!result.isError) {
-      const data = parseToolResponse(result);
-      if (data.apy_history && Array.isArray(data.apy_history) && data.apy_history.length > 0) {
-        const entry = data.apy_history[0];
-        expect(entry).toHaveProperty("date");
-        expect(entry).toHaveProperty("pool_apy");
-      }
+    expect(result.isError).toBeFalsy();
+    const data = parseToolResponse(result);
+    if (data.apy_history && Array.isArray(data.apy_history) && data.apy_history.length > 0) {
+      const entry = data.apy_history[0];
+      expect(entry).toHaveProperty("date");
+      expect(entry).toHaveProperty("pool_apy");
     }
   });
 
@@ -174,15 +170,18 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Points ──────────────────────────────────────────────────
 
-  it("get_points leaderboard returns array", async () => {
+  it("get_points leaderboard returns paginated result", async () => {
     const handler = mock.getHandler("get_points");
-    const result = await handler({});
+    const result = await handler({ limit: 25, offset: 0 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
-    expect(Array.isArray(data)).toBe(true);
-    if (data.length > 0) {
-      expect(data[0]).toHaveProperty("user_address");
-      expect(data[0]).toHaveProperty("total_points");
+    expect(data).toHaveProperty("total");
+    expect(data).toHaveProperty("leaderboard");
+    expect(Array.isArray(data.leaderboard)).toBe(true);
+    expect(data.leaderboard.length).toBeLessThanOrEqual(25);
+    if (data.leaderboard.length > 0) {
+      expect(data.leaderboard[0]).toHaveProperty("user_address");
+      expect(data.leaderboard[0]).toHaveProperty("total_points");
     }
   });
 
@@ -232,24 +231,18 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
       days: 3,
       chain_id: 8453,
     });
-    const text = result.content[0].text;
-    expect(text).toBeDefined();
-    if (!result.isError) {
-      const data = parseToolResponse(result);
-      expect(data).toBeDefined();
-    }
+    expect(result.isError).toBeFalsy();
+    const data = parseToolResponse(result);
+    expect(data).toBeDefined();
   });
 
   it("get_account_pnl returns pnl_cost_basis and yield_earned", async () => {
     const handler = mock.getHandler("get_account_pnl");
     const result = await handler({ account_address: accountAddress, chain_id: 8453 });
-    const text = result.content[0].text;
-    expect(text).toBeDefined();
-    if (!result.isError) {
-      const data = parseToolResponse(result);
-      expect(data).toHaveProperty("pnl_cost_basis");
-      expect(data).toHaveProperty("yield_earned");
-    }
+    expect(result.isError).toBeFalsy();
+    const data = parseToolResponse(result);
+    expect(data).toHaveProperty("pnl_cost_basis");
+    expect(data).toHaveProperty("yield_earned");
   });
 
   it("get_recommendation with unknown account returns error gracefully", async () => {

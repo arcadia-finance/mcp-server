@@ -4,6 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { erc20Abi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
+import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 export function registerBalanceTools(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
@@ -14,16 +15,14 @@ export function registerBalanceTools(server: McpServer, chains: Record<ChainId, 
       inputSchema: {
         wallet_address: z.string().describe("Wallet address to check balances for"),
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ wallet_address, token_addresses, chain_id }) => {
       try {
-        const client = getPublicClient(chain_id as ChainId, chains);
-        const wallet = wallet_address as `0x${string}`;
+        const validChainId = validateChainId(chain_id);
+        const wallet = validateAddress(wallet_address, "wallet_address");
+        const client = getPublicClient(validChainId, chains);
 
         // Build multicall: for each token get balanceOf, decimals, symbol
         const calls = token_addresses.flatMap((addr) => [

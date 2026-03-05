@@ -5,6 +5,8 @@ import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { getPublicClient } from "../../clients/chain.js";
 import { readAccountMetadata } from "./account-metadata.js";
 import { formatAdvancedResponse } from "./format-response.js";
+import { TOKENS } from "../../config/addresses.js";
+import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 interface StrategyUnderlying {
   underlying_address: string;
@@ -31,6 +33,13 @@ interface AccountAsset {
   amount: string;
 }
 
+function formatTokenAmount(value: bigint, decimals: number, maxFrac = 8): string {
+  const str = value.toString().padStart(decimals + 1, "0");
+  const whole = str.slice(0, -decimals);
+  const frac = str.slice(-decimals).slice(0, maxFrac).replace(/0+$/, "");
+  return frac ? `${whole}.${frac}` : whole;
+}
+
 export function registerAddLiquidityTool(
   server: McpServer,
   api: ArcadiaApiClient,
@@ -40,7 +49,7 @@ export function registerAddLiquidityTool(
     "build_add_liquidity_tx",
     {
       description:
-        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call build_deposit_tx separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (get_allowance), then approve if needed (build_approve_tx). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call get_guide('strategies'). The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
+        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call build_deposit_tx separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (get_allowance), then approve if needed (build_approve_tx). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call get_guide('strategies'). The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation. expected_value_change is in the account's numeraire token (raw units).",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         wallet_address: z.string().describe("Wallet address of the account owner"),
@@ -87,10 +96,7 @@ export function registerAddLiquidityTool(
           .default(0)
           .describe("0 = no borrow, 2 = 2x leverage. Margin accounts only."),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({
@@ -104,6 +110,19 @@ export function registerAddLiquidityTool(
       chain_id,
     }) => {
       try {
+        const validChainId = validateChainId(chain_id);
+        const validAccount = validateAddress(account_address, "account_address");
+        validateAddress(wallet_address, "wallet_address");
+
+        // Reverse lookup: address → symbol for human-readable error messages
+        const tokenSymbols = new Map<string, string>();
+        const chainTokens = TOKENS[validChainId];
+        if (chainTokens) {
+          for (const [symbol, info] of Object.entries(chainTokens)) {
+            tokenSymbols.set(info.address.toLowerCase(), symbol);
+          }
+        }
+
         const hasDeposits = walletDeposits && walletDeposits.length > 0;
 
         // Validate: at least one capital source
@@ -149,8 +168,8 @@ export function registerAddLiquidityTool(
         if (overview) {
           creditor = (overview.creditor as string) ?? "";
         } else {
-          const client = getPublicClient(chain_id as ChainId, chains);
-          const metadata = await readAccountMetadata(client, account_address as `0x${string}`);
+          const client = getPublicClient(validChainId, chains);
+          const metadata = await readAccountMetadata(client, validAccount);
           creditor = metadata.creditor;
         }
 
@@ -240,17 +259,13 @@ export function registerAddLiquidityTool(
                 const depositBig = BigInt(dep.amount);
                 if (depositBig < minMargin) {
                   const decimals = dep.decimals ?? 18;
-                  const depFormatted = (Number(depositBig) / 10 ** decimals).toFixed(
-                    Math.min(decimals, 8),
-                  );
-                  const minFormatted = (Number(minMargin) / 10 ** decimals).toFixed(
-                    Math.min(decimals, 8),
-                  );
+                  const depFormatted = formatTokenAmount(depositBig, decimals);
+                  const minFormatted = formatTokenAmount(minMargin, decimals);
                   return {
                     content: [
                       {
                         type: "text" as const,
-                        text: `Error: Deposit ${depFormatted} is below the minimum ${minFormatted} for ${dep.asset} on strategy ${firstStrategy.strategy_id} (raw: ${dep.amount} < ${minMargin.toString()}). Increase the deposit amount.`,
+                        text: `Error: Deposit ${depFormatted} ${tokenSymbols.get(dep.asset.toLowerCase()) ?? dep.asset} is below the minimum ${minFormatted} ${tokenSymbols.get(dep.asset.toLowerCase()) ?? dep.asset} on strategy ${firstStrategy.strategy_id}. Increase the deposit amount.`,
                       },
                     ],
                     isError: true,
@@ -269,18 +284,18 @@ export function registerAddLiquidityTool(
           asset_id: number;
         }> = [];
         if (use_account_assets) {
-          if (!overview) {
+          if (!overview && !hasDeposits) {
             return {
               content: [
                 {
                   type: "text" as const,
-                  text: "Error: use_account_assets=true but account overview is unavailable (cannot read asset list). Use deposits to deposit from wallet instead.",
+                  text: "Error: use_account_assets=true but account overview is unavailable and no wallet deposits were provided. Provide deposits or deposit assets first via build_deposit_tx.",
                 },
               ],
               isError: true,
             };
           }
-          const accountAssets = (overview.assets ?? []) as AccountAsset[];
+          const accountAssets = overview ? ((overview.assets ?? []) as AccountAsset[]) : [];
           if (accountAssets.length === 0 && !hasDeposits) {
             return {
               content: [
@@ -364,14 +379,15 @@ export function registerAddLiquidityTool(
           slippage: slippage ?? 100,
         };
         const result = await api.getBundleCalldata(body);
+        const res = result as unknown as Record<string, unknown>;
 
         // Surface simulation failure — do NOT return calldata
-        if (result.tenderly_sim_status === "false") {
-          const simUrl = result.tenderly_sim_url
-            ? `\nTenderly simulation: ${result.tenderly_sim_url}`
+        if (res.tenderly_sim_status === "false") {
+          const simUrl = res.tenderly_sim_url
+            ? `\nTenderly simulation: ${res.tenderly_sim_url}`
             : "";
-          const simError = result.tenderly_sim_error
-            ? `\nRevert reason: ${result.tenderly_sim_error}`
+          const simError = res.tenderly_sim_error
+            ? `\nRevert reason: ${res.tenderly_sim_error}`
             : "";
           return {
             content: [
@@ -383,8 +399,6 @@ export function registerAddLiquidityTool(
             isError: true,
           };
         }
-
-        const res = result as unknown as Record<string, unknown>;
         return {
           content: [
             {

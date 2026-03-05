@@ -4,6 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { accountAbi } from "../../abis/index.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
+import { validateAddress } from "../../utils/validation.js";
 
 export function registerSetAssetManagerTool(
   server: McpServer,
@@ -20,19 +21,19 @@ export function registerSetAssetManagerTool(
           .string()
           .describe("Asset manager contract address to grant or revoke"),
         enabled: z.boolean().describe("True to grant permission, false to revoke"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async (params) => {
       try {
+        const validAccount = validateAddress(params.account_address, "account_address");
+        const validAm = validateAddress(params.asset_manager_address, "asset_manager_address");
+
         const data = appendDataSuffix(
           encodeFunctionData({
             abi: accountAbi,
             functionName: "setAssetManagers",
-            args: [[params.asset_manager_address as `0x${string}`], [params.enabled], ["0x"]],
+            args: [[validAm], [params.enabled], ["0x"]],
           }),
         );
 
@@ -44,7 +45,7 @@ export function registerSetAssetManagerTool(
                 {
                   description: `${params.enabled ? "Grant" : "Revoke"} asset manager permission for ${params.asset_manager_address}`,
                   transaction: {
-                    to: params.account_address as `0x${string}`,
+                    to: validAccount,
                     data,
                     value: "0",
                     chainId: params.chain_id,

@@ -6,6 +6,7 @@ import { factoryAbi } from "../../abis/index.js";
 import { PROTOCOL } from "../../config/addresses.js";
 import { getPublicClient } from "../../clients/chain.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
+import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 // Arcadia Proxy bytecode from CreateProxyLib.sol — used to compute CREATE2 addresses.
 const PROXY_BYTECODE =
@@ -63,14 +64,14 @@ export function registerCreateAccountTool(server: McpServer, chains: Record<Chai
           .describe(
             "Lending pool address for V3 margin account. Ignored for V4 spot accounts (version 0 or 4).",
           ),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async (params) => {
       try {
+        const validChainId = validateChainId(params.chain_id);
+        const validWallet = validateAddress(params.wallet_address, "wallet_address");
+
         const data = appendDataSuffix(
           encodeFunctionData({
             abi: factoryAbi,
@@ -78,7 +79,9 @@ export function registerCreateAccountTool(server: McpServer, chains: Record<Chai
             args: [
               params.salt,
               BigInt(params.account_version),
-              (params.creditor ?? "0x0000000000000000000000000000000000000000") as `0x${string}`,
+              params.creditor
+                ? validateAddress(params.creditor, "creditor")
+                : ("0x0000000000000000000000000000000000000000" as `0x${string}`),
             ],
           }),
         );
@@ -86,7 +89,7 @@ export function registerCreateAccountTool(server: McpServer, chains: Record<Chai
         // Try to predict the account address via CREATE2 (requires RPC)
         let predictedAddress: string | undefined;
         try {
-          const client = getPublicClient(params.chain_id as ChainId, chains);
+          const client = getPublicClient(validChainId, chains);
           let resolvedVersion = BigInt(params.account_version);
           if (resolvedVersion === 0n) {
             resolvedVersion = (await client.readContract({
@@ -104,7 +107,7 @@ export function registerCreateAccountTool(server: McpServer, chains: Record<Chai
           predictedAddress = computeAccountAddress(
             PROTOCOL.factory as `0x${string}`,
             params.salt,
-            params.wallet_address as `0x${string}`,
+            validWallet,
             versionInfo[1] as `0x${string}`,
           );
         } catch {
@@ -122,7 +125,7 @@ export function registerCreateAccountTool(server: McpServer, chains: Record<Chai
                     to: PROTOCOL.factory,
                     data,
                     value: "0",
-                    chainId: params.chain_id,
+                    chainId: validChainId,
                   },
                   ...(predictedAddress && { predicted_account_address: predictedAddress }),
                   next_steps: predictedAddress

@@ -52,6 +52,8 @@ Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay
 
 ### Step-by-step
 
+> Addresses below are Base mainnet examples. Always verify current addresses via `get_lending_pools` and `get_assets` before executing.
+
 ```
 // 1. FIND A POOL
 get_strategies(chain_id: 8453)

@@ -15,6 +15,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { ArcadiaApiClient } from "./clients/api.js";
 import { getChainConfigs } from "./config/chains.js";
 import { registerAllTools } from "./tools/index.js";
+import { registerAllResources } from "./resources/index.js";
+import { registerAllPrompts } from "./prompts/index.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
@@ -30,6 +32,8 @@ const apiClient = new ArcadiaApiClient();
 const chainConfigs = getChainConfigs();
 
 registerAllTools(server, apiClient, chainConfigs);
+registerAllResources(server);
+registerAllPrompts(server);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

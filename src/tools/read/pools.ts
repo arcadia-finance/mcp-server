@@ -7,26 +7,44 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
     "get_lending_pools",
     {
       description:
-        "Get Arcadia lending pool data: TVL, supply/borrow APY, utilization, available liquidity. Returns all pools, or a single pool with APY history if pool_address is provided.",
+        "Get Arcadia lending pool data: TVL, utilization, available liquidity. Key fields: interest_rate = current borrow cost, lending_apy = lender yield. All rates are decimal fractions (1.0 = 100%, 0.06 = 6%). Returns all pools, or a single pool with APY history if pool_address is provided.",
       inputSchema: {
         pool_address: z
           .string()
           .optional()
           .describe("Pool address for detailed info with APY history"),
         days: z.number().default(14).describe("Number of days of APY history"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ pool_address, days, chain_id }) => {
       try {
         if (pool_address) {
-          const [pool, apy_history] = await Promise.all([
-            api.getPoolsData(chain_id, pool_address),
+          const [allPools, apy_history] = await Promise.all([
+            api.getPools(chain_id),
             api.getPoolApyHistory(chain_id, pool_address, days),
           ]);
+          const poolList = Array.isArray(allPools)
+            ? allPools
+            : ((allPools as Record<string, unknown>).data as unknown[]);
+          const pool = Array.isArray(poolList)
+            ? (poolList as Record<string, unknown>[]).find(
+                (p) =>
+                  ((p.address ?? p.pool_address) as string)?.toLowerCase() ===
+                  pool_address.toLowerCase(),
+              )
+            : null;
+          if (!pool) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Error: Pool ${pool_address} not found on chain ${chain_id}.`,
+                },
+              ],
+              isError: true,
+            };
+          }
           return {
             content: [
               { type: "text" as const, text: JSON.stringify({ pool, apy_history }, null, 2) },

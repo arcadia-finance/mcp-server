@@ -17,10 +17,7 @@ export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
           .string()
           .optional()
           .describe("Filter assets by symbol (case-insensitive substring match)"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ asset_addresses, search, chain_id }) => {

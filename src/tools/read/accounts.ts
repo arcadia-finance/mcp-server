@@ -5,6 +5,7 @@ import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { accountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
 import { ASSET_MANAGERS } from "../../config/addresses.js";
+import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 function trimOverview(overview: Record<string, unknown>): Record<string, unknown> {
   const trimmed = { ...overview };
@@ -63,26 +64,26 @@ export function registerAccountTools(
           .describe(
             "Wallet address to list all owned accounts (returns summary: address, name). Call again with a specific account_address for full details like health factor, collateral, and debt.",
           ),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ account_address, wallet_address, chain_id }) => {
       try {
+        const validChainId = validateChainId(chain_id);
         if (wallet_address) {
-          const result = await api.getAccounts(chain_id, wallet_address);
+          validateAddress(wallet_address, "wallet_address");
+          const result = await api.getAccounts(validChainId, wallet_address);
           return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
         }
         if (account_address) {
-          const client = getPublicClient(chain_id as ChainId, chains);
+          const validAccount = validateAddress(account_address, "account_address");
+          const client = getPublicClient(validChainId, chains);
           const [overview, liquidation_price, accountVersion] = await Promise.all([
-            api.getAccountOverview(chain_id, account_address).catch(() => null),
-            api.getLiquidationPrice(chain_id, account_address).catch(() => null),
+            api.getAccountOverview(validChainId, account_address).catch(() => null),
+            api.getLiquidationPrice(validChainId, account_address).catch(() => null),
             client
               .readContract({
-                address: account_address as `0x${string}`,
+                address: validAccount,
                 abi: accountAbi,
                 functionName: "ACCOUNT_VERSION",
               })
@@ -129,11 +130,10 @@ export function registerAccountTools(
             }
           }
 
-          // Check which asset managers are enabled (Base only — no AMs deployed on other chains yet)
           let automation: Record<string, unknown> | null = null;
           const owner = (overview as Record<string, unknown> | null)?.owner as string | undefined;
-          if (owner && chain_id === 8453) {
-            const am = ASSET_MANAGERS.base;
+          if (owner) {
+            const am = ASSET_MANAGERS[validChainId];
             const amChecks = [
               ...Object.entries(am.rebalancers).map(([k, v]) => ({
                 group: "rebalancer",
@@ -151,12 +151,14 @@ export function registerAccountTools(
                 address: v,
               })),
               { group: "merkl_operator", protocol: null, address: am.merklOperator },
-              { group: "cow_swapper", protocol: null, address: am.cowSwapper },
+              ...(am.cowSwapper
+                ? [{ group: "cow_swapper", protocol: null, address: am.cowSwapper }]
+                : []),
             ];
             automation = await client
               .multicall({
                 contracts: amChecks.map((c) => ({
-                  address: account_address as `0x${string}`,
+                  address: validAccount,
                   abi: accountAbi,
                   functionName: "isAssetManager",
                   args: [owner as `0x${string}`, c.address as `0x${string}`],
@@ -183,8 +185,6 @@ export function registerAccountTools(
                 return out;
               })
               .catch(() => null);
-          } else if (owner && chain_id !== 8453) {
-            notes.push("Automation status is only available on Base (chain 8453).");
           }
 
           const result: Record<string, unknown> = {
@@ -235,10 +235,7 @@ export function registerAccountTools(
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         days: z.number().default(14).describe("Number of days of history (default 14)"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ account_address, days, chain_id }) => {
@@ -263,13 +260,10 @@ export function registerAccountTools(
     "get_account_pnl",
     {
       description:
-        "Get PnL (cost basis) and yield earned for an Arcadia account. Returns lifetime totals: cost basis vs current value, net transfers per token, total yield earned in USD and per token.",
+        "Get PnL (cost basis) and yield earned for an Arcadia account. Returns lifetime totals: cost basis vs current value (negative cost_basis = net profit withdrawn), net transfers per token, total yield earned in USD and per token. All monetary values are in USD unless suffixed otherwise.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ account_address, chain_id }) => {

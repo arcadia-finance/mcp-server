@@ -21,10 +21,7 @@ export function registerSignAndSendTool(server: McpServer, chains: Record<ChainI
         to: z.string().describe("Target contract address"),
         data: z.string().describe("Encoded calldata (hex)"),
         value: z.string().default("0").describe("Value in wei (default '0')"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async (params) => {
