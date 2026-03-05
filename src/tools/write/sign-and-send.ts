@@ -12,17 +12,20 @@ const VIEM_CHAINS: Record<number, Chain> = {
 };
 
 export function registerSignAndSendTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
-  server.tool(
+  server.registerTool(
     "sign_and_send_tx",
-    "DEV ONLY — Sign and broadcast an unsigned transaction using a local private key (PK env var). For production, use a dedicated wallet MCP server (Fireblocks, Safe, Turnkey, etc.) instead of this tool. Takes the transaction object returned by any build_*_tx tool and submits it onchain.",
     {
-      to: z.string().describe("Target contract address"),
-      data: z.string().describe("Encoded calldata (hex)"),
-      value: z.string().default("0").describe("Value in wei (default '0')"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "DEV ONLY — Sign and broadcast an unsigned transaction using a local private key (PK env var). For production, use a dedicated wallet MCP server (Fireblocks, Safe, Turnkey, etc.) instead of this tool. Takes the transaction object returned by any build_*_tx tool and submits it onchain.",
+      inputSchema: {
+        to: z.string().describe("Target contract address"),
+        data: z.string().describe("Encoded calldata (hex)"),
+        value: z.string().default("0").describe("Value in wei (default '0')"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async (params) => {
       try {

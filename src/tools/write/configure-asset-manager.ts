@@ -166,69 +166,74 @@ export function registerConfigureAssetManagerTool(
   server: McpServer,
   _chains: Record<ChainId, ChainConfig>,
 ) {
-  server.tool(
+  server.registerTool(
     "build_configure_asset_manager_tx",
-    "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike build_set_asset_manager_tx (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient). Pass pool_protocol to auto-resolve the correct AM address, or pass asset_manager_address directly. For addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
     {
-      account_address: z.string().describe("Arcadia account address (must be V3 or V4)"),
-      asset_manager_address: z
-        .string()
-        .optional()
-        .describe("Asset manager contract address. Optional if pool_protocol is provided."),
-      pool_protocol: z
-        .enum(["slipstream", "slipstream_v2", "uniV3", "uniV4"])
-        .optional()
-        .describe(
-          "LP protocol — auto-resolves the correct AM address. Use instead of asset_manager_address.",
-        ),
-      am_type: z
-        .enum(["rebalancer", "compounder", "yield_claimer", "merkl_operator"])
-        .describe("Type of asset manager"),
-      // Rebalancer-specific
-      trigger_lower_ratio: z
-        .number()
-        .int()
-        .default(0)
-        .describe(
-          "Rebalancer: how far below the current lower tick to trigger rebalance, as int32 * 1e6 (default 0 = trigger exactly at boundary). Positive values trigger before going out of range.",
-        ),
-      trigger_upper_ratio: z
-        .number()
-        .int()
-        .default(0)
-        .describe(
-          "Rebalancer: how far above the current upper tick to trigger rebalance, as int32 * 1e6 (default 0 = trigger exactly at boundary). Positive values trigger before going out of range.",
-        ),
-      compound_leftovers: z
-        .enum(["all", "none", "token0", "token1"])
-        .default("all")
-        .describe(
-          'Rebalancer: what to do with leftover tokens after rebalance (default "all" = compound both)',
-        ),
-      min_rebalance_time: z
-        .number()
-        .int()
-        .default(3600)
-        .describe("Rebalancer: minimum seconds between rebalances (default 3600 = 1 hour)"),
-      strategy_hook: z
-        .string()
-        .optional()
-        .describe(
-          "Rebalancer: strategy hook address. Defaults to minimal hook (0x13beD1A58d87c0454872656c5328103aAe5eB86A). Only override for POL or custom hooks.",
-        ),
-      // Yield Claimer / Merkl Operator
-      fee_recipient: z
-        .string()
-        .optional()
-        .describe("yield_claimer: address to receive claimed fees (required for yield_claimer)"),
-      reward_recipient: z
-        .string()
-        .optional()
-        .describe("merkl_operator: address to receive Merkl rewards (required for merkl_operator)"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike build_set_asset_manager_tx (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient). Pass pool_protocol to auto-resolve the correct AM address, or pass asset_manager_address directly. For addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address (must be V3 or V4)"),
+        asset_manager_address: z
+          .string()
+          .optional()
+          .describe("Asset manager contract address. Optional if pool_protocol is provided."),
+        pool_protocol: z
+          .enum(["slipstream", "slipstream_v2", "uniV3", "uniV4"])
+          .optional()
+          .describe(
+            "LP protocol — auto-resolves the correct AM address. Use instead of asset_manager_address.",
+          ),
+        am_type: z
+          .enum(["rebalancer", "compounder", "yield_claimer", "merkl_operator"])
+          .describe("Type of asset manager"),
+        // Rebalancer-specific
+        trigger_lower_ratio: z
+          .number()
+          .int()
+          .default(0)
+          .describe(
+            "Rebalancer: how far below the current lower tick to trigger rebalance, as int32 * 1e6 (default 0 = trigger exactly at boundary). Positive values trigger before going out of range.",
+          ),
+        trigger_upper_ratio: z
+          .number()
+          .int()
+          .default(0)
+          .describe(
+            "Rebalancer: how far above the current upper tick to trigger rebalance, as int32 * 1e6 (default 0 = trigger exactly at boundary). Positive values trigger before going out of range.",
+          ),
+        compound_leftovers: z
+          .enum(["all", "none", "token0", "token1"])
+          .default("all")
+          .describe(
+            'Rebalancer: what to do with leftover tokens after rebalance (default "all" = compound both)',
+          ),
+        min_rebalance_time: z
+          .number()
+          .int()
+          .default(3600)
+          .describe("Rebalancer: minimum seconds between rebalances (default 3600 = 1 hour)"),
+        strategy_hook: z
+          .string()
+          .optional()
+          .describe(
+            "Rebalancer: strategy hook address. Defaults to minimal hook (0x13beD1A58d87c0454872656c5328103aAe5eB86A). Only override for POL or custom hooks.",
+          ),
+        // Yield Claimer / Merkl Operator
+        fee_recipient: z
+          .string()
+          .optional()
+          .describe("yield_claimer: address to receive claimed fees (required for yield_claimer)"),
+        reward_recipient: z
+          .string()
+          .optional()
+          .describe(
+            "merkl_operator: address to receive Merkl rewards (required for merkl_operator)",
+          ),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async (params) => {
       try {

@@ -4,19 +4,22 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 import { formatAdvancedResponse } from "./format-response.js";
 
 export function registerSwapTool(server: McpServer, api: ArcadiaApiClient) {
-  server.tool(
+  server.registerTool(
     "build_swap_tx",
-    "Flash-action: swaps assets within an Arcadia account in one atomic transaction. The backend finds the optimal swap route. NOTE: If you are closing a position (swap + repay + withdraw), prefer build_close_position_tx which batches everything atomically. Only use this tool for standalone swaps within an active position. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
     {
-      account_address: z.string().describe("Arcadia account address"),
-      asset_from: z.string().describe("Token address to swap from"),
-      asset_to: z.string().describe("Token address to swap to"),
-      amount_in: z.string().describe("Raw units"),
-      slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Flash-action: swaps assets within an Arcadia account in one atomic transaction. The backend finds the optimal swap route. NOTE: If you are closing a position (swap + repay + withdraw), prefer build_close_position_tx which batches everything atomically. Only use this tool for standalone swaps within an active position. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        asset_from: z.string().describe("Token address to swap from"),
+        asset_to: z.string().describe("Token address to swap to"),
+        amount_in: z.string().describe("Raw units"),
+        slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ account_address, asset_from, asset_to, amount_in, slippage, chain_id }) => {
       try {

@@ -8,19 +8,22 @@ import { getPublicClient } from "../../clients/chain.js";
 const MAX_UINT256 = 2n ** 256n - 1n;
 
 export function registerAllowanceTools(server: McpServer, chains: Record<ChainId, ChainConfig>) {
-  server.tool(
+  server.registerTool(
     "get_allowance",
-    "Check ERC20 token allowances for a spender address. Use before build_approve_tx to avoid redundant approvals — skip approving if the current allowance is already sufficient.",
     {
-      owner_address: z.string().describe("Token owner address (the wallet granting approval)"),
-      spender_address: z
-        .string()
-        .describe("Spender address to check allowance for (e.g. Arcadia account address)"),
-      token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Check ERC20 token allowances for a spender address. Use before build_approve_tx to avoid redundant approvals — skip approving if the current allowance is already sufficient.",
+      inputSchema: {
+        owner_address: z.string().describe("Token owner address (the wallet granting approval)"),
+        spender_address: z
+          .string()
+          .describe("Spender address to check allowance for (e.g. Arcadia account address)"),
+        token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ owner_address, spender_address, token_addresses, chain_id }) => {
       try {

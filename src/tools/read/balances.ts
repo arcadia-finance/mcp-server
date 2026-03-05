@@ -6,16 +6,19 @@ import { erc20Abi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
 
 export function registerBalanceTools(server: McpServer, chains: Record<ChainId, ChainConfig>) {
-  server.tool(
+  server.registerTool(
     "get_wallet_balances",
-    "Get native ETH and ERC20 token balances for a wallet address. Reads directly from chain via RPC multicall. Use before build_add_liquidity_tx or build_deposit_tx to verify the wallet has sufficient tokens.",
     {
-      wallet_address: z.string().describe("Wallet address to check balances for"),
-      token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Get native ETH and ERC20 token balances for a wallet address. Reads directly from chain via RPC multicall. Use before build_add_liquidity_tx or build_deposit_tx to verify the wallet has sufficient tokens.",
+      inputSchema: {
+        wallet_address: z.string().describe("Wallet address to check balances for"),
+        token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ wallet_address, token_addresses, chain_id }) => {
       try {

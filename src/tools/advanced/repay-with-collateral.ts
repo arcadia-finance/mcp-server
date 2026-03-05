@@ -4,20 +4,23 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 import { formatAdvancedResponse } from "./format-response.js";
 
 export function registerRepayWithCollateralTool(server: McpServer, api: ArcadiaApiClient) {
-  server.tool(
+  server.registerTool(
     "build_repay_with_collateral_tx",
-    "Multi-step flash-action: swaps account collateral to debt token and repays in one atomic transaction. To repay from wallet instead, use build_repay_tx. NOTE: If you are closing a position (remove LP + swap + repay + withdraw), prefer build_close_position_tx which batches everything atomically. Only use this tool for standalone repayment while keeping the position active. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
     {
-      account_address: z.string().describe("Arcadia account address"),
-      amount_in: z.string().describe("Collateral amount to sell"),
-      asset_from: z.string().describe("Collateral token to sell"),
-      numeraire: z.string().describe("Debt token address"),
-      creditor: z.string().describe("Lending pool address"),
-      slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Multi-step flash-action: swaps account collateral to debt token and repays in one atomic transaction. To repay from wallet instead, use build_repay_tx. NOTE: If you are closing a position (remove LP + swap + repay + withdraw), prefer build_close_position_tx which batches everything atomically. Only use this tool for standalone repayment while keeping the position active. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        amount_in: z.string().describe("Collateral amount to sell"),
+        asset_from: z.string().describe("Collateral token to sell"),
+        numeraire: z.string().describe("Debt token address"),
+        creditor: z.string().describe("Lending pool address"),
+        slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ account_address, amount_in, asset_from, numeraire, creditor, slippage, chain_id }) => {
       try {

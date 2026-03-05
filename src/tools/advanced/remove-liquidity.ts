@@ -4,26 +4,28 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 import { formatAdvancedResponse } from "./format-response.js";
 
 export function registerRemoveLiquidityTool(server: McpServer, api: ArcadiaApiClient) {
-  server.tool(
+  server.registerTool(
     "build_remove_liquidity_tx",
-    `Flash-action: PARTIALLY decreases liquidity from an LP position. The position remains open with reduced liquidity; underlying tokens stay in the account.
+    {
+      description: `Flash-action: PARTIALLY decreases liquidity from an LP position. The position remains open with reduced liquidity; underlying tokens stay in the account.
 
 For FULL position exit (burn LP + swap + repay + withdraw), use build_close_position_tx instead — it batches everything into one atomic transaction.
 
 The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.`,
-    {
-      account_address: z.string().describe("Arcadia account address"),
-      asset_address: z.string().describe("Position manager contract"),
-      asset_id: z.number().describe("NFT token ID"),
-      adjustment: z
-        .string()
-        .describe(
-          "Liquidity amount to remove (raw uint128 value as string). Must be less than total liquidity — for full removal use build_close_position_tx.",
-        ),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        asset_address: z.string().describe("Position manager contract"),
+        asset_id: z.number().describe("NFT token ID"),
+        adjustment: z
+          .string()
+          .describe(
+            "Liquidity amount to remove (raw uint128 value as string). Must be less than total liquidity — for full removal use build_close_position_tx.",
+          ),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ account_address, asset_address, asset_id, adjustment, chain_id }) => {
       try {
