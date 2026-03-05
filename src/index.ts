@@ -23,7 +23,7 @@ const server = new McpServer({
   name: "arcadia-finance",
   version: pkg.version,
   description:
-    "Arcadia Finance — manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.",
+    "Arcadia Finance. Manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base, Optimism, and Unichain.",
 });
 
 const apiClient = new ArcadiaApiClient();

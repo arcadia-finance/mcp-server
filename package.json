@@ -1,7 +1,7 @@
 {
   "name": "@arcadia-finance/mcp-server",
   "version": "0.1.1",
-  "description": "MCP server for Arcadia Finance — manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization.",
+  "description": "MCP server for Arcadia Finance. Manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base, Optimism, and Unichain.",
   "type": "module",
   "license": "BUSL-1.1",
   "packageManager": "yarn@4.13.0",
@@ -18,12 +18,11 @@
     "clamm",
     "liquidity",
     "base",
-    "optimism"
+    "optimism",
+    "unichain"
   ],
   "files": [
     "dist",
-    "!dist/**/*.d.ts",
-    "!dist/**/*.js.map",
     "skills",
     "README.md",
     "LICENSE.md"

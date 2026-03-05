@@ -1,8 +1,19 @@
 # Arcadia Finance MCP Server
 
+[![npm](https://img.shields.io/npm/v/@arcadia-finance/mcp-server)](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
+[![smithery badge](https://smithery.ai/badge/@arcadia-finance/mcp-server)](https://smithery.ai/server/@arcadia-finance/mcp-server)
+[![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL--1.1-blue)](LICENSE.md)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
+[![MCP](https://img.shields.io/badge/MCP-2025--03--26-green)](https://modelcontextprotocol.io/)
+
 MCP server for [Arcadia Finance](https://arcadia.finance), a platform to manage concentrated liquidity positions with built-in leverage, automated rebalancing, and yield optimization. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
 Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
+
+## Install
+
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0078d4?logo=visualstudiocode)](https://vscode.dev/redirect/mcp/install?config=%7B%22name%22%3A%22arcadia-finance%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40arcadia-finance%2Fmcp-server%22%5D%7D)
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-000?logo=cursor)](cursor://anysphere.cursor-deeplink/mcp/install?config=%7B%22name%22%3A%22arcadia-finance%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40arcadia-finance%2Fmcp-server%22%5D%7D)
 
 ## Tools
 
@@ -130,6 +141,12 @@ yarn build
     }
   }
 }
+```
+
+**Claude Code:**
+
+```bash
+claude mcp add arcadia-finance -- npx -y @arcadia-finance/mcp-server
 ```
 
 **From source** (local development):
