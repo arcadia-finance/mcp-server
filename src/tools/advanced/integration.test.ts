@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createMockServer, parseToolResponse } from "../../test-utils.js";
 import { ArcadiaApiClient } from "../../clients/api.js";
+import { getChainConfigs } from "../../config/chains.js";
 import { registerAddLiquidityTool } from "./add-liquidity.js";
 import { registerRemoveLiquidityTool } from "./remove-liquidity.js";
 import { registerSwapTool } from "./swap.js";
@@ -24,7 +25,8 @@ import {
 function setup() {
   const mock = createMockServer();
   const api = new ArcadiaApiClient();
-  registerAddLiquidityTool(mock.server, api);
+  const chains = getChainConfigs();
+  registerAddLiquidityTool(mock.server, api, chains);
   registerRemoveLiquidityTool(mock.server, api);
   registerSwapTool(mock.server, api);
   registerRepayWithCollateralTool(mock.server, api);
@@ -190,10 +192,8 @@ describe("Advanced tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     const result = await handler({
       account_address: marginAccount.accountAddress,
       wallet_address: marginAccount.owner,
-      deposit_asset: USDC,
-      deposit_amount: "3000000", // 3 USDC (above minimum_margin of 2 USDC)
-      deposit_decimals: 6,
-      strategy_id: strategy.strategy_id,
+      positions: [{ strategy_id: strategy.strategy_id }],
+      deposits: [{ asset: USDC, amount: "3000000", decimals: 6 }], // 3 USDC (above minimum_margin of 2 USDC)
       leverage: 0,
       slippage: 100,
       chain_id: 8453,

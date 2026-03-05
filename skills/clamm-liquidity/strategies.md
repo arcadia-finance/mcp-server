@@ -4,7 +4,7 @@ These are templates and examples — not the only valid approaches. Adapt parame
 
 ## Key Parameter Notes
 
-- **`build_add_liquidity_tx`** capital sources: `deposit_asset`/`deposit_amount` (wallet tokens), `use_account_assets=true` (existing account collateral), or both. The backend swaps everything to the optimal ratio for the LP. You do NOT need to `build_deposit_tx` first — `build_add_liquidity_tx` handles the wallet transfer atomically. Approve wallet token first (`build_approve_tx`).
+- **`build_add_liquidity_tx`** capital sources: `deposits` array (wallet tokens), `use_account_assets=true` (existing account collateral), or both. Supports depositing multiple tokens and minting multiple LP positions in one tx. The backend swaps everything to the optimal ratio for the LP. You do NOT need to `build_deposit_tx` first — `build_add_liquidity_tx` handles the wallet transfer atomically. Approve each wallet token first (`build_approve_tx`).
 - **V4 spot accounts CAN mint LP** but cannot leverage (set `leverage: 0`). V3 margin accounts (created with a `creditor`) can both mint LP and leverage. If the user wants leveraged LP, create a V3 margin account with a creditor (`account_version: 3`).
 - **`numeraire`** in `build_repay_with_collateral_tx`: the debt token you're repaying (e.g. WETH when repaying WETH debt). `build_add_liquidity_tx` auto-detects numeraire — no param needed.
 - **`leverage`**: `0` = no leverage. `2` = 2x. Do NOT use `1` for no leverage — use `0`. When `leverage > 0`, borrowing is handled internally by `build_add_liquidity_tx` — do NOT call `build_borrow_tx` separately.
@@ -86,10 +86,8 @@ build_approve_tx(
 build_add_liquidity_tx(
   account_address: <account_address>,
   wallet_address: <owner_wallet>,
-  strategy_id: <integer from step 1>,
-  deposit_asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",   // USDC — pulled from wallet
-  deposit_amount: "10000000000",   // 10,000 USDC (wallet must hold this)
-  deposit_decimals: 6,
+  positions: [{ strategy_id: <integer from step 1> }],
+  deposits: [{ asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: "10000000000", decimals: 6 }],  // 10,000 USDC — pulled from wallet
   leverage: 2,        // 2 = 2x leverage (0 = no leverage, 3 = 3x, etc.)
   slippage: 100,      // 100 = 1% slippage tolerance (basis points)
   chain_id: 8453
@@ -194,7 +192,7 @@ build_close_position_tx(
   assets: [
     { asset_address: "<position_manager>", asset_id: <nft_id>, amount: "1", decimals: 1 }
   ],
-  receive_asset: { asset_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6 },  // receive USDC
+  receive_assets: [{ asset_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6 }],  // receive USDC
   slippage: 100,
   chain_id: 8453
 )
@@ -281,14 +279,12 @@ build_create_account_tx(
 // 3. Deposit treasury tokens
 build_deposit_tx(account_address: <account>, ...)
 
-// 4. Open LP (no leverage — deposit_amount is pulled from wallet)
+// 4. Open LP (no leverage — deposits are pulled from wallet)
 build_add_liquidity_tx(
   account_address: <account>,
   wallet_address: <treasury_wallet>,
-  strategy_id: <from step 1>,
-  deposit_asset: <token_address>,
-  deposit_amount: <raw_amount>,
-  deposit_decimals: <decimals>,
+  positions: [{ strategy_id: <from step 1> }],
+  deposits: [{ asset: <token_address>, amount: <raw_amount>, decimals: <decimals> }],
   leverage: 0,        // 0 = no leverage (NOT 1 — use 0 for unleveraged)
   slippage: 200,      // 2% — wider tolerance for POL
   chain_id: 8453

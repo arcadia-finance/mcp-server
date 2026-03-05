@@ -50,6 +50,7 @@ export interface BundleCalldataRequest {
 export interface BundleCalldataResponse {
   fx_call_to: string;
   fx_call: string;
+  calldata: string;
   actionHandler: string;
   actiondata: string;
   steps?: {

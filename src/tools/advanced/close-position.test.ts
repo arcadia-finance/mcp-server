@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   createMockServer,
+  createMockChains,
   parseToolResponse,
   TEST_ACCOUNT,
   TEST_ADDRESS,
@@ -44,7 +45,7 @@ function mockApi(overrides?: Record<string, unknown>) {
 function setup(apiOverrides?: Record<string, unknown>) {
   const mock = createMockServer();
   const api = mockApi(apiOverrides);
-  registerClosePositionTool(mock.server, api as never);
+  registerClosePositionTool(mock.server, api as never, createMockChains());
   return { handler: mock.getHandler("build_close_position_tx"), api };
 }
 
@@ -54,7 +55,7 @@ describe("build_close_position_tx", () => {
     const result = await handler({
       account_address: TEST_ACCOUNT,
       assets: [{ asset_address: WETH, asset_id: 0, amount: "1000000000000000000", decimals: 18 }],
-      receive_asset: { asset_address: USDC, decimals: 6 },
+      receive_assets: [{ asset_address: USDC, decimals: 6 }],
       close_lp_only: false,
       slippage: 100,
       chain_id: 8453,
@@ -71,7 +72,7 @@ describe("build_close_position_tx", () => {
     await handler({
       account_address: TEST_ACCOUNT,
       assets: [{ asset_address: WETH, asset_id: 0, amount: "1000", decimals: 18 }],
-      receive_asset: { asset_address: USDC, decimals: 6 },
+      receive_assets: [{ asset_address: USDC, decimals: 6 }],
       close_lp_only: false,
       chain_id: 8453,
     });
@@ -93,7 +94,7 @@ describe("build_close_position_tx", () => {
     expect(body.action_type).toBe("account.closing-lp");
   });
 
-  it("returns error when receive_asset missing for full close", async () => {
+  it("returns error when receive_assets missing for full close", async () => {
     const { handler } = setup();
     const result = await handler({
       account_address: TEST_ACCOUNT,
@@ -103,7 +104,7 @@ describe("build_close_position_tx", () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("receive_asset is required");
+    expect(result.content[0].text).toContain("receive_assets is required");
   });
 
   it("returns error when simulation fails", async () => {
@@ -116,13 +117,13 @@ describe("build_close_position_tx", () => {
       tenderly_sim_url: "https://dashboard.tenderly.co/sim/fail",
       tenderly_sim_error: "execution reverted",
     });
-    registerClosePositionTool(mock.server, api as never);
+    registerClosePositionTool(mock.server, api as never, createMockChains());
     const handler = mock.getHandler("build_close_position_tx");
 
     const result = await handler({
       account_address: TEST_ACCOUNT,
       assets: [{ asset_address: WETH, asset_id: 0, amount: "1000", decimals: 18 }],
-      receive_asset: { asset_address: USDC, decimals: 6 },
+      receive_assets: [{ asset_address: USDC, decimals: 6 }],
       close_lp_only: false,
       chain_id: 8453,
     });
@@ -136,7 +137,7 @@ describe("build_close_position_tx", () => {
     const result = await handler({
       account_address: TEST_ACCOUNT,
       assets: [{ asset_address: WETH, asset_id: 0, amount: "1000", decimals: 18 }],
-      receive_asset: { asset_address: USDC, decimals: 6 },
+      receive_assets: [{ asset_address: USDC, decimals: 6 }],
       close_lp_only: false,
       chain_id: 8453,
     });
@@ -145,12 +146,49 @@ describe("build_close_position_tx", () => {
     expect(result.content[0].text).toContain("owner");
   });
 
+  it("splits distribution equally for multiple receive_assets", async () => {
+    const { handler, api } = setup();
+    await handler({
+      account_address: TEST_ACCOUNT,
+      assets: [{ asset_address: WETH, asset_id: 0, amount: "1000", decimals: 18 }],
+      receive_assets: [
+        { asset_address: USDC, decimals: 6 },
+        { asset_address: WETH, decimals: 18 },
+      ],
+      close_lp_only: false,
+      chain_id: 8453,
+    });
+
+    const body = api.getBundleCalldata.mock.calls[0][0];
+    expect(body.buy).toHaveLength(2);
+    expect(body.buy[0].distribution).toBe(0.5);
+    expect(body.buy[1].distribution).toBe(0.5);
+  });
+
+  it("passes user-supplied distribution when provided", async () => {
+    const { handler, api } = setup();
+    await handler({
+      account_address: TEST_ACCOUNT,
+      assets: [{ asset_address: WETH, asset_id: 0, amount: "1000", decimals: 18 }],
+      receive_assets: [
+        { asset_address: USDC, decimals: 6, distribution: 0.7 },
+        { asset_address: WETH, decimals: 18, distribution: 0.3 },
+      ],
+      close_lp_only: false,
+      chain_id: 8453,
+    });
+
+    const body = api.getBundleCalldata.mock.calls[0][0];
+    expect(body.buy[0].distribution).toBe(0.7);
+    expect(body.buy[1].distribution).toBe(0.3);
+  });
+
   it("uses calldata field (not fx_call) for transaction data", async () => {
     const { handler } = setup();
     const result = await handler({
       account_address: TEST_ACCOUNT,
       assets: [{ asset_address: WETH, asset_id: 0, amount: "1000", decimals: 18 }],
-      receive_asset: { asset_address: USDC, decimals: 6 },
+      receive_assets: [{ asset_address: USDC, decimals: 6 }],
       close_lp_only: false,
       chain_id: 8453,
     });

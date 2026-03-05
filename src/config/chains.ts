@@ -9,31 +9,23 @@ export interface ChainConfig {
 }
 
 export function getChainConfigs(): Record<ChainId, ChainConfig> {
-  const alchemyKey = process.env.ALCHEMY_API_KEY;
-
   return {
     8453: {
       name: "base",
       chainId: 8453,
-      rpcUrl: alchemyKey
-        ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`
-        : "https://mainnet.base.org",
+      rpcUrl: process.env.RPC_URL_BASE ?? "https://mainnet.base.org",
       stateViewer: "0xA3c0c9b65baD0b08107Aa264b0f3dB444b867A71",
     },
     10: {
       name: "optimism",
       chainId: 10,
-      rpcUrl: alchemyKey
-        ? `https://opt-mainnet.g.alchemy.com/v2/${alchemyKey}`
-        : "https://mainnet.optimism.io",
+      rpcUrl: process.env.RPC_URL_OPTIMISM ?? "https://mainnet.optimism.io",
       stateViewer: null, // TBD — Optimism deployment pending
     },
     130: {
       name: "unichain",
       chainId: 130,
-      rpcUrl: alchemyKey
-        ? `https://unichain-mainnet.g.alchemy.com/v2/${alchemyKey}`
-        : "https://mainnet.unichain.org",
+      rpcUrl: process.env.RPC_URL_UNICHAIN ?? "https://mainnet.unichain.org",
       stateViewer: "0x86e8631A016F9068C3f085fAF484Ee3F5fDee8f2",
     },
   };

@@ -38,20 +38,40 @@ export function registerAddLiquidityTool(
 ) {
   server.tool(
     "build_add_liquidity_tx",
-    "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call build_deposit_tx separately. Capital sources: wallet tokens (deposit_asset/amount), existing account collateral (use_account_assets=true), or both. Approve wallet token first (build_approve_tx) if depositing from wallet. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call get_guide('strategies'). The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
+    "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call build_deposit_tx separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Approve each wallet token first (build_approve_tx). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call get_guide('strategies'). The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
     {
       account_address: z.string().describe("Arcadia account address"),
       wallet_address: z.string().describe("Wallet address of the account owner"),
-      strategy_id: z.number().describe("From get_strategies tool"),
-      deposit_asset: z
-        .string()
+      positions: z
+        .array(
+          z.object({
+            strategy_id: z.number().describe("From get_strategies tool"),
+            tick_lower: z
+              .number()
+              .optional()
+              .describe("Lower tick for concentrated range. Omit for full range."),
+            tick_upper: z
+              .number()
+              .optional()
+              .describe("Upper tick for concentrated range. Omit for full range."),
+          }),
+        )
+        .describe("LP positions to mint. For a single position, pass one entry."),
+      deposits: z
+        .array(
+          z.object({
+            asset: z.string().describe("Token address to deposit from wallet"),
+            amount: z.string().describe("Amount in raw units"),
+            decimals: z
+              .number()
+              .optional()
+              .describe("Token decimals (e.g. 6 for USDC, 18 for WETH). Default 18."),
+          }),
+        )
         .optional()
-        .describe("Token address to deposit from wallet. Omit to use only account collateral."),
-      deposit_amount: z.string().optional().describe("Amount in raw units to deposit from wallet"),
-      deposit_decimals: z
-        .number()
-        .optional()
-        .describe("Token decimals for wallet deposit (e.g. 6 for USDC, 18 for WETH). Default 18."),
+        .describe(
+          "Wallet tokens to deposit. Approve each token first (build_approve_tx). Omit to use only account collateral.",
+        ),
       use_account_assets: z
         .boolean()
         .optional()
@@ -59,14 +79,6 @@ export function registerAddLiquidityTool(
         .describe(
           "If true, use ALL existing account collateral for LP minting. Fetched automatically.",
         ),
-      tick_lower: z
-        .number()
-        .optional()
-        .describe("Lower tick for concentrated range. Omit for full range."),
-      tick_upper: z
-        .number()
-        .optional()
-        .describe("Upper tick for concentrated range. Omit for full range."),
       leverage: z
         .number()
         .optional()
@@ -81,36 +93,23 @@ export function registerAddLiquidityTool(
     async ({
       account_address,
       wallet_address,
-      strategy_id,
-      deposit_asset,
-      deposit_amount,
-      deposit_decimals,
+      positions,
+      deposits: walletDeposits,
       use_account_assets,
-      tick_lower,
-      tick_upper,
       leverage,
       slippage,
       chain_id,
     }) => {
       try {
+        const hasDeposits = walletDeposits && walletDeposits.length > 0;
+
         // Validate: at least one capital source
-        if (!deposit_asset && !use_account_assets) {
+        if (!hasDeposits && !use_account_assets) {
           return {
             content: [
               {
                 type: "text" as const,
-                text: "Error: Provide deposit_asset (wallet tokens) and/or use_account_assets=true (account collateral). At least one capital source is required.",
-              },
-            ],
-            isError: true,
-          };
-        }
-        if (deposit_asset && !deposit_amount) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: "Error: deposit_amount is required when deposit_asset is provided.",
+                text: "Error: Provide deposits (wallet tokens) and/or use_account_assets=true (account collateral). At least one capital source is required.",
               },
             ],
             isError: true,
@@ -197,49 +196,63 @@ export function registerAddLiquidityTool(
         const numeraire = accountStub.numeraire;
         const numeraire_decimals = decimalsMap.get(numeraire?.toLowerCase() ?? "") ?? 18;
 
-        // Strategy lookup
-        const strategies = (await api.getStrategies(chain_id)) as unknown as StrategyDetail[];
-        const strategy = strategies.find((s) => s.strategy_id === strategy_id);
-        if (!strategy) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: `Error: Strategy ${strategy_id} not found on chain ${chain_id}.`,
-              },
-            ],
-            isError: true,
-          };
+        // Strategy lookup for all positions
+        const allStrategies = (await api.getStrategies(chain_id)) as unknown as StrategyDetail[];
+        const resolvedPositions: Array<{
+          strategy: StrategyDetail;
+          tick_lower?: number;
+          tick_upper?: number;
+        }> = [];
+        for (const pos of positions) {
+          const strategy = allStrategies.find((s) => s.strategy_id === pos.strategy_id);
+          if (!strategy) {
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: `Error: Strategy ${pos.strategy_id} not found on chain ${chain_id}.`,
+                },
+              ],
+              isError: true,
+            };
+          }
+          resolvedPositions.push({
+            strategy,
+            tick_lower: pos.tick_lower,
+            tick_upper: pos.tick_upper,
+          });
         }
 
-        // Minimum margin guard — only for wallet deposits
-        if (deposit_asset && deposit_amount) {
-          const depositLower = deposit_asset.toLowerCase();
-          const riskFactors = strategy.details?.risk_factors;
+        // Minimum margin guard per deposit against first strategy's risk factors
+        if (hasDeposits) {
+          const firstStrategy = resolvedPositions[0].strategy;
+          const riskFactors = firstStrategy.details?.risk_factors;
           if (riskFactors) {
-            const riskEntry = Object.entries(riskFactors).find(
-              ([addr]) => addr.toLowerCase() === depositLower,
-            );
-            if (riskEntry) {
-              const minMargin = BigInt(riskEntry[1].minimum_margin);
-              const depositBig = BigInt(deposit_amount);
-              if (depositBig < minMargin) {
-                const decimals = deposit_decimals ?? 18;
-                const depFormatted = (Number(depositBig) / 10 ** decimals).toFixed(
-                  Math.min(decimals, 8),
-                );
-                const minFormatted = (Number(minMargin) / 10 ** decimals).toFixed(
-                  Math.min(decimals, 8),
-                );
-                return {
-                  content: [
-                    {
-                      type: "text" as const,
-                      text: `Error: Deposit ${depFormatted} is below the minimum ${minFormatted} for ${deposit_asset} on strategy ${strategy_id} (raw: ${deposit_amount} < ${minMargin.toString()}). Increase the deposit amount.`,
-                    },
-                  ],
-                  isError: true,
-                };
+            for (const dep of walletDeposits!) {
+              const riskEntry = Object.entries(riskFactors).find(
+                ([addr]) => addr.toLowerCase() === dep.asset.toLowerCase(),
+              );
+              if (riskEntry) {
+                const minMargin = BigInt(riskEntry[1].minimum_margin);
+                const depositBig = BigInt(dep.amount);
+                if (depositBig < minMargin) {
+                  const decimals = dep.decimals ?? 18;
+                  const depFormatted = (Number(depositBig) / 10 ** decimals).toFixed(
+                    Math.min(decimals, 8),
+                  );
+                  const minFormatted = (Number(minMargin) / 10 ** decimals).toFixed(
+                    Math.min(decimals, 8),
+                  );
+                  return {
+                    content: [
+                      {
+                        type: "text" as const,
+                        text: `Error: Deposit ${depFormatted} is below the minimum ${minFormatted} for ${dep.asset} on strategy ${firstStrategy.strategy_id} (raw: ${dep.amount} < ${minMargin.toString()}). Increase the deposit amount.`,
+                      },
+                    ],
+                    isError: true,
+                  };
+                }
               }
             }
           }
@@ -258,19 +271,19 @@ export function registerAddLiquidityTool(
               content: [
                 {
                   type: "text" as const,
-                  text: "Error: use_account_assets=true but account overview is unavailable (cannot read asset list). Use deposit_asset/deposit_amount to deposit from wallet instead.",
+                  text: "Error: use_account_assets=true but account overview is unavailable (cannot read asset list). Use deposits to deposit from wallet instead.",
                 },
               ],
               isError: true,
             };
           }
           const accountAssets = (overview.assets ?? []) as AccountAsset[];
-          if (accountAssets.length === 0 && !deposit_asset) {
+          if (accountAssets.length === 0 && !hasDeposits) {
             return {
               content: [
                 {
                   type: "text" as const,
-                  text: "Error: use_account_assets=true but the account has no deposited assets, and no wallet deposit was provided. Deposit assets first via build_deposit_tx or provide deposit_asset/deposit_amount.",
+                  text: "Error: use_account_assets=true but the account has no deposited assets, and no wallet deposits were provided. Deposit assets first via build_deposit_tx or provide deposits.",
                 },
               ],
               isError: true,
@@ -287,12 +300,12 @@ export function registerAddLiquidityTool(
         }
 
         // Build deposits from wallet
-        const deposits = deposit_asset
+        const deposits = hasDeposits
           ? {
-              addresses: [deposit_asset],
-              ids: [0],
-              amounts: [deposit_amount!],
-              decimals: [deposit_decimals ?? 18],
+              addresses: walletDeposits!.map((d) => d.asset),
+              ids: walletDeposits!.map(() => 0),
+              amounts: walletDeposits!.map((d) => d.amount),
+              decimals: walletDeposits!.map((d) => d.decimals ?? 18),
             }
           : {
               addresses: [] as string[],
@@ -301,25 +314,29 @@ export function registerAddLiquidityTool(
               decimals: [] as number[],
             };
 
-        // Build buy entry with optional ticks
-        const buyEntry: {
-          asset_address: string;
-          distribution: number;
-          decimals: number;
-          strategy_id: number;
-          ticks?: { tick_lower: number; tick_upper: number };
-        } = {
-          asset_address: strategy.asset_address,
-          distribution: 1,
-          decimals: strategy.asset_decimals,
-          strategy_id,
-        };
-        if (tick_lower !== undefined && tick_upper !== undefined) {
-          buyEntry.ticks = { tick_lower, tick_upper };
-        }
+        // Build buy array from positions
+        const distribution = 1 / resolvedPositions.length;
+        const buy = resolvedPositions.map(({ strategy, tick_lower, tick_upper }) => {
+          const entry: {
+            asset_address: string;
+            distribution: number;
+            decimals: number;
+            strategy_id: number;
+            ticks?: { tick_lower: number; tick_upper: number };
+          } = {
+            asset_address: strategy.asset_address,
+            distribution,
+            decimals: strategy.asset_decimals,
+            strategy_id: strategy.strategy_id,
+          };
+          if (tick_lower !== undefined && tick_upper !== undefined) {
+            entry.ticks = { tick_lower, tick_upper };
+          }
+          return entry;
+        });
 
         const body = {
-          buy: [buyEntry],
+          buy,
           sell,
           deposits,
           withdraws: {
@@ -334,7 +351,7 @@ export function registerAddLiquidityTool(
           numeraire_decimals,
           debt: {
             take: isSpot ? false : (leverage ?? 0) > 0,
-            leverage: isSpot ? 1 : (leverage ?? 0), // backend requires leverage=1 for spot (matches dapp)
+            leverage: isSpot ? 1 : (leverage ?? 0),
             repay: 0,
             creditor,
           },

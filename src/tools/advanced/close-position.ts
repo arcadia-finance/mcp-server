@@ -19,7 +19,7 @@ ALWAYS try this tool first when closing/exiting a position. Only fall back to in
 
 Supports two modes:
 - close_lp_only=true: Burns LP and leaves underlying tokens in the account. Use as step 1 if the full close fails, then call again with close_lp_only=false to swap+repay the remaining tokens.
-- close_lp_only=false (default): Full atomic close — burns LP, swaps everything to receive_asset, repays debt. Remaining tokens stay in the account. Follow up with build_withdraw_tx to send to wallet.
+- close_lp_only=false (default): Full atomic close — burns LP, swaps everything to receive_assets, repays debt. Remaining tokens stay in the account. Follow up with build_withdraw_tx to send to wallet. Supports multiple receive assets with custom distribution.
 
 The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.`,
     {
@@ -36,16 +36,22 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
         .describe(
           "Assets to close/sell from the account. For LP positions: asset_address = position manager, asset_id = NFT ID, amount = '1', decimals = 1. For ERC20 tokens: asset_id = 0, amount = full balance, decimals = token decimals. Get these from get_account_info.",
         ),
-      receive_asset: z
-        .object({
-          asset_address: z
-            .string()
-            .describe("Target token address to convert everything to (e.g. USDC, WETH)"),
-          decimals: z.number().describe("Token decimals of the target asset"),
-        })
+      receive_assets: z
+        .array(
+          z.object({
+            asset_address: z.string().describe("Target token address (e.g. USDC, WETH)"),
+            decimals: z.number().describe("Token decimals of the target asset"),
+            distribution: z
+              .number()
+              .optional()
+              .describe(
+                "Fraction of proceeds (0-1). Defaults to equal split across all receive assets.",
+              ),
+          }),
+        )
         .optional()
         .describe(
-          "Target asset to receive after closing. Required when close_lp_only=false. Omit for close_lp_only=true.",
+          "Target assets to receive after closing. For a single target, pass one entry. Required when close_lp_only=false. Omit for close_lp_only=true.",
         ),
       close_lp_only: z
         .boolean()
@@ -60,16 +66,16 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
         .default(8453)
         .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
     },
-    async ({ account_address, assets, receive_asset, close_lp_only, slippage, chain_id }) => {
+    async ({ account_address, assets, receive_assets, close_lp_only, slippage, chain_id }) => {
       try {
         const actionType = close_lp_only ? "account.closing-lp" : "account.closing-position";
 
-        if (!close_lp_only && !receive_asset) {
+        if (!close_lp_only && (!receive_assets || receive_assets.length === 0)) {
           return {
             content: [
               {
                 type: "text" as const,
-                text: "Error: receive_asset is required for full close (close_lp_only=false). Specify the target asset to convert everything to (e.g. USDC or WETH).",
+                text: "Error: receive_assets is required for full close (close_lp_only=false). Specify at least one target asset to convert everything to (e.g. USDC or WETH).",
               },
             ],
             isError: true,
@@ -157,17 +163,19 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           }
         }
 
+        // Build buy array from receive_assets
+        const defaultDist = receive_assets ? 1 / receive_assets.length : 1;
+        const buy = close_lp_only
+          ? []
+          : receive_assets!.map((r) => ({
+              asset_address: r.asset_address,
+              distribution: r.distribution ?? defaultDist,
+              decimals: r.decimals,
+              strategy_id: 0,
+            }));
+
         const body = {
-          buy: close_lp_only
-            ? []
-            : [
-                {
-                  asset_address: receive_asset!.asset_address,
-                  distribution: 1,
-                  decimals: receive_asset!.decimals,
-                  strategy_id: 0,
-                },
-              ],
+          buy,
           sell: assets.map((a) => ({
             asset_address: a.asset_address,
             amount: a.amount,

@@ -1,6 +1,6 @@
 ---
 name: clamm-liquidity
-description: Agent guide for clAMM management on Arcadia Finance. Covers 24 MCP tools, automation setup (rebalancers, compounders, yield claimers, Merkl, CoW swapper), strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
+description: Agent guide for clAMM management on Arcadia Finance. Covers 24 MCP tools (+1 dev), automation setup (rebalancers, compounders, yield claimers, Merkl, CoW swapper), strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
 user-invokable: true
 ---
 
@@ -44,7 +44,7 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 
 **All advanced tools return time-sensitive calldata** — sign and broadcast within 30 seconds. If a transaction reverts due to price movement, rebuild and retry at least once before falling back to individual tools.
 
-## MCP Tools (24)
+## MCP Tools (24 + 1 dev)
 
 ### Read Tools
 
@@ -86,6 +86,12 @@ These tools batch multiple operations into ONE atomic transaction. Always prefer
 | `build_remove_liquidity_tx`  | PARTIAL liquidity decrease only (position stays open). For full LP removal/exit, use `build_close_position_tx`.                                                                                 |
 | `build_position_action_tx`   | Stake, unstake, or claim rewards for an LP position. Direction auto-detected from `asset_address`.                                                                                              |
 | `build_set_asset_manager_tx` | Grant/revoke AM permission only (no configuration). Use to revoke; for full setup prefer `build_configure_asset_manager_tx`.                                                                    |
+
+### Dev Tools (only available when `PK` env var is set)
+
+| Tool               | When to use                                                                                                                                                                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sign_and_send_tx` | Sign and broadcast an unsigned transaction using a local private key. Pass the `{ to, data, value, chainId }` from any `build_*_tx` tool. **Not for production** — use a dedicated wallet MCP server (Fireblocks, Safe, Turnkey, etc.) instead. |
 
 ## Token Addresses (Base 8453)
 

@@ -82,9 +82,7 @@ export function registerAccountTools(
           const notes: string[] = [];
 
           if (!overview) {
-            notes.push(
-              "Account overview unavailable. Partial data returned.",
-            );
+            notes.push("Account overview unavailable. Partial data returned.");
           }
 
           if (overview) {
@@ -252,11 +250,12 @@ export function registerAccountTools(
           api.getYieldEarned(chain_id, account_address),
         ]);
 
-        const { direct_deposits, ...pnl } = pnlRaw as Record<string, unknown>;
-        const { daily_yields, daily_yields_usd, ...yieldData } = yieldRaw as Record<
-          string,
-          unknown
-        >;
+        const { direct_deposits: _, ...pnl } = pnlRaw as Record<string, unknown>;
+        const {
+          daily_yields: _dy,
+          daily_yields_usd: _dyu,
+          ...yieldData
+        } = yieldRaw as Record<string, unknown>;
 
         return {
           content: [

@@ -17,7 +17,6 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 | `get_wallet_balances` | On-chain ERC20 balances and native ETH for a wallet address.                                                                 |
 | `get_points`          | Points balance for a wallet, or leaderboard.                                                                                 |
 | `get_lending_pools`   | Pool data: TVL, APY, utilization, liquidity. Optional single-pool detail with APY history.                                   |
-| `get_protocol_stats`  | Protocol-wide stats: TVL, borrowed, pool count, AAA supply.                                                                  |
 | `get_strategies`      | LP strategies with APY, underlyings, pool info. Optional detail or featured filter.                                          |
 | `get_recommendation`  | Rebalancing recommendation for an account.                                                                                   |
 | `get_guide`           | Reference guides: automation setup, strategy selection, strategy templates.                                                  |
@@ -37,6 +36,14 @@ Direct calldata encoding via viem. Each returns `{ to, data, value, chainId }`.
 | `build_set_asset_manager_tx`       | Grant or revoke an asset manager contract's permission on a V3/V4 account. For full setup with config, use `build_configure_asset_manager_tx`.                           |
 | `build_configure_asset_manager_tx` | Enable AND configure an asset manager in one tx for V3/V4 accounts: sets initiator, fee limits, and strategy parameters (trigger thresholds, compound mode, recipients). |
 
+### Dev Tools
+
+Always registered but requires `PK` env var to function.
+
+| Tool               | Description                                                                                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sign_and_send_tx` | Sign and broadcast an unsigned transaction using a local private key (`PK` env var). Not for production — use a dedicated wallet MCP server instead. |
+
 ### Advanced Tools
 
 Proxied via backend API. Handles swap routing, Tenderly simulation, optimal ratios.
@@ -47,6 +54,7 @@ Proxied via backend API. Handles swap routing, Tenderly simulation, optimal rati
 | `build_remove_liquidity_tx`      | Remove/decrease LP position liquidity.                                  |
 | `build_swap_tx`                  | Swap assets within an account (backend-routed).                         |
 | `build_repay_with_collateral_tx` | Repay debt by selling collateral (swap + repay in one tx).              |
+| `build_close_position_tx`        | Atomic close: burn LP + swap + repay debt in one tx.                    |
 | `build_position_action_tx`       | Stake, unstake, or claim rewards for LP positions.                      |
 
 ## Transaction Signing
@@ -95,9 +103,12 @@ yarn build
 
 **Environment variables:**
 
-| Variable          | Required | Description                                                    |
-| ----------------- | -------- | -------------------------------------------------------------- |
-| `ALCHEMY_API_KEY` | No       | Alchemy API key for RPC. Falls back to public RPCs if not set. |
+| Variable           | Required | Description                                                      |
+| ------------------ | -------- | ---------------------------------------------------------------- |
+| `RPC_URL_BASE`     | No       | RPC URL for Base (8453). Falls back to public RPC if not set.    |
+| `RPC_URL_OPTIMISM` | No       | RPC URL for Optimism (10). Falls back to public RPC if not set.  |
+| `RPC_URL_UNICHAIN` | No       | RPC URL for Unichain (130). Falls back to public RPC if not set. |
+| `PK`               | No       | Private key (hex) for dev-only `sign_and_send_tx` tool.          |
 
 **Supported chains:** Base (8453), Optimism (10), Unichain (130)
 
@@ -112,7 +123,7 @@ yarn build
       "command": "npx",
       "args": ["-y", "@arcadia-finance/mcp-server"],
       "env": {
-        "ALCHEMY_API_KEY": "your-key"
+        "RPC_URL_BASE": "https://base-mainnet.g.alchemy.com/v2/your-key"
       }
     }
   }
@@ -128,7 +139,7 @@ yarn build
       "command": "node",
       "args": ["/absolute/path/to/mcp-server/dist/index.js"],
       "env": {
-        "ALCHEMY_API_KEY": "your-key"
+        "RPC_URL_BASE": "https://base-mainnet.g.alchemy.com/v2/your-key"
       }
     }
   }

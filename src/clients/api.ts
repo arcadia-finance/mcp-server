@@ -83,14 +83,6 @@ export class ArcadiaApiClient {
     return this.get("/accounts/overview", { chain_id: chainId, account });
   }
 
-  async getAccountSummary(chainId: number, owner: string) {
-    return this.get("/accounts/detailed-accounts-summary", { chain_id: chainId, owner });
-  }
-
-  async getAccountValue(chainId: number, account: string) {
-    return this.get("/accounts/value_of_account", { chain_id: chainId, account });
-  }
-
   async getLiquidationPrice(chainId: number, account: string) {
     return this.get("/accounts/liquidation", { chain_id: chainId, account });
   }
@@ -104,10 +96,6 @@ export class ArcadiaApiClient {
       start,
       end,
     });
-  }
-
-  async getOwnerOverview(chainId: number, owner: string) {
-    return this.get("/accounts/owner_overview", { chain_id: chainId, owner });
   }
 
   async getLeaderboard(chainId: number) {
@@ -199,10 +187,6 @@ export class ArcadiaApiClient {
 
   async getCirculatingSupply() {
     return this.get<number>("/aaa/circulating_cmc");
-  }
-
-  async getTotalSupply() {
-    return this.get<number>("/aaa/total_supply_cmc");
   }
 
   // ── Bundle / Calldata (for advanced write tools) ─────────────────
