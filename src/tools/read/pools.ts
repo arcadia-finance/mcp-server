@@ -20,19 +20,10 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
     async ({ pool_address, days, chain_id }) => {
       try {
         if (pool_address) {
-          const [poolsData, apy_history] = await Promise.all([
-            api.getPoolsData(chain_id),
+          const [pool, apy_history] = await Promise.all([
+            api.getPoolsData(chain_id, pool_address),
             api.getPoolApyHistory(chain_id, pool_address, days),
           ]);
-          const pools = Array.isArray(poolsData)
-            ? poolsData
-            : (poolsData as Record<string, unknown>).data;
-          const pool = Array.isArray(pools)
-            ? pools.find(
-                (p: Record<string, unknown>) =>
-                  String(p.pool_address ?? p.address).toLowerCase() === pool_address.toLowerCase(),
-              )
-            : undefined;
           return {
             content: [
               { type: "text" as const, text: JSON.stringify({ pool, apy_history }, null, 2) },

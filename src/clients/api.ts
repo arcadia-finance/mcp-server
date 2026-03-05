@@ -151,8 +151,10 @@ export class ArcadiaApiClient {
     return this.get<ApiListResponse>("/pools", { chain_id: chainId });
   }
 
-  async getPoolsData(chainId: number) {
-    return this.get<ApiListResponse>("/pools_data", { chain_id: chainId });
+  async getPoolsData(chainId: number, poolAddress?: string) {
+    const params: Record<string, string | number> = { chain_id: chainId };
+    if (poolAddress) params.pool_address = poolAddress;
+    return this.get<ApiListResponse>("/pools_data", params);
   }
 
   async getPoolApyHistory(chainId: number, poolAddress: string, days = 14) {
