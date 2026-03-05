@@ -1,6 +1,5 @@
 # Source & tests
 src/
-skills/
 dist/**/*.test.*
 dist/test-utils.*
 

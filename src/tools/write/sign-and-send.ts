@@ -1,13 +1,14 @@
 import { z } from "zod";
-import { createWalletClient, createPublicClient, http } from "viem";
+import { createWalletClient, createPublicClient, http, type Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { base, optimism } from "viem/chains";
+import { base, optimism, unichain } from "viem/chains";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 
-const VIEM_CHAINS: Record<number, typeof base | typeof optimism> = {
+const VIEM_CHAINS: Record<number, Chain> = {
   8453: base,
   10: optimism,
+  130: unichain,
 };
 
 export function registerSignAndSendTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
