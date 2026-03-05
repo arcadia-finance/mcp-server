@@ -1,5 +1,6 @@
 {
   "name": "@arcadia-finance/mcp-server",
+  "mcpName": "io.github.arcadia-finance/mcp-server",
   "version": "0.1.2",
   "description": "MCP server for Arcadia Finance. Manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base, Optimism, and Unichain.",
   "type": "module",
@@ -24,6 +25,7 @@
   "files": [
     "dist",
     "skills",
+    "server.json",
     "README.md",
     "LICENSE.md"
   ],

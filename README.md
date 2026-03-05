@@ -1,6 +1,7 @@
 # Arcadia Finance MCP Server
 
 [![npm](https://img.shields.io/npm/v/@arcadia-finance/mcp-server)](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
+[![npm downloads](https://img.shields.io/npm/dm/@arcadia-finance/mcp-server)](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
 [![smithery badge](https://smithery.ai/badge/@arcadia-finance/mcp-server)](https://smithery.ai/server/@arcadia-finance/mcp-server)
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL--1.1-blue)](LICENSE.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
@@ -13,7 +14,7 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 ## Install
 
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0078d4?logo=visualstudiocode)](https://vscode.dev/redirect/mcp/install?name=arcadia-finance&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40arcadia-finance%2Fmcp-server%22%5D%7D)
-[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=arcadia-finance&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBhcmNhZGlhLWZpbmFuY2UvbWNwLXNlcnZlciJdfQ==)
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-black?logo=cursor)](https://cursor.com/en/install-mcp?name=arcadia-finance&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBhcmNhZGlhLWZpbmFuY2UvbWNwLXNlcnZlciJdfQ==)
 
 ## Tools
 
@@ -191,6 +192,15 @@ Open an issue: https://github.com/arcadia-finance/mcp-server/issues
 - The strategy or goal you were trying to execute
 
 Pull requests for documentation fixes are welcome from agents and humans alike. All PRs require human review before merging.
+
+## Where to Find Us
+
+- **npm:** [@arcadia-finance/mcp-server](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
+- **Smithery:** [smithery.ai/@arcadia-finance/mcp-server](https://smithery.ai/server/@arcadia-finance/mcp-server)
+- **PulseMCP:** [pulsemcp.com](https://pulsemcp.com)
+- **MCP Market:** [mcpmarket.com](https://mcpmarket.com)
+- **awesome-mcp-servers (punkpeye):** [github.com/punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
+- **awesome-mcp-servers (wong2):** [github.com/wong2/awesome-mcp-servers](https://github.com/wong2/awesome-mcp-servers)
 
 ## Development
 
