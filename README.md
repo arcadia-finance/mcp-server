@@ -12,8 +12,8 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 
 ## Install
 
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0078d4?logo=visualstudiocode)](https://vscode.dev/redirect/mcp/install?config=%7B%22name%22%3A%22arcadia-finance%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40arcadia-finance%2Fmcp-server%22%5D%7D)
-[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-000?logo=cursor)](cursor://anysphere.cursor-deeplink/mcp/install?config=%7B%22name%22%3A%22arcadia-finance%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40arcadia-finance%2Fmcp-server%22%5D%7D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0078d4?logo=visualstudiocode)](https://vscode.dev/redirect/mcp/install?name=arcadia-finance&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40arcadia-finance%2Fmcp-server%22%5D%7D)
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=arcadia-finance&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBhcmNhZGlhLWZpbmFuY2UvbWNwLXNlcnZlciJdfQ==)
 
 ## Tools
 
