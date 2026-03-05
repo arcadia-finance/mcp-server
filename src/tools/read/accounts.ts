@@ -11,21 +11,24 @@ export function registerAccountTools(
   api: ArcadiaApiClient,
   chains: Record<ChainId, ChainConfig>,
 ) {
-  server.tool(
+  server.registerTool(
     "get_account_info",
-    "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Pass account_address for a specific account, or wallet_address to list all accounts owned by a wallet. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. On Base, also returns which asset managers are enabled (rebalancer, compounder, yield_claimer, merkl_operator, cow_swapper).",
     {
-      account_address: z.string().optional().describe("Arcadia account address"),
-      wallet_address: z
-        .string()
-        .optional()
-        .describe(
-          "Wallet address to list all owned accounts (returns summary: address, name). Call again with a specific account_address for full details like health factor, collateral, and debt.",
-        ),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Pass account_address for a specific account, or wallet_address to list all accounts owned by a wallet. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. On Base, also returns which asset managers are enabled (rebalancer, compounder, yield_claimer, merkl_operator, cow_swapper).",
+      inputSchema: {
+        account_address: z.string().optional().describe("Arcadia account address"),
+        wallet_address: z
+          .string()
+          .optional()
+          .describe(
+            "Wallet address to list all owned accounts (returns summary: address, name). Call again with a specific account_address for full details like health factor, collateral, and debt.",
+          ),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ account_address, wallet_address, chain_id }) => {
       try {
@@ -185,16 +188,19 @@ export function registerAccountTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     "get_account_history",
-    "Get historical collateral and debt values for an Arcadia account over time. Returns a time series of snapshots (timestamp, collateral_value, debt_value, net_value in USD). Useful for charting account performance over a period.",
     {
-      account_address: z.string().describe("Arcadia account address"),
-      days: z.number().default(14).describe("Number of days of history (default 14)"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Get historical collateral and debt values for an Arcadia account over time. Returns a time series of snapshots (timestamp, collateral_value, debt_value, net_value in USD). Useful for charting account performance over a period.",
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        days: z.number().default(14).describe("Number of days of history (default 14)"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ account_address, days, chain_id }) => {
       try {
@@ -214,15 +220,18 @@ export function registerAccountTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     "get_account_pnl",
-    "Get PnL (cost basis) and yield earned for an Arcadia account. Returns lifetime totals: cost basis vs current value, net transfers per token, total yield earned in USD and per token.",
     {
-      account_address: z.string().describe("Arcadia account address"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Get PnL (cost basis) and yield earned for an Arcadia account. Returns lifetime totals: cost basis vs current value, net transfers per token, total yield earned in USD and per token.",
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ account_address, chain_id }) => {
       try {

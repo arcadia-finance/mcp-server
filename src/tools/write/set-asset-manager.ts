@@ -9,19 +9,22 @@ export function registerSetAssetManagerTool(
   server: McpServer,
   _chains: Record<ChainId, ChainConfig>,
 ) {
-  server.tool(
+  server.registerTool(
     "build_set_asset_manager_tx",
-    "Build an unsigned transaction to grant or revoke an asset manager's permission on an Arcadia V3/V4 account via setAssetManagers. This ONLY toggles the permission flag — it does NOT configure initiator, fees, or strategy parameters. For full setup (enable + configure in one tx), use build_configure_asset_manager_tx instead. For asset manager addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
     {
-      account_address: z.string().describe("Arcadia account address (V3 or V4)"),
-      asset_manager_address: z
-        .string()
-        .describe("Asset manager contract address to grant or revoke"),
-      enabled: z.boolean().describe("True to grant permission, false to revoke"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Build an unsigned transaction to grant or revoke an asset manager's permission on an Arcadia V3/V4 account via setAssetManagers. This ONLY toggles the permission flag — it does NOT configure initiator, fees, or strategy parameters. For full setup (enable + configure in one tx), use build_configure_asset_manager_tx instead. For asset manager addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address (V3 or V4)"),
+        asset_manager_address: z
+          .string()
+          .describe("Asset manager contract address to grant or revoke"),
+        enabled: z.boolean().describe("True to grant permission, false to revoke"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async (params) => {
       try {

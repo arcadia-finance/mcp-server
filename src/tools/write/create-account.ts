@@ -39,30 +39,35 @@ export function computeAccountAddress(
 }
 
 export function registerCreateAccountTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
-  server.tool(
+  server.registerTool(
     "build_create_account_tx",
-    "Build an unsigned transaction to create a new Arcadia account via the Factory contract. account_version: 3 with creditor → V3 margin account (can borrow/leverage). account_version: 0 or 4 → V4 spot account (no borrowing, creditor is ignored, any ERC20 allowed). Returns the predicted account address (deterministic via CREATE2).",
     {
-      salt: z.number().describe("Unique salt (uint32) for deterministic account address"),
-      wallet_address: z
-        .string()
-        .describe(
-          "Wallet address that will send the transaction (tx.origin, needed for address prediction)",
-        ),
-      account_version: z
-        .number()
-        .default(0)
-        .describe("Account version: 0 = latest (V4 spot), 3 = margin (can borrow). 1/2 = legacy."),
-      creditor: z
-        .string()
-        .optional()
-        .describe(
-          "Lending pool address for V3 margin account. Ignored for V4 spot accounts (version 0 or 4).",
-        ),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Build an unsigned transaction to create a new Arcadia account via the Factory contract. account_version: 3 with creditor → V3 margin account (can borrow/leverage). account_version: 0 or 4 → V4 spot account (no borrowing, creditor is ignored, any ERC20 allowed). Returns the predicted account address (deterministic via CREATE2).",
+      inputSchema: {
+        salt: z.number().describe("Unique salt (uint32) for deterministic account address"),
+        wallet_address: z
+          .string()
+          .describe(
+            "Wallet address that will send the transaction (tx.origin, needed for address prediction)",
+          ),
+        account_version: z
+          .number()
+          .default(0)
+          .describe(
+            "Account version: 0 = latest (V4 spot), 3 = margin (can borrow). 1/2 = legacy.",
+          ),
+        creditor: z
+          .string()
+          .optional()
+          .describe(
+            "Lending pool address for V3 margin account. Ignored for V4 spot accounts (version 0 or 4).",
+          ),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async (params) => {
       try {

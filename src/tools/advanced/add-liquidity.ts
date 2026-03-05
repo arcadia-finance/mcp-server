@@ -36,59 +36,62 @@ export function registerAddLiquidityTool(
   api: ArcadiaApiClient,
   chains: Record<ChainId, ChainConfig>,
 ) {
-  server.tool(
+  server.registerTool(
     "build_add_liquidity_tx",
-    "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call build_deposit_tx separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (get_allowance), then approve if needed (build_approve_tx). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call get_guide('strategies'). The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
     {
-      account_address: z.string().describe("Arcadia account address"),
-      wallet_address: z.string().describe("Wallet address of the account owner"),
-      positions: z
-        .array(
-          z.object({
-            strategy_id: z.number().describe("From get_strategies tool"),
-            tick_lower: z
-              .number()
-              .optional()
-              .describe("Lower tick for concentrated range. Omit for full range."),
-            tick_upper: z
-              .number()
-              .optional()
-              .describe("Upper tick for concentrated range. Omit for full range."),
-          }),
-        )
-        .describe("LP positions to mint. For a single position, pass one entry."),
-      deposits: z
-        .array(
-          z.object({
-            asset: z.string().describe("Token address to deposit from wallet"),
-            amount: z.string().describe("Amount in raw units"),
-            decimals: z
-              .number()
-              .optional()
-              .describe("Token decimals (e.g. 6 for USDC, 18 for WETH). Default 18."),
-          }),
-        )
-        .optional()
-        .describe(
-          "Wallet tokens to deposit. Approve each token first (build_approve_tx). Omit to use only account collateral.",
-        ),
-      use_account_assets: z
-        .boolean()
-        .optional()
-        .default(false)
-        .describe(
-          "If true, use ALL existing account collateral for LP minting. Fetched automatically.",
-        ),
-      leverage: z
-        .number()
-        .optional()
-        .default(0)
-        .describe("0 = no borrow, 2 = 2x leverage. Margin accounts only."),
-      slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call build_deposit_tx separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (get_allowance), then approve if needed (build_approve_tx). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call get_guide('strategies'). The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        wallet_address: z.string().describe("Wallet address of the account owner"),
+        positions: z
+          .array(
+            z.object({
+              strategy_id: z.number().describe("From get_strategies tool"),
+              tick_lower: z
+                .number()
+                .optional()
+                .describe("Lower tick for concentrated range. Omit for full range."),
+              tick_upper: z
+                .number()
+                .optional()
+                .describe("Upper tick for concentrated range. Omit for full range."),
+            }),
+          )
+          .describe("LP positions to mint. For a single position, pass one entry."),
+        deposits: z
+          .array(
+            z.object({
+              asset: z.string().describe("Token address to deposit from wallet"),
+              amount: z.string().describe("Amount in raw units"),
+              decimals: z
+                .number()
+                .optional()
+                .describe("Token decimals (e.g. 6 for USDC, 18 for WETH). Default 18."),
+            }),
+          )
+          .optional()
+          .describe(
+            "Wallet tokens to deposit. Approve each token first (build_approve_tx). Omit to use only account collateral.",
+          ),
+        use_account_assets: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "If true, use ALL existing account collateral for LP minting. Fetched automatically.",
+          ),
+        leverage: z
+          .number()
+          .optional()
+          .default(0)
+          .describe("0 = no borrow, 2 = 2x leverage. Margin accounts only."),
+        slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({
       account_address,

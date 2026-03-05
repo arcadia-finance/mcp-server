@@ -17,9 +17,15 @@ export function createMockServer() {
   const tools: RegisteredTool[] = [];
 
   const server = {
-    tool: vi.fn((name: string, _description: string, _schema: unknown, handler: ToolHandler) => {
-      tools.push({ name, handler });
-    }),
+    registerTool: vi.fn(
+      (
+        name: string,
+        _config: { description: string; inputSchema: unknown },
+        handler: ToolHandler,
+      ) => {
+        tools.push({ name, handler });
+      },
+    ),
   };
 
   return {

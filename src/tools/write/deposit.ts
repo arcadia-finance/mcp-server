@@ -7,31 +7,34 @@ import { getPublicClient } from "../../clients/chain.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
 
 export function registerDepositTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
-  server.tool(
+  server.registerTool(
     "build_deposit_tx",
-    "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before build_add_liquidity_tx — that tool deposits from wallet atomically. Ensure the account is approved first (call get_allowance to check, then build_approve_tx if needed). Account version is auto-detected on-chain (override with account_version if needed).",
     {
-      account_address: z.string().describe("Arcadia account address"),
-      asset_addresses: z.array(z.string()).describe("Token contract addresses to deposit"),
-      asset_amounts: z.array(z.string()).describe("Amounts in raw units/wei, one per asset"),
-      asset_ids: z
-        .array(z.number())
-        .optional()
-        .describe("Token IDs: 0 for ERC20, NFT token ID for ERC721"),
-      asset_types: z
-        .array(z.number())
-        .optional()
-        .describe(
-          "V4 only. Asset types per asset: 1=ERC20, 2=ERC721, 3=ERC1155. If omitted, inferred from asset_ids (non-zero → ERC721).",
-        ),
-      account_version: z
-        .number()
-        .optional()
-        .describe("Override account version (3 or 4). Auto-detected on-chain if omitted."),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before build_add_liquidity_tx — that tool deposits from wallet atomically. Ensure the account is approved first (call get_allowance to check, then build_approve_tx if needed). Account version is auto-detected on-chain (override with account_version if needed).",
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        asset_addresses: z.array(z.string()).describe("Token contract addresses to deposit"),
+        asset_amounts: z.array(z.string()).describe("Amounts in raw units/wei, one per asset"),
+        asset_ids: z
+          .array(z.number())
+          .optional()
+          .describe("Token IDs: 0 for ERC20, NFT token ID for ERC721"),
+        asset_types: z
+          .array(z.number())
+          .optional()
+          .describe(
+            "V4 only. Asset types per asset: 1=ERC20, 2=ERC721, 3=ERC1155. If omitted, inferred from asset_ids (non-zero → ERC721).",
+          ),
+        account_version: z
+          .number()
+          .optional()
+          .describe("Override account version (3 or 4). Auto-detected on-chain if omitted."),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async (params) => {
       try {

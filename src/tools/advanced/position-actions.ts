@@ -4,18 +4,21 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 import { formatAdvancedResponse } from "./format-response.js";
 
 export function registerPositionActionsTool(server: McpServer, api: ArcadiaApiClient) {
-  server.tool(
+  server.registerTool(
     "build_position_action_tx",
-    "Flash-action: stake, unstake, or claim rewards for an LP position in one atomic transaction. The stake/unstake direction is auto-detected from asset_address: pass the non-staked position manager to stake, or the staked position manager to unstake. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up).",
     {
-      account_address: z.string().describe("Arcadia account address"),
-      action: z.enum(["stake", "unstake", "claim"]).describe("Action to perform"),
-      asset_address: z.string().describe("Position manager contract address"),
-      asset_id: z.number().describe("NFT token ID of the LP position"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Flash-action: stake, unstake, or claim rewards for an LP position in one atomic transaction. The stake/unstake direction is auto-detected from asset_address: pass the non-staked position manager to stake, or the staked position manager to unstake. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up).",
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        action: z.enum(["stake", "unstake", "claim"]).describe("Action to perform"),
+        asset_address: z.string().describe("Position manager contract address"),
+        asset_id: z.number().describe("NFT token ID of the LP position"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ account_address, action, asset_address, asset_id, chain_id }) => {
       try {

@@ -8,30 +8,33 @@ import { appendDataSuffix } from "../../utils/attribution.js";
 const MAX_UINT256 = 2n ** 256n - 1n;
 
 export function registerApproveTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
-  server.tool(
+  server.registerTool(
     "build_approve_tx",
-    "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before build_deposit_tx or build_add_liquidity_tx (when depositing from wallet). Tip: call get_allowance first to check if approval already exists — skip this if the current allowance is sufficient.",
     {
-      token_address: z.string().describe("Token contract address to approve"),
-      spender_address: z
-        .string()
-        .describe("Address being approved — use the Arcadia account address for deposits"),
-      asset_type: z
-        .enum(["erc20", "erc721", "erc1155"])
-        .default("erc20")
-        .describe(
-          "Token type: 'erc20' (default) for fungible tokens, 'erc721' or 'erc1155' for NFTs (LP positions)",
-        ),
-      amount: z
-        .string()
-        .default("max_uint256")
-        .describe(
-          "ERC20 only: amount in raw units, or 'max_uint256' for unlimited. Ignored for NFTs.",
-        ),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before build_deposit_tx or build_add_liquidity_tx (when depositing from wallet). Tip: call get_allowance first to check if approval already exists — skip this if the current allowance is sufficient.",
+      inputSchema: {
+        token_address: z.string().describe("Token contract address to approve"),
+        spender_address: z
+          .string()
+          .describe("Address being approved — use the Arcadia account address for deposits"),
+        asset_type: z
+          .enum(["erc20", "erc721", "erc1155"])
+          .default("erc20")
+          .describe(
+            "Token type: 'erc20' (default) for fungible tokens, 'erc721' or 'erc1155' for NFTs (LP positions)",
+          ),
+        amount: z
+          .string()
+          .default("max_uint256")
+          .describe(
+            "ERC20 only: amount in raw units, or 'max_uint256' for unlimited. Ignored for NFTs.",
+          ),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async (params) => {
       try {

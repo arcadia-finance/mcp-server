@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type {
   ApiResponse,
   ApiListResponse,
@@ -5,9 +8,13 @@ import type {
   BundleCalldataResponse,
 } from "../types/api.js";
 
+const pkg = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "package.json"), "utf-8"),
+);
+
 const DEFAULT_BASE_URL = "https://api.arcadia.finance";
 const API_PREFIX = "/v1/api";
-const DEFAULT_HEADERS = { "User-Agent": "arcadia-mcp/0.1.0" };
+const DEFAULT_HEADERS = { "User-Agent": `arcadia-mcp/${pkg.version}` };
 
 export class ArcadiaApiClient {
   private baseUrl: string;
@@ -144,8 +151,10 @@ export class ArcadiaApiClient {
     return this.get<ApiListResponse>("/pools", { chain_id: chainId });
   }
 
-  async getPoolsData(chainId: number) {
-    return this.get<ApiListResponse>("/pools_data", { chain_id: chainId });
+  async getPoolsData(chainId: number, poolAddress?: string) {
+    const params: Record<string, string | number> = { chain_id: chainId };
+    if (poolAddress) params.pool_address = poolAddress;
+    return this.get<ApiListResponse>("/pools_data", params);
   }
 
   async getPoolApyHistory(chainId: number, poolAddress: string, days = 14) {

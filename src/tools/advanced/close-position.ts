@@ -11,9 +11,10 @@ export function registerClosePositionTool(
   api: ArcadiaApiClient,
   chains: Record<ChainId, ChainConfig>,
 ) {
-  server.tool(
+  server.registerTool(
     "build_close_position_tx",
-    `Atomic flash-action that closes an Arcadia account position in ONE transaction. Combines up to 3 steps atomically: [burn LP position] + [swap all tokens to a single target asset] + [repay debt]. Tokens remain in the account after closing — use build_withdraw_tx to send them to your wallet.
+    {
+      description: `Atomic flash-action that closes an Arcadia account position in ONE transaction. Combines up to 3 steps atomically: [burn LP position] + [swap all tokens to a single target asset] + [repay debt]. Tokens remain in the account after closing — use build_withdraw_tx to send them to your wallet.
 
 ALWAYS try this tool first when closing/exiting a position. Only fall back to individual tools (build_remove_liquidity_tx, build_swap_tx, build_repay_with_collateral_tx, build_withdraw_tx) if this tool fails.
 
@@ -22,49 +23,50 @@ Supports two modes:
 - close_lp_only=false (default): Full atomic close — burns LP, swaps everything to receive_assets, repays debt. Remaining tokens stay in the account. Follow up with build_withdraw_tx to send to wallet. Supports multiple receive assets with custom distribution.
 
 The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.`,
-    {
-      account_address: z.string().describe("Arcadia account address"),
-      assets: z
-        .array(
-          z.object({
-            asset_address: z.string().describe("Token or position manager address"),
-            asset_id: z.number().describe("NFT token ID (0 for ERC20 tokens)"),
-            amount: z.string().describe("Amount to sell (use '1' for NFT positions)"),
-            decimals: z.number().describe("Token decimals (use 1 for NFT positions)"),
-          }),
-        )
-        .describe(
-          "Assets to close/sell from the account. For LP positions: asset_address = position manager, asset_id = NFT ID, amount = '1', decimals = 1. For ERC20 tokens: asset_id = 0, amount = full balance, decimals = token decimals. Get these from get_account_info.",
-        ),
-      receive_assets: z
-        .array(
-          z.object({
-            asset_address: z.string().describe("Target token address (e.g. USDC, WETH)"),
-            decimals: z.number().describe("Token decimals of the target asset"),
-            distribution: z
-              .number()
-              .optional()
-              .describe(
-                "Fraction of proceeds (0-1). Defaults to equal split across all receive assets.",
-              ),
-          }),
-        )
-        .optional()
-        .describe(
-          "Target assets to receive after closing. For a single target, pass one entry. Required when close_lp_only=false. Omit for close_lp_only=true.",
-        ),
-      close_lp_only: z
-        .boolean()
-        .optional()
-        .default(false)
-        .describe(
-          "true = only burn LP positions, leave underlying tokens in account. false = full close (burn + swap + repay).",
-        ),
-      slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        assets: z
+          .array(
+            z.object({
+              asset_address: z.string().describe("Token or position manager address"),
+              asset_id: z.number().describe("NFT token ID (0 for ERC20 tokens)"),
+              amount: z.string().describe("Amount to sell (use '1' for NFT positions)"),
+              decimals: z.number().describe("Token decimals (use 1 for NFT positions)"),
+            }),
+          )
+          .describe(
+            "Assets to close/sell from the account. For LP positions: asset_address = position manager, asset_id = NFT ID, amount = '1', decimals = 1. For ERC20 tokens: asset_id = 0, amount = full balance, decimals = token decimals. Get these from get_account_info.",
+          ),
+        receive_assets: z
+          .array(
+            z.object({
+              asset_address: z.string().describe("Target token address (e.g. USDC, WETH)"),
+              decimals: z.number().describe("Token decimals of the target asset"),
+              distribution: z
+                .number()
+                .optional()
+                .describe(
+                  "Fraction of proceeds (0-1). Defaults to equal split across all receive assets.",
+                ),
+            }),
+          )
+          .optional()
+          .describe(
+            "Target assets to receive after closing. For a single target, pass one entry. Required when close_lp_only=false. Omit for close_lp_only=true.",
+          ),
+        close_lp_only: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "true = only burn LP positions, leave underlying tokens in account. false = full close (burn + swap + repay).",
+          ),
+        slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ account_address, assets, receive_assets, close_lp_only, slippage, chain_id }) => {
       try {

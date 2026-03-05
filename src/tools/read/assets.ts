@@ -3,22 +3,25 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 
 export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
-  server.tool(
+  server.registerTool(
     "get_assets",
-    "Get supported collateral assets on Arcadia. Returns compact list (address, symbol, decimals, type) by default. Use asset_addresses for USD price lookup. Use search to filter by symbol substring.",
     {
-      asset_addresses: z
-        .string()
-        .optional()
-        .describe("Single address or comma-separated addresses for price lookup"),
-      search: z
-        .string()
-        .optional()
-        .describe("Filter assets by symbol (case-insensitive substring match)"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Get supported collateral assets on Arcadia. Returns compact list (address, symbol, decimals, type) by default. Use asset_addresses for USD price lookup. Use search to filter by symbol substring.",
+      inputSchema: {
+        asset_addresses: z
+          .string()
+          .optional()
+          .describe("Single address or comma-separated addresses for price lookup"),
+        search: z
+          .string()
+          .optional()
+          .describe("Filter assets by symbol (case-insensitive substring match)"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async ({ asset_addresses, search, chain_id }) => {
       try {

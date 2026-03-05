@@ -11,22 +11,25 @@ export function registerBorrowTool(
   _chains: Record<ChainId, ChainConfig>,
   api: ArcadiaApiClient,
 ) {
-  server.tool(
+  server.registerTool(
     "build_borrow_tx",
-    "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral. Only works with margin accounts (created with a creditor/lending pool). Spot accounts (no creditor) cannot borrow — the tool will validate this and reject. Before borrowing, verify the account has positive free margin via get_account_info: collateral_value must exceed used_margin.",
     {
-      pool_address: z
-        .string()
-        .describe(
-          "Lending pool: LP_WETH=0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2, LP_USDC=0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1, LP_CBBTC=0xa37E9b4369dc20940009030BfbC2088F09645e3B",
-        ),
-      account_address: z.string().describe("Arcadia account address used as collateral"),
-      amount: z.string().describe("Amount in raw units"),
-      to: z.string().describe("Address to receive borrowed tokens"),
-      chain_id: z
-        .number()
-        .default(8453)
-        .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      description:
+        "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral. Only works with margin accounts (created with a creditor/lending pool). Spot accounts (no creditor) cannot borrow — the tool will validate this and reject. Before borrowing, verify the account has positive free margin via get_account_info: collateral_value must exceed used_margin.",
+      inputSchema: {
+        pool_address: z
+          .string()
+          .describe(
+            "Lending pool: LP_WETH=0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2, LP_USDC=0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1, LP_CBBTC=0xa37E9b4369dc20940009030BfbC2088F09645e3B",
+          ),
+        account_address: z.string().describe("Arcadia account address used as collateral"),
+        amount: z.string().describe("Amount in raw units"),
+        to: z.string().describe("Address to receive borrowed tokens"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+      },
     },
     async (params) => {
       try {
