@@ -1,0 +1,24 @@
+startCommand:
+  type: stdio
+configSchema:
+  type: object
+  properties:
+    rpcUrlBase:
+      type: string
+      description: RPC URL for Base (8453). Falls back to public RPC if not set.
+    rpcUrlOptimism:
+      type: string
+      description: RPC URL for Optimism (10). Falls back to public RPC if not set.
+    rpcUrlUnichain:
+      type: string
+      description: RPC URL for Unichain (130). Falls back to public RPC if not set.
+commandFunction: |-
+  (config) => ({
+    command: 'npx',
+    args: ['-y', '@arcadia-finance/mcp-server'],
+    env: {
+      ...(config.rpcUrlBase ? { RPC_URL_BASE: config.rpcUrlBase } : {}),
+      ...(config.rpcUrlOptimism ? { RPC_URL_OPTIMISM: config.rpcUrlOptimism } : {}),
+      ...(config.rpcUrlUnichain ? { RPC_URL_UNICHAIN: config.rpcUrlUnichain } : {})
+    }
+  })

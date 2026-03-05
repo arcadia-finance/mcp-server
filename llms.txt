@@ -1,0 +1,33 @@
+# Arcadia Finance MCP Server
+
+> MCP server for managing concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base, Optimism, and Unichain.
+
+## Overview
+
+Arcadia Finance is a DeFi protocol for leveraged yield farming. This MCP server exposes the full protocol as tools for AI agents:
+
+- **Account management** — health factor, collateral, debt, positions, PnL, history
+- **Lending pools** — TVL, APY, utilization, available liquidity
+- **LP strategies** — concentrated liquidity strategies with APY, rebalancing recommendations
+- **Transaction building** — unsigned calldata for deposits, borrows, swaps, LP minting/closing
+- **Automation** — configure asset managers (rebalancer, compounder) for hands-off management
+
+## Install
+
+```
+npx -y @arcadia-finance/mcp-server
+```
+
+## Tools
+
+Read: get_account_info, get_account_history, get_account_pnl, get_assets, get_wallet_balances, get_allowance, get_points, get_lending_pools, get_strategies, get_recommendation, get_guide
+
+Write (unsigned tx): build_approve_tx, build_create_account_tx, build_deposit_tx, build_withdraw_tx, build_borrow_tx, build_repay_tx, build_set_asset_manager_tx, build_configure_asset_manager_tx
+
+Advanced (unsigned tx, backend-routed): build_add_liquidity_tx, build_remove_liquidity_tx, build_swap_tx, build_repay_with_collateral_tx, build_close_position_tx, build_position_action_tx
+
+## Links
+
+- Docs: https://github.com/arcadia-finance/mcp-server
+- Website: https://arcadia.finance
+- npm: https://www.npmjs.com/package/@arcadia-finance/mcp-server
