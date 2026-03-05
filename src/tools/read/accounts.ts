@@ -6,6 +6,45 @@ import { accountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
 import { ASSET_MANAGERS } from "../../config/addresses.js";
 
+function trimOverview(overview: Record<string, unknown>): Record<string, unknown> {
+  const trimmed = { ...overview };
+
+  if (Array.isArray(trimmed.historic_actions)) {
+    trimmed.historic_actions_count = (trimmed.historic_actions as unknown[]).length;
+    delete trimmed.historic_actions;
+  }
+
+  if (Array.isArray(trimmed.assets)) {
+    trimmed.assets = (trimmed.assets as Record<string, unknown>[]).map((a) => {
+      const { related_strategies, asset_details: _ad, ...rest } = a;
+      const asset: Record<string, unknown> = { ...rest };
+      if (Array.isArray(related_strategies) && related_strategies.length > 0) {
+        asset.strategy_count = related_strategies.length;
+      }
+      return asset;
+    });
+  }
+
+  delete trimmed.total_value_spot;
+  delete trimmed.total_value_spot_usd;
+  delete trimmed.net_numeraire_spot;
+  delete trimmed.debt_numeraire_spot;
+  delete trimmed.debt_usd_spot;
+
+  if (trimmed.health_factor === 1) {
+    delete trimmed.maintenance_margin;
+    delete trimmed.maintenance_margin_usd;
+    delete trimmed.collateral_value_account;
+    delete trimmed.collateral_value_account_usd;
+    delete trimmed.liquidation_value_account;
+    delete trimmed.liquidation_value_account_usd;
+    delete trimmed.used_margin;
+    delete trimmed.used_margin_usd;
+  }
+
+  return trimmed;
+}
+
 export function registerAccountTools(
   server: McpServer,
   api: ArcadiaApiClient,
@@ -150,7 +189,7 @@ export function registerAccountTools(
 
           const result: Record<string, unknown> = {
             account_version: accountVersion,
-            overview,
+            overview: overview ? trimOverview(overview as Record<string, unknown>) : null,
             liquidation_price,
           };
           if (automation) result.automation = automation;
@@ -240,7 +279,24 @@ export function registerAccountTools(
           api.getYieldEarned(chain_id, account_address),
         ]);
 
-        const { direct_deposits: _, ...pnl } = pnlRaw as Record<string, unknown>;
+        const {
+          direct_deposits: _,
+          flashaction_deposits,
+          flashaction_withdrawals,
+          direct_withdrawals,
+          yield_withdrawals,
+          ...pnl
+        } = pnlRaw as Record<string, unknown>;
+        if (Array.isArray(flashaction_deposits) && flashaction_deposits.length > 0)
+          (pnl as Record<string, unknown>).flashaction_deposit_count = flashaction_deposits.length;
+        if (Array.isArray(flashaction_withdrawals) && flashaction_withdrawals.length > 0)
+          (pnl as Record<string, unknown>).flashaction_withdrawal_count =
+            flashaction_withdrawals.length;
+        if (Array.isArray(direct_withdrawals) && direct_withdrawals.length > 0)
+          (pnl as Record<string, unknown>).direct_withdrawal_count = direct_withdrawals.length;
+        if (Array.isArray(yield_withdrawals) && yield_withdrawals.length > 0)
+          (pnl as Record<string, unknown>).yield_withdrawal_count = yield_withdrawals.length;
+
         const {
           daily_yields: _dy,
           daily_yields_usd: _dyu,
