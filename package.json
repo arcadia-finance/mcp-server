@@ -4,7 +4,7 @@
   "version": "0.1.4",
   "description": "MCP server for Arcadia Finance. Manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base, Optimism, and Unichain.",
   "type": "module",
-  "license": "BUSL-1.1",
+  "license": "AGPL-3.0",
   "packageManager": "yarn@4.13.0",
   "repository": {
     "type": "git",
