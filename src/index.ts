@@ -49,7 +49,11 @@ if (transportMode === "http") {
   const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
   const sessions = new Map<
     string,
-    { server: McpServer; transport: InstanceType<typeof StreamableHTTPServerTransport>; timer: ReturnType<typeof setTimeout> }
+    {
+      server: McpServer;
+      transport: InstanceType<typeof StreamableHTTPServerTransport>;
+      timer: ReturnType<typeof setTimeout>;
+    }
   >();
 
   function touchSession(id: string) {
@@ -57,7 +61,11 @@ if (transportMode === "http") {
     if (!entry) return;
     clearTimeout(entry.timer);
     entry.timer = setTimeout(() => {
-      try { entry.transport.close(); } catch { /* already closed */ }
+      try {
+        entry.transport.close();
+      } catch {
+        /* already closed */
+      }
       sessions.delete(id);
     }, SESSION_TTL_MS);
   }
@@ -67,10 +75,18 @@ if (transportMode === "http") {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
       onsessioninitialized: (sessionId) => {
-        sessions.set(sessionId, { server, transport, timer: setTimeout(() => {
-          try { transport.close(); } catch { /* already closed */ }
-          sessions.delete(sessionId);
-        }, SESSION_TTL_MS) });
+        sessions.set(sessionId, {
+          server,
+          transport,
+          timer: setTimeout(() => {
+            try {
+              transport.close();
+            } catch {
+              /* already closed */
+            }
+            sessions.delete(sessionId);
+          }, SESSION_TTL_MS),
+        });
       },
     });
     await server.connect(transport);
@@ -105,7 +121,11 @@ if (transportMode === "http") {
         await transport.handleRequest(req, res);
       } catch (err) {
         if (!transport.sessionId || !sessions.has(transport.sessionId)) {
-          try { transport.close(); } catch { /* ignore */ }
+          try {
+            transport.close();
+          } catch {
+            /* ignore */
+          }
         }
         throw err;
       }

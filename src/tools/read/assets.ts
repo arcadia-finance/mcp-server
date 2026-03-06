@@ -6,6 +6,13 @@ export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
     "get_assets",
     {
+      annotations: {
+        title: "Get Supported Assets",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get supported collateral assets on Arcadia. Returns compact list (address, symbol, decimals, type) by default. Use asset_addresses for USD price lookup. Use search to filter by symbol substring.",
       inputSchema: {

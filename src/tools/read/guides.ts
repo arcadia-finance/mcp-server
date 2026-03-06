@@ -46,6 +46,13 @@ export function registerGuideTools(server: McpServer) {
   server.registerTool(
     "get_guide",
     {
+      annotations: {
+        title: "Get Guide",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get Arcadia workflow guides and reference documentation. Call this before multi-step workflows (opening LP positions, enabling automation, closing positions) or when you need contract addresses, asset manager addresses, or strategy parameters. Topics: overview (addresses + tool catalog), automation (rebalancer/compounder setup), strategies (step-by-step templates), selection (how to evaluate and parameterize strategies).",
       inputSchema: {

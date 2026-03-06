@@ -8,6 +8,13 @@ export function registerRemoveLiquidityTool(server: McpServer, api: ArcadiaApiCl
   server.registerTool(
     "build_remove_liquidity_tx",
     {
+      annotations: {
+        title: "Build Remove Liquidity Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description: `Flash-action: PARTIALLY decreases liquidity from an LP position. The position remains open with reduced liquidity; underlying tokens stay in the account.
 
 For FULL position exit (burn LP + swap + repay + withdraw), use build_close_position_tx instead — it batches everything into one atomic transaction.

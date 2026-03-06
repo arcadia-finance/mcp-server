@@ -6,6 +6,13 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
     "get_lending_pools",
     {
+      annotations: {
+        title: "Get Lending Pools",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get Arcadia lending pool data: TVL, utilization, available liquidity. Key fields: interest_rate = current borrow cost, lending_apy = lender yield. All rates are decimal fractions (1.0 = 100%, 0.06 = 6%). Returns all pools, or a single pool with APY history if pool_address is provided.",
       inputSchema: {

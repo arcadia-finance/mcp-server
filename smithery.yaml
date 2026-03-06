@@ -2,16 +2,24 @@ startCommand:
   type: stdio
 configSchema:
   type: object
+  required: []
+  additionalProperties: false
   properties:
     rpcUrlBase:
       type: string
+      title: Base RPC URL
       description: RPC URL for Base (8453). Falls back to public RPC if not set.
+      default: ""
     rpcUrlOptimism:
       type: string
+      title: Optimism RPC URL
       description: RPC URL for Optimism (10). Falls back to public RPC if not set.
+      default: ""
     rpcUrlUnichain:
       type: string
+      title: Unichain RPC URL
       description: RPC URL for Unichain (130). Falls back to public RPC if not set.
+      default: ""
 commandFunction: |-
   (config) => ({
     command: 'npx',

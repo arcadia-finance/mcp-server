@@ -15,6 +15,13 @@ export function registerClosePositionTool(
   server.registerTool(
     "build_close_position_tx",
     {
+      annotations: {
+        title: "Build Close Position Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description: `Atomic flash-action that closes an Arcadia account position in ONE transaction. Combines up to 3 steps atomically: [burn LP position] + [swap all tokens to a single target asset] + [repay debt]. Tokens remain in the account after closing — use build_withdraw_tx to send them to your wallet.
 
 ALWAYS try this tool first when closing/exiting a position. Only fall back to individual tools (build_remove_liquidity_tx, build_swap_tx, build_repay_with_collateral_tx, build_withdraw_tx) if this tool fails.

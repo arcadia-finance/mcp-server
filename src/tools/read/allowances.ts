@@ -12,6 +12,13 @@ export function registerAllowanceTools(server: McpServer, chains: Record<ChainId
   server.registerTool(
     "get_allowance",
     {
+      annotations: {
+        title: "Get Token Allowance",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Check ERC20 token allowances for a spender address. Use before build_approve_tx to avoid redundant approvals — skip approving if the current allowance is already sufficient.",
       inputSchema: {
