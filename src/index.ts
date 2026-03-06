@@ -16,6 +16,7 @@ import { getChainConfigs } from "./config/chains.js";
 import { registerAllTools } from "./tools/index.js";
 import { registerAllResources } from "./resources/index.js";
 import { registerAllPrompts } from "./prompts/index.js";
+import type { Request, Response } from "express";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
@@ -46,16 +47,54 @@ if (transportMode === "http") {
   const app = express();
   const port = parseInt(process.env.PORT ?? "3000", 10);
 
+  const sessions = new Map<string, { server: McpServer; transport: InstanceType<typeof StreamableHTTPServerTransport> }>();
+
+  async function getOrCreateSession(sessionId: string | undefined) {
+    if (sessionId && sessions.has(sessionId)) return sessions.get(sessionId)!;
+
+    const server = createServer();
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => crypto.randomUUID(),
+    });
+    await server.connect(transport);
+
+    const id = transport.sessionId!;
+    sessions.set(id, { server, transport });
+
+    transport.onclose = () => {
+      sessions.delete(id);
+    };
+
+    return { server, transport };
+  }
+
   app.get("/health", (_req, res) => {
     res.send("ok");
   });
 
   app.post("/mcp", async (req, res) => {
-    const server = createServer();
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
-    await server.connect(transport);
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    const { transport } = await getOrCreateSession(sessionId);
+    await transport.handleRequest(req, res);
+  });
+
+  app.get("/mcp", async (req, res) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    if (!sessionId || !sessions.has(sessionId)) {
+      res.status(400).send("Invalid or missing session ID");
+      return;
+    }
+    const { transport } = sessions.get(sessionId)!;
+    await transport.handleRequest(req, res);
+  });
+
+  app.delete("/mcp", async (req, res) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    if (!sessionId || !sessions.has(sessionId)) {
+      res.status(400).send("Invalid or missing session ID");
+      return;
+    }
+    const { transport } = sessions.get(sessionId)!;
     await transport.handleRequest(req, res);
   });
 
