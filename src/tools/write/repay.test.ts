@@ -13,13 +13,13 @@ import { registerRepayTool } from "./repay.js";
 function setup() {
   const mock = createMockServer();
   registerRepayTool(mock.server, createMockChains());
-  return mock.getHandler("build_repay_tx");
+  return mock.getHandler("write.repay");
 }
 
 const MAX_UINT256 =
   "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
-describe("build_repay_tx", () => {
+describe("write.repay", () => {
   it("encodes repay(amount, account) correctly", async () => {
     const handler = setup();
     const result = await handler({

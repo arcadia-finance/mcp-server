@@ -30,14 +30,14 @@ vi.mock("../../clients/chain.js", () => ({
 function setup() {
   const mock = createMockServer();
   registerAllowanceTools(mock.server, createMockChains());
-  return mock.getHandler("get_allowance");
+  return mock.getHandler("read.allowance");
 }
 
-describe("get_allowance", () => {
+describe("read.allowance", () => {
   it("registers the tool", () => {
     const mock = createMockServer();
     registerAllowanceTools(mock.server, createMockChains());
-    expect(mock.tools.find((t) => t.name === "get_allowance")).toBeDefined();
+    expect(mock.tools.find((t) => t.name === "read.allowance")).toBeDefined();
   });
 
   it("returns allowances for multiple tokens", async () => {

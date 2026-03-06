@@ -41,7 +41,7 @@ export function computeAccountAddress(
 
 export function registerCreateAccountTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "build_create_account_tx",
+    "write.create_account",
     {
       annotations: {
         title: "Build Create Account Transaction",
@@ -137,7 +137,7 @@ export function registerCreateAccountTool(server: McpServer, chains: Record<Chai
                   ...(predictedAddress && { predicted_account_address: predictedAddress }),
                   next_steps: predictedAddress
                     ? "The new account will be at predicted_account_address after tx confirms. You can use it immediately without waiting for indexing."
-                    : "After tx confirms, call get_account_info with wallet_address to find the new account. Note: there may be a short indexing delay.",
+                    : "After tx confirms, call read.account_info with wallet_address to find the new account. Note: there may be a short indexing delay.",
                 },
                 null,
                 2,

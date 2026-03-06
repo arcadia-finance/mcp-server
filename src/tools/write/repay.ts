@@ -8,7 +8,7 @@ import { validateAddress } from "../../utils/validation.js";
 
 export function registerRepayTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "build_repay_tx",
+    "write.repay",
     {
       annotations: {
         title: "Build Repay Transaction",
@@ -18,7 +18,7 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
         openWorldHint: false,
       },
       description:
-        "Build an unsigned transaction to repay debt to an Arcadia lending pool from your wallet. This tool does not validate whether the account has outstanding debt — check with get_account_info first. Check allowance first (get_allowance), then approve the pool if needed (build_approve_tx). To repay using account collateral instead, use build_repay_with_collateral_tx.",
+        "Build an unsigned transaction to repay debt to an Arcadia lending pool from your wallet. This tool does not validate whether the account has outstanding debt — check with read.account_info first. Check allowance first (read.allowance), then approve the pool if needed (write.approve). To repay using account collateral instead, use advanced.repay_with_collateral.",
       inputSchema: {
         pool_address: z
           .string()

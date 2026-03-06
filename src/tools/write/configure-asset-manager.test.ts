@@ -22,10 +22,10 @@ const MERKL_INITIATOR = "0x521541D932B15631e8a1B037f17457C801722bA0";
 function setup() {
   const mock = createMockServer();
   registerConfigureAssetManagerTool(mock.server, createMockChains());
-  return mock.getHandler("build_configure_asset_manager_tx");
+  return mock.getHandler("write.configure_asset_manager");
 }
 
-describe("build_configure_asset_manager_tx", () => {
+describe("write.configure_asset_manager", () => {
   it("encodes setAssetManagers for rebalancer with default params", async () => {
     const handler = setup();
     const result = await handler({

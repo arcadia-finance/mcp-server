@@ -6,7 +6,7 @@ import { validateAddress } from "../../utils/validation.js";
 
 export function registerRemoveLiquidityTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "build_remove_liquidity_tx",
+    "advanced.remove_liquidity",
     {
       annotations: {
         title: "Build Remove Liquidity Transaction",
@@ -17,7 +17,7 @@ export function registerRemoveLiquidityTool(server: McpServer, api: ArcadiaApiCl
       },
       description: `Flash-action: PARTIALLY decreases liquidity from an LP position. The position remains open with reduced liquidity; underlying tokens stay in the account.
 
-For FULL position exit (burn LP + swap + repay + withdraw), use build_close_position_tx instead — it batches everything into one atomic transaction.
+For FULL position exit (burn LP + swap + repay + withdraw), use advanced.close_position instead — it batches everything into one atomic transaction.
 
 The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.`,
       inputSchema: {
@@ -27,7 +27,7 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
         adjustment: z
           .string()
           .describe(
-            "Liquidity amount to remove (raw uint128 value as string). Must be less than total liquidity — for full removal use build_close_position_tx.",
+            "Liquidity amount to remove (raw uint128 value as string). Must be less than total liquidity — for full removal use advanced.close_position.",
           ),
         chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },

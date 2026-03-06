@@ -15,10 +15,10 @@ const REBALANCER_SLIPSTREAM_V2 = "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea" as
 function setup() {
   const mock = createMockServer();
   registerSetAssetManagerTool(mock.server, createMockChains());
-  return mock.getHandler("build_set_asset_manager_tx");
+  return mock.getHandler("write.set_asset_manager");
 }
 
-describe("build_set_asset_manager_tx", () => {
+describe("write.set_asset_manager", () => {
   it("encodes setAssetManagers(address[], bool[], bytes[]) correctly", async () => {
     const handler = setup();
     const result = await handler({

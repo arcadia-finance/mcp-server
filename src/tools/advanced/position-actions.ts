@@ -6,7 +6,7 @@ import { validateAddress } from "../../utils/validation.js";
 
 export function registerPositionActionsTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "build_position_action_tx",
+    "advanced.position_action",
     {
       annotations: {
         title: "Build Position Action Transaction",

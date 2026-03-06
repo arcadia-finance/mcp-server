@@ -29,10 +29,10 @@ vi.mock("../../clients/chain.js", () => ({
 function setup() {
   const mock = createMockServer();
   registerBalanceTools(mock.server, createMockChains());
-  return mock.getHandler("get_wallet_balances");
+  return mock.getHandler("read.wallet_balances");
 }
 
-describe("get_wallet_balances", () => {
+describe("read.wallet_balances", () => {
   it("returns native ETH and token balances", async () => {
     const handler = setup();
     const result = await handler({

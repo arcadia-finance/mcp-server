@@ -4,7 +4,7 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 
 export function registerProtocolTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "get_strategies",
+    "read.strategies",
     {
       annotations: {
         title: "Get Strategies",
@@ -83,7 +83,7 @@ export function registerProtocolTools(server: McpServer, api: ArcadiaApiClient) 
   );
 
   server.registerTool(
-    "get_recommendation",
+    "read.recommendation",
     {
       annotations: {
         title: "Get Recommendation",
@@ -93,7 +93,7 @@ export function registerProtocolTools(server: McpServer, api: ArcadiaApiClient) 
         openWorldHint: true,
       },
       description:
-        "Get a rebalancing recommendation for an Arcadia account — suggests asset changes to optimize yield. Uses 1d APY (not 7d like get_strategies list view), so recommended strategies may differ from the list ranking.",
+        "Get a rebalancing recommendation for an Arcadia account — suggests asset changes to optimize yield. Uses 1d APY (not 7d like read.strategies list view), so recommended strategies may differ from the list ranking.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),

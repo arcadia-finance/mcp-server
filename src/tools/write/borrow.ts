@@ -13,7 +13,7 @@ export function registerBorrowTool(
   api: ArcadiaApiClient,
 ) {
   server.registerTool(
-    "build_borrow_tx",
+    "write.borrow",
     {
       annotations: {
         title: "Build Borrow Transaction",
@@ -23,7 +23,7 @@ export function registerBorrowTool(
         openWorldHint: false,
       },
       description:
-        "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral. Only works with margin accounts (created with a creditor/lending pool). Spot accounts (no creditor) cannot borrow — the tool will validate this and reject. Before borrowing, verify the account has positive free margin via get_account_info: collateral_value must exceed used_margin.",
+        "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral. Only works with margin accounts (created with a creditor/lending pool). Spot accounts (no creditor) cannot borrow — the tool will validate this and reject. Before borrowing, verify the account has positive free margin via read.account_info: collateral_value must exceed used_margin.",
       inputSchema: {
         pool_address: z
           .string()
@@ -53,7 +53,7 @@ export function registerBorrowTool(
             content: [
               {
                 type: "text" as const,
-                text: "Error: This account has no creditor (spot account) and cannot borrow. Create a margin account with a creditor (lending pool) using build_create_account_tx.",
+                text: "Error: This account has no creditor (spot account) and cannot borrow. Create a margin account with a creditor (lending pool) using write.create_account.",
               },
             ],
             isError: true,

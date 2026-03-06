@@ -8,7 +8,7 @@ import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 export function registerBalanceTools(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "get_wallet_balances",
+    "read.wallet_balances",
     {
       annotations: {
         title: "Get Wallet Balances",
@@ -18,7 +18,7 @@ export function registerBalanceTools(server: McpServer, chains: Record<ChainId, 
         openWorldHint: true,
       },
       description:
-        "Get native ETH and ERC20 token balances for a wallet address. Reads directly from chain via RPC multicall. Use before build_add_liquidity_tx or build_deposit_tx to verify the wallet has sufficient tokens.",
+        "Get native ETH and ERC20 token balances for a wallet address. Reads directly from chain via RPC multicall. Use before advanced.add_liquidity or write.deposit to verify the wallet has sufficient tokens.",
       inputSchema: {
         wallet_address: z.string().describe("Wallet address to check balances for"),
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),

@@ -10,7 +10,7 @@ const MAX_UINT256 = 2n ** 256n - 1n;
 
 export function registerApproveTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "build_approve_tx",
+    "write.approve",
     {
       annotations: {
         title: "Build Approve Transaction",
@@ -20,7 +20,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
         openWorldHint: false,
       },
       description:
-        "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before build_deposit_tx or build_add_liquidity_tx (when depositing from wallet). Tip: call get_allowance first to check if approval already exists — skip this if the current allowance is sufficient.",
+        "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before write.deposit or advanced.add_liquidity (when depositing from wallet). Tip: call read.allowance first to check if approval already exists — skip this if the current allowance is sufficient.",
       inputSchema: {
         token_address: z.string().describe("Token contract address to approve"),
         spender_address: z

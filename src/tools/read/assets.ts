@@ -4,7 +4,7 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 
 export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "get_assets",
+    "read.assets",
     {
       annotations: {
         title: "Get Supported Assets",

@@ -184,7 +184,7 @@ export function registerConfigureAssetManagerTool(
   _chains: Record<ChainId, ChainConfig>,
 ) {
   server.registerTool(
-    "build_configure_asset_manager_tx",
+    "write.configure_asset_manager",
     {
       annotations: {
         title: "Build Configure Asset Manager Transaction",
@@ -194,7 +194,7 @@ export function registerConfigureAssetManagerTool(
         openWorldHint: false,
       },
       description:
-        "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike build_set_asset_manager_tx (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient). For cow_swapper, use build_set_asset_manager_tx instead (no callback data needed). Pass pool_protocol to auto-resolve the correct AM address (required for rebalancer/compounder/yield_claimer), or pass asset_manager_address directly. merkl_operator is protocol-agnostic and auto-resolves without pool_protocol. Returns { transaction: { to, data, value, chainId } }.",
+        "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike write.set_asset_manager (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient). For cow_swapper, use write.set_asset_manager instead (no callback data needed). Pass pool_protocol to auto-resolve the correct AM address (required for rebalancer/compounder/yield_claimer), or pass asset_manager_address directly. merkl_operator is protocol-agnostic and auto-resolves without pool_protocol. Returns { transaction: { to, data, value, chainId } }.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address (must be V3 or V4)"),
         asset_manager_address: z

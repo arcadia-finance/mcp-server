@@ -14,10 +14,10 @@ import { registerCreateAccountTool, computeAccountAddress } from "./create-accou
 function setup() {
   const mock = createMockServer();
   registerCreateAccountTool(mock.server, createMockChains());
-  return mock.getHandler("build_create_account_tx");
+  return mock.getHandler("write.create_account");
 }
 
-describe("build_create_account_tx", () => {
+describe("write.create_account", () => {
   it("encodes createAccount(salt, version, creditor) correctly", async () => {
     const handler = setup();
     const result = await handler({

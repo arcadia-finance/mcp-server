@@ -9,7 +9,7 @@ import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "build_withdraw_tx",
+    "write.withdraw",
     {
       annotations: {
         title: "Build Withdraw Transaction",
@@ -19,7 +19,7 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
         openWorldHint: false,
       },
       description:
-        "Build an unsigned transaction to withdraw assets from an Arcadia account to the owner's wallet. Only the account owner can withdraw. Will revert if the account has debt and withdrawal would make it undercollateralized. Does not support max_uint256 — pass exact amounts from get_account_info. Account version is auto-detected on-chain (override with account_version if needed).",
+        "Build an unsigned transaction to withdraw assets from an Arcadia account to the owner's wallet. Only the account owner can withdraw. Will revert if the account has debt and withdrawal would make it undercollateralized. Does not support max_uint256 — pass exact amounts from read.account_info. Account version is auto-detected on-chain (override with account_version if needed).",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         asset_addresses: z.array(z.string()).describe("Token contract addresses to withdraw"),
@@ -48,7 +48,7 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
             content: [
               {
                 type: "text" as const,
-                text: 'Error: build_withdraw_tx does not support "max_uint256". Pass exact amounts from get_account_info.',
+                text: 'Error: write.withdraw does not support "max_uint256". Pass exact amounts from read.account_info.',
               },
             ],
             isError: true,
