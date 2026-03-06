@@ -31,6 +31,8 @@ function createServer() {
       "Arcadia Finance. Manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base, Optimism, and Unichain.",
   });
   registerAllTools(server, apiClient, chainConfigs);
+  registerAllResources(server);
+  registerAllPrompts(server);
   return server;
 }
 

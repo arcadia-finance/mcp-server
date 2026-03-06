@@ -84,32 +84,16 @@ export const TOKENS: Partial<
   },
 };
 
-// Asset manager addresses per chain. Most are identical across chains; cowSwapper is Base-only.
-export interface AssetManagerAddresses {
-  rebalancers: {
-    slipstreamV1: string;
-    slipstreamV2: string;
-    uniV3: string;
-    uniV4: string;
-  };
-  compounders: {
-    slipstreamV1: string;
-    slipstreamV2: string;
-    uniV3: string;
-    uniV4: string;
-  };
-  yieldClaimers: {
-    slipstreamV1: string;
-    slipstreamV2: string;
-    uniV3: string;
-    uniV4: string;
-  };
-  merklOperator: string;
-  gasRelayer: string;
-  cowSwapper?: string;
-}
+// Asset manager protocol keys (protocol-specific AMs: rebalancer, compounder, yield claimer)
+export type AmProtocol = "slipstreamV1" | "slipstreamV2" | "uniV3" | "uniV4";
 
-const SHARED_AMS = {
+// Standalone AM keys (protocol-agnostic)
+export type StandaloneAm = "merklOperator" | "gasRelayer" | "cowSwapper";
+
+export type AmCategory = "rebalancers" | "compounders" | "yieldClaimers";
+
+// Single source of truth — all addresses, no chain dimension
+const AM_ADDRESSES = {
   rebalancers: {
     slipstreamV1: "0x5802454749cc0c4A6F28D5001B4cD84432e2b79F",
     slipstreamV2: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
@@ -130,12 +114,89 @@ const SHARED_AMS = {
   },
   merklOperator: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
   gasRelayer: "0xD938C8d04cF91094fecAF0A2018EAac483a40137",
+  cowSwapper: "0xc928013A219EC9F18dE7B2dee6A50Ba626811854",
+} as const;
+
+// Per-chain availability — update these when deploying to new chains
+const CHAIN_PROTOCOLS: Record<ChainId, ReadonlySet<AmProtocol>> = {
+  8453: new Set(["slipstreamV1", "slipstreamV2", "uniV3", "uniV4"]),
+  130: new Set(["slipstreamV1", "uniV3", "uniV4"]),
 };
 
-export const ASSET_MANAGERS: Record<ChainId, AssetManagerAddresses> = {
-  8453: { ...SHARED_AMS, cowSwapper: "0xc928013A219EC9F18dE7B2dee6A50Ba626811854" },
-  130: { ...SHARED_AMS },
+const CHAIN_STANDALONE_AMS: Record<ChainId, ReadonlySet<StandaloneAm>> = {
+  8453: new Set(["merklOperator", "gasRelayer", "cowSwapper"]),
+  130: new Set(["merklOperator", "gasRelayer"]),
 };
+
+const CHAIN_NAMES: Record<ChainId, string> = { 8453: "Base", 130: "Unichain" };
+
+export function getAmProtocolAddress(
+  chainId: ChainId,
+  category: AmCategory,
+  protocol: AmProtocol,
+): string {
+  if (!CHAIN_PROTOCOLS[chainId].has(protocol)) {
+    const available = [...CHAIN_PROTOCOLS[chainId]].join(", ");
+    throw new Error(
+      `${protocol} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available protocols: ${available}.`,
+    );
+  }
+  return AM_ADDRESSES[category][protocol];
+}
+
+export function getStandaloneAmAddress(chainId: ChainId, am: StandaloneAm): string {
+  if (!CHAIN_STANDALONE_AMS[chainId].has(am)) {
+    const available = [...CHAIN_STANDALONE_AMS[chainId]].join(", ");
+    throw new Error(
+      `${am} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available: ${available}.`,
+    );
+  }
+  return AM_ADDRESSES[am];
+}
+
+export interface AmCheck {
+  group: string;
+  protocol: string | null;
+  address: string;
+}
+
+const CATEGORY_TO_GROUP: Record<AmCategory, string> = {
+  rebalancers: "rebalancer",
+  compounders: "compounder",
+  yieldClaimers: "yield_claimer",
+};
+
+const STANDALONE_TO_GROUP: Record<StandaloneAm, string> = {
+  merklOperator: "merkl_operator",
+  gasRelayer: "gas_relayer",
+  cowSwapper: "cow_swapper",
+};
+
+export function getChainAmChecks(chainId: ChainId): AmCheck[] {
+  const protocols = CHAIN_PROTOCOLS[chainId];
+  const standalone = CHAIN_STANDALONE_AMS[chainId];
+  const checks: AmCheck[] = [];
+
+  for (const category of ["rebalancers", "compounders", "yieldClaimers"] as const) {
+    for (const protocol of protocols) {
+      checks.push({
+        group: CATEGORY_TO_GROUP[category],
+        protocol,
+        address: AM_ADDRESSES[category][protocol],
+      });
+    }
+  }
+
+  for (const am of standalone) {
+    checks.push({
+      group: STANDALONE_TO_GROUP[am],
+      protocol: null,
+      address: AM_ADDRESSES[am],
+    });
+  }
+
+  return checks;
+}
 
 // Minimal strategy hook — required for rebalancer onSetAssetManager callback
 export const MINIMAL_STRATEGY_HOOK = "0x13beD1A58d87c0454872656c5328103aAe5eB86A" as const;

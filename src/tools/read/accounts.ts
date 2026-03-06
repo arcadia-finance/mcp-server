@@ -4,7 +4,7 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { accountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
-import { ASSET_MANAGERS } from "../../config/addresses.js";
+import { getChainAmChecks } from "../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 function trimOverview(overview: Record<string, unknown>): Record<string, unknown> {
@@ -133,28 +133,7 @@ export function registerAccountTools(
           let automation: Record<string, unknown> | null = null;
           const owner = (overview as Record<string, unknown> | null)?.owner as string | undefined;
           if (owner) {
-            const am = ASSET_MANAGERS[validChainId];
-            const amChecks = [
-              ...Object.entries(am.rebalancers).map(([k, v]) => ({
-                group: "rebalancer",
-                protocol: k,
-                address: v,
-              })),
-              ...Object.entries(am.compounders).map(([k, v]) => ({
-                group: "compounder",
-                protocol: k,
-                address: v,
-              })),
-              ...Object.entries(am.yieldClaimers).map(([k, v]) => ({
-                group: "yield_claimer",
-                protocol: k,
-                address: v,
-              })),
-              { group: "merkl_operator", protocol: null, address: am.merklOperator },
-              ...(am.cowSwapper
-                ? [{ group: "cow_swapper", protocol: null, address: am.cowSwapper }]
-                : []),
-            ];
+            const amChecks = getChainAmChecks(validChainId);
             automation = await client
               .multicall({
                 contracts: amChecks.map((c) => ({
@@ -166,13 +145,8 @@ export function registerAccountTools(
                 allowFailure: true,
               })
               .then((results: { status: string; result?: boolean }[]) => {
-                const out: Record<string, string | boolean | null> = {
-                  rebalancer: null,
-                  compounder: null,
-                  yield_claimer: null,
-                  merkl_operator: false,
-                  cow_swapper: false,
-                };
+                const out: Record<string, string | boolean> = {};
+                for (const c of amChecks) out[c.group] = false;
                 results.forEach((r: { status: string; result?: boolean }, i: number) => {
                   if (r.status !== "success" || !r.result) return;
                   const check = amChecks[i];

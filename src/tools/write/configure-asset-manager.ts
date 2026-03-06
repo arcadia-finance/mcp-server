@@ -3,9 +3,11 @@ import { encodeAbiParameters, encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import {
-  ASSET_MANAGERS,
   MINIMAL_STRATEGY_HOOK,
-  type AssetManagerAddresses,
+  getAmProtocolAddress,
+  getStandaloneAmAddress,
+  type AmProtocol,
+  type AmCategory,
 } from "../../config/addresses.js";
 import { accountAbi } from "../../abis/index.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
@@ -144,32 +146,37 @@ function encodeMerklOperatorCallbackData(
 }
 
 type AmType = "rebalancer" | "compounder" | "yield_claimer" | "merkl_operator";
-type PoolProtocol = "slipstream" | "slipstream_v2" | "uniV3" | "uniV4";
+type PoolProtocol =
+  | "slipstream"
+  | "slipstream_v2"
+  | "staked_slipstream"
+  | "staked_slipstream_v2"
+  | "uniV3"
+  | "uniV4";
 
-const PROTOCOL_TO_AM_KEY: Record<PoolProtocol, keyof AssetManagerAddresses["rebalancers"]> = {
+const PROTOCOL_TO_AM_KEY: Record<PoolProtocol, AmProtocol> = {
   slipstream: "slipstreamV1",
   slipstream_v2: "slipstreamV2",
+  staked_slipstream: "slipstreamV1",
+  staked_slipstream_v2: "slipstreamV2",
   uniV3: "uniV3",
   uniV4: "uniV4",
 };
 
-function resolveAmAddress(
-  chainId: ChainId,
-  amType: AmType,
-  protocol?: PoolProtocol,
-): string | undefined {
-  const am = ASSET_MANAGERS[chainId];
-  if (amType === "merkl_operator") return am.merklOperator;
-  if (!protocol) return undefined;
-  const key = PROTOCOL_TO_AM_KEY[protocol];
-  switch (amType) {
-    case "rebalancer":
-      return am.rebalancers[key];
-    case "compounder":
-      return am.compounders[key];
-    case "yield_claimer":
-      return am.yieldClaimers[key];
+const AM_TYPE_TO_CATEGORY: Record<Exclude<AmType, "merkl_operator">, AmCategory> = {
+  rebalancer: "rebalancers",
+  compounder: "compounders",
+  yield_claimer: "yieldClaimers",
+};
+
+function resolveAmAddress(chainId: ChainId, amType: AmType, protocol?: PoolProtocol): string {
+  if (amType === "merkl_operator") return getStandaloneAmAddress(chainId, "merklOperator");
+  if (!protocol) {
+    throw new Error(
+      "Provide asset_manager_address or pool_protocol to resolve the AM address. Protocol-specific AMs (rebalancer, compounder, yield_claimer) require pool_protocol.",
+    );
   }
+  return getAmProtocolAddress(chainId, AM_TYPE_TO_CATEGORY[amType], PROTOCOL_TO_AM_KEY[protocol]);
 }
 
 export function registerConfigureAssetManagerTool(
@@ -180,7 +187,7 @@ export function registerConfigureAssetManagerTool(
     "build_configure_asset_manager_tx",
     {
       description:
-        "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike build_set_asset_manager_tx (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient). For cow_swapper, use build_set_asset_manager_tx instead (no callback data needed). Pass pool_protocol to auto-resolve the correct AM address (required for rebalancer/compounder/yield_claimer), or pass asset_manager_address directly. merkl_operator is protocol-agnostic and auto-resolves without pool_protocol. For addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
+        "Build an unsigned transaction to enable AND configure an asset manager on an Arcadia V3/V4 account. Unlike build_set_asset_manager_tx (which only grants permission), this also sets the initiator, fee limits, and strategy parameters in one transaction via setAssetManagers. Supports rebalancer (with trigger ratios and compound mode), compounder, yield claimer (with fee recipient), and merkl operator (with reward recipient). For cow_swapper, use build_set_asset_manager_tx instead (no callback data needed). Pass pool_protocol to auto-resolve the correct AM address (required for rebalancer/compounder/yield_claimer), or pass asset_manager_address directly. merkl_operator is protocol-agnostic and auto-resolves without pool_protocol. Returns { transaction: { to, data, value, chainId } }.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address (must be V3 or V4)"),
         asset_manager_address: z
@@ -188,10 +195,17 @@ export function registerConfigureAssetManagerTool(
           .optional()
           .describe("Asset manager contract address. Optional if pool_protocol is provided."),
         pool_protocol: z
-          .enum(["slipstream", "slipstream_v2", "uniV3", "uniV4"])
+          .enum([
+            "slipstream",
+            "slipstream_v2",
+            "staked_slipstream",
+            "staked_slipstream_v2",
+            "uniV3",
+            "uniV4",
+          ])
           .optional()
           .describe(
-            "LP protocol — auto-resolves the correct AM address. Use instead of asset_manager_address.",
+            "LP protocol — auto-resolves the correct AM address. staked_slipstream and staked_slipstream_v2 are aliases for slipstream and slipstream_v2 (same AM contracts).",
           ),
         am_type: z
           .enum(["rebalancer", "compounder", "yield_claimer", "merkl_operator"])
@@ -247,21 +261,9 @@ export function registerConfigureAssetManagerTool(
         const validChainId = validateChainId(params.chain_id);
         const validAccount = validateAddress(params.account_address, "account_address");
 
-        // Resolve asset manager address: direct address > pool_protocol > protocol-agnostic AMs
         const amAddress =
           params.asset_manager_address ??
           resolveAmAddress(validChainId, params.am_type, params.pool_protocol);
-        if (!amAddress) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: "Error: Provide asset_manager_address or pool_protocol to resolve the AM address. Protocol-specific AMs (rebalancer, compounder, yield_claimer) require pool_protocol.",
-              },
-            ],
-            isError: true,
-          };
-        }
 
         let callbackData: `0x${string}`;
 
