@@ -16,7 +16,6 @@ import { getChainConfigs } from "./config/chains.js";
 import { registerAllTools } from "./tools/index.js";
 import { registerAllResources } from "./resources/index.js";
 import { registerAllPrompts } from "./prompts/index.js";
-import type { Request, Response } from "express";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
@@ -47,25 +46,45 @@ if (transportMode === "http") {
   const app = express();
   const port = parseInt(process.env.PORT ?? "3000", 10);
 
-  const sessions = new Map<string, { server: McpServer; transport: InstanceType<typeof StreamableHTTPServerTransport> }>();
+  const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+  const sessions = new Map<
+    string,
+    { server: McpServer; transport: InstanceType<typeof StreamableHTTPServerTransport>; timer: ReturnType<typeof setTimeout> }
+  >();
 
-  async function getOrCreateSession(sessionId: string | undefined) {
-    if (sessionId && sessions.has(sessionId)) return sessions.get(sessionId)!;
+  function touchSession(id: string) {
+    const entry = sessions.get(id);
+    if (!entry) return;
+    clearTimeout(entry.timer);
+    entry.timer = setTimeout(() => {
+      try { entry.transport.close(); } catch { /* already closed */ }
+      sessions.delete(id);
+    }, SESSION_TTL_MS);
+  }
 
+  async function createSession() {
     const server = createServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
+      onsessioninitialized: (sessionId) => {
+        sessions.set(sessionId, { server, transport, timer: setTimeout(() => {
+          try { transport.close(); } catch { /* already closed */ }
+          sessions.delete(sessionId);
+        }, SESSION_TTL_MS) });
+      },
     });
     await server.connect(transport);
 
-    const id = transport.sessionId!;
-    sessions.set(id, { server, transport });
-
     transport.onclose = () => {
-      sessions.delete(id);
+      const id = transport.sessionId;
+      if (id) {
+        const entry = sessions.get(id);
+        if (entry) clearTimeout(entry.timer);
+        sessions.delete(id);
+      }
     };
 
-    return { server, transport };
+    return transport;
   }
 
   app.get("/health", (_req, res) => {
@@ -74,8 +93,23 @@ if (transportMode === "http") {
 
   app.post("/mcp", async (req, res) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
-    const { transport } = await getOrCreateSession(sessionId);
-    await transport.handleRequest(req, res);
+    const existing = sessionId ? sessions.get(sessionId) : undefined;
+    if (existing) {
+      touchSession(sessionId!);
+      await existing.transport.handleRequest(req, res);
+    } else if (sessionId) {
+      res.status(404).send("Session not found");
+    } else {
+      const transport = await createSession();
+      try {
+        await transport.handleRequest(req, res);
+      } catch (err) {
+        if (!transport.sessionId || !sessions.has(transport.sessionId)) {
+          try { transport.close(); } catch { /* ignore */ }
+        }
+        throw err;
+      }
+    }
   });
 
   app.get("/mcp", async (req, res) => {
@@ -84,8 +118,8 @@ if (transportMode === "http") {
       res.status(400).send("Invalid or missing session ID");
       return;
     }
-    const { transport } = sessions.get(sessionId)!;
-    await transport.handleRequest(req, res);
+    touchSession(sessionId);
+    await sessions.get(sessionId)!.transport.handleRequest(req, res);
   });
 
   app.delete("/mcp", async (req, res) => {
@@ -94,8 +128,7 @@ if (transportMode === "http") {
       res.status(400).send("Invalid or missing session ID");
       return;
     }
-    const { transport } = sessions.get(sessionId)!;
-    await transport.handleRequest(req, res);
+    await sessions.get(sessionId)!.transport.handleRequest(req, res);
   });
 
   app.listen(port, () => {

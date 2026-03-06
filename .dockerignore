@@ -3,5 +3,6 @@ dist
 .git
 scripts
 *.md
+!skills/**/*.md
 src/**/*.test.ts
 .env*
