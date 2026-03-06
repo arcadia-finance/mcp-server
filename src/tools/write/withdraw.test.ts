@@ -19,10 +19,10 @@ vi.mock("../../clients/chain.js", () => ({
 function setup() {
   const mock = createMockServer();
   registerWithdrawTool(mock.server, createMockChains());
-  return mock.getHandler("build_withdraw_tx");
+  return mock.getHandler("write.withdraw");
 }
 
-describe("build_withdraw_tx", () => {
+describe("write.withdraw", () => {
   describe("V4 account (explicit)", () => {
     it("encodes withdraw with assetTypes param", async () => {
       const handler = setup();

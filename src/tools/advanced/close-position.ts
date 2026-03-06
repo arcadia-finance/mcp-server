@@ -13,7 +13,7 @@ export function registerClosePositionTool(
   chains: Record<ChainId, ChainConfig>,
 ) {
   server.registerTool(
-    "build_close_position_tx",
+    "advanced.close_position",
     {
       annotations: {
         title: "Build Close Position Transaction",
@@ -22,13 +22,13 @@ export function registerClosePositionTool(
         idempotentHint: true,
         openWorldHint: true,
       },
-      description: `Atomic flash-action that closes an Arcadia account position in ONE transaction. Combines up to 3 steps atomically: [burn LP position] + [swap all tokens to a single target asset] + [repay debt]. Tokens remain in the account after closing — use build_withdraw_tx to send them to your wallet.
+      description: `Atomic flash-action that closes an Arcadia account position in ONE transaction. Combines up to 3 steps atomically: [burn LP position] + [swap all tokens to a single target asset] + [repay debt]. Tokens remain in the account after closing — use write.withdraw to send them to your wallet.
 
-ALWAYS try this tool first when closing/exiting a position. Only fall back to individual tools (build_remove_liquidity_tx, build_swap_tx, build_repay_with_collateral_tx, build_withdraw_tx) if this tool fails.
+ALWAYS try this tool first when closing/exiting a position. Only fall back to individual tools (advanced.remove_liquidity, advanced.swap, advanced.repay_with_collateral, write.withdraw) if this tool fails.
 
 Supports two modes:
 - close_lp_only=true: Burns LP and leaves underlying tokens in the account. Use as step 1 if the full close fails, then call again with close_lp_only=false to swap+repay the remaining tokens.
-- close_lp_only=false (default): Full atomic close — burns LP, swaps everything to receive_assets, repays debt. Remaining tokens stay in the account. Follow up with build_withdraw_tx to send to wallet. Supports multiple receive assets with custom distribution.
+- close_lp_only=false (default): Full atomic close — burns LP, swaps everything to receive_assets, repays debt. Remaining tokens stay in the account. Follow up with write.withdraw to send to wallet. Supports multiple receive assets with custom distribution.
 
 The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.`,
       inputSchema: {
@@ -43,7 +43,7 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
             }),
           )
           .describe(
-            "Assets to close/sell from the account. For LP positions: asset_address = position manager, asset_id = NFT ID, amount = '1', decimals = 1. For ERC20 tokens: asset_id = 0, amount = full balance, decimals = token decimals. Get these from get_account_info.",
+            "Assets to close/sell from the account. For LP positions: asset_address = position manager, asset_id = NFT ID, amount = '1', decimals = 1. For ERC20 tokens: asset_id = 0, amount = full balance, decimals = token decimals. Get these from read.account_info.",
           ),
         receive_assets: z
           .array(

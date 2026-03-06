@@ -47,13 +47,13 @@ describe("Advanced tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Position Actions ──────────────────────────────────────────
 
-  it("build_position_action_tx claim returns calldata", async () => {
+  it("advanced.position_action claim returns calldata", async () => {
     const found = findAccountWithStakedLP(accounts);
     if (!found) {
       console.warn("SKIP: No account with staked LP found on leaderboard");
       return;
     }
-    const handler = mock.getHandler("build_position_action_tx");
+    const handler = mock.getHandler("advanced.position_action");
     const result = await handler({
       account_address: found.account.accountAddress,
       action: "claim",
@@ -67,13 +67,13 @@ describe("Advanced tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(data.transaction.to).toMatch(/^0x[0-9a-fA-F]{40}$/);
   });
 
-  it("build_position_action_tx stake returns calldata for unstaked LP", async () => {
+  it("advanced.position_action stake returns calldata for unstaked LP", async () => {
     const found = findAccountWithDebtAndLP(accounts);
     if (!found) {
       console.warn("SKIP: No account with unstaked LP found on leaderboard");
       return;
     }
-    const handler = mock.getHandler("build_position_action_tx");
+    const handler = mock.getHandler("advanced.position_action");
     const result = await handler({
       account_address: found.account.accountAddress,
       action: "stake",
@@ -96,13 +96,13 @@ describe("Advanced tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Remove Liquidity ──────────────────────────────────────────
 
-  it("build_remove_liquidity_tx returns calldata", async () => {
+  it("advanced.remove_liquidity returns calldata", async () => {
     const found = findAccountWithDebtAndLP(accounts);
     if (!found) {
       console.warn("SKIP: No account with unstaked LP found on leaderboard");
       return;
     }
-    const handler = mock.getHandler("build_remove_liquidity_tx");
+    const handler = mock.getHandler("advanced.remove_liquidity");
     const result = await handler({
       account_address: found.account.accountAddress,
       asset_address: found.lp.address,
@@ -118,13 +118,13 @@ describe("Advanced tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Swap ──────────────────────────────────────────────────────
 
-  it("build_swap_tx returns calldata for WETH→USDC swap", async () => {
+  it("advanced.swap returns calldata for WETH→USDC swap", async () => {
     const found = findAccountWithDebtAndLP(accounts);
     if (!found) {
       console.warn("SKIP: No account with LP found on leaderboard");
       return;
     }
-    const handler = mock.getHandler("build_swap_tx");
+    const handler = mock.getHandler("advanced.swap");
     const result = await handler({
       account_address: found.account.accountAddress,
       asset_from: "0x4200000000000000000000000000000000000006", // WETH
@@ -141,13 +141,13 @@ describe("Advanced tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Repay With Collateral ─────────────────────────────────────
 
-  it("build_repay_with_collateral_tx returns calldata", async () => {
+  it("advanced.repay_with_collateral returns calldata", async () => {
     const found = findAccountWithDebtAndLP(accounts);
     if (!found) {
       console.warn("SKIP: No account with debt + LP found on leaderboard");
       return;
     }
-    const handler = mock.getHandler("build_repay_with_collateral_tx");
+    const handler = mock.getHandler("advanced.repay_with_collateral");
     const result = await handler({
       account_address: found.account.accountAddress,
       amount_in: "1000000000000000", // 0.001 WETH worth of collateral
@@ -165,7 +165,7 @@ describe("Advanced tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Add Liquidity ───────────────────────────────────────────
 
-  it("build_add_liquidity_tx returns calldata (no leverage)", async () => {
+  it("advanced.add_liquidity returns calldata (no leverage)", async () => {
     const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
     // Need a margin account (has creditor) + a USDC strategy
@@ -180,7 +180,7 @@ describe("Advanced tools — live API (Base 8453)", { timeout: 30_000 }, () => {
       return;
     }
 
-    const handler = mock.getHandler("build_add_liquidity_tx");
+    const handler = mock.getHandler("advanced.add_liquidity");
     const result = await handler({
       account_address: marginAccount.accountAddress,
       wallet_address: marginAccount.owner,

@@ -52,7 +52,7 @@ export function registerAccountTools(
   chains: Record<ChainId, ChainConfig>,
 ) {
   server.registerTool(
-    "get_account_info",
+    "read.account_info",
     {
       annotations: {
         title: "Get Account Info",
@@ -209,7 +209,7 @@ export function registerAccountTools(
   );
 
   server.registerTool(
-    "get_account_history",
+    "read.account_history",
     {
       annotations: {
         title: "Get Account History",
@@ -245,7 +245,7 @@ export function registerAccountTools(
   );
 
   server.registerTool(
-    "get_account_pnl",
+    "read.account_pnl",
     {
       annotations: {
         title: "Get Account PnL",

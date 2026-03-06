@@ -4,7 +4,7 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 
 export function registerPointsTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "get_points",
+    "read.points",
     {
       annotations: {
         title: "Get Points",

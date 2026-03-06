@@ -11,7 +11,7 @@ export function registerSetAssetManagerTool(
   _chains: Record<ChainId, ChainConfig>,
 ) {
   server.registerTool(
-    "build_set_asset_manager_tx",
+    "write.set_asset_manager",
     {
       annotations: {
         title: "Build Set Asset Manager Transaction",
@@ -21,7 +21,7 @@ export function registerSetAssetManagerTool(
         openWorldHint: false,
       },
       description:
-        "Build an unsigned transaction to grant or revoke an asset manager's permission on an Arcadia V3/V4 account via setAssetManagers. This ONLY toggles the permission flag — it does NOT configure initiator, fees, or strategy parameters. For full setup (enable + configure in one tx), use build_configure_asset_manager_tx instead. For asset manager addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
+        "Build an unsigned transaction to grant or revoke an asset manager's permission on an Arcadia V3/V4 account via setAssetManagers. This ONLY toggles the permission flag — it does NOT configure initiator, fees, or strategy parameters. For full setup (enable + configure in one tx), use write.configure_asset_manager instead. For asset manager addresses, call read.guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address (V3 or V4)"),
         asset_manager_address: z

@@ -18,10 +18,10 @@ function setup() {
   const mock = createMockServer();
   const api = createMockApi();
   registerBorrowTool(mock.server, createMockChains(), api as unknown as ArcadiaApiClient);
-  return mock.getHandler("build_borrow_tx");
+  return mock.getHandler("write.borrow");
 }
 
-describe("build_borrow_tx", () => {
+describe("write.borrow", () => {
   it("encodes borrow(amount, account, to, referrer) correctly", async () => {
     const handler = setup();
     const result = await handler({

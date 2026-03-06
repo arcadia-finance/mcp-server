@@ -40,7 +40,8 @@ Supporting code:
 
 ## Conventions
 
-- All `build_*_tx` tools return **unsigned** transaction objects — signing is the client's responsibility
+- All `write.*` and `advanced.*` tools return **unsigned** transaction objects — signing is the client's responsibility
+- Tool names use dot-notation hierarchy: `read.*`, `write.*`, `advanced.*`, `dev.*`
 - Advanced tool responses go through `formatAdvancedResponse()` which appends the ERC-8021 suffix to calldata
 - Tests: unit tests use mock fetch, integration tests (`*.integration.test.ts`) hit live APIs — exclude from CI
-- `sign_and_send_tx` is always registered but checks `PK` env var at runtime — returns error if not set
+- `dev.sign_and_send` is always registered but checks `PK` env var at runtime — returns error if not set

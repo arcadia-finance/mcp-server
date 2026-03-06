@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { createMockServer, createMockChains } from "../../test-utils.js";
 import { registerSignAndSendTool } from "./sign-and-send.js";
 
-describe("sign_and_send_tx", () => {
+describe("dev.sign_and_send", () => {
   const originalEnv = process.env.PK;
 
   afterEach(() => {
@@ -17,14 +17,14 @@ describe("sign_and_send_tx", () => {
     delete process.env.PK;
     const mock = createMockServer();
     registerSignAndSendTool(mock.server, createMockChains());
-    expect(mock.tools.find((t) => t.name === "sign_and_send_tx")).toBeDefined();
+    expect(mock.tools.find((t) => t.name === "dev.sign_and_send")).toBeDefined();
   });
 
   it("returns error when PK env var is unset", async () => {
     delete process.env.PK;
     const mock = createMockServer();
     registerSignAndSendTool(mock.server, createMockChains());
-    const handler = mock.getHandler("sign_and_send_tx");
+    const handler = mock.getHandler("dev.sign_and_send");
 
     const result = await handler({
       to: "0x1234567890abcdef1234567890abcdef12345678",
@@ -42,7 +42,7 @@ describe("sign_and_send_tx", () => {
     process.env.PK = "0x0000000000000000000000000000000000000000000000000000000000000001";
     const mock = createMockServer();
     registerSignAndSendTool(mock.server, createMockChains());
-    const handler = mock.getHandler("sign_and_send_tx");
+    const handler = mock.getHandler("dev.sign_and_send");
 
     const result = await handler({
       to: "0x1234567890abcdef1234567890abcdef12345678",

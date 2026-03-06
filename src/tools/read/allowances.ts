@@ -10,7 +10,7 @@ const MAX_UINT256 = 2n ** 256n - 1n;
 
 export function registerAllowanceTools(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "get_allowance",
+    "read.allowance",
     {
       annotations: {
         title: "Get Token Allowance",
@@ -20,7 +20,7 @@ export function registerAllowanceTools(server: McpServer, chains: Record<ChainId
         openWorldHint: true,
       },
       description:
-        "Check ERC20 token allowances for a spender address. Use before build_approve_tx to avoid redundant approvals — skip approving if the current allowance is already sufficient.",
+        "Check ERC20 token allowances for a spender address. Use before write.approve to avoid redundant approvals — skip approving if the current allowance is already sufficient.",
       inputSchema: {
         owner_address: z.string().describe("Token owner address (the wallet granting approval)"),
         spender_address: z

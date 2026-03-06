@@ -4,7 +4,7 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 
 export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "get_lending_pools",
+    "read.lending_pools",
     {
       annotations: {
         title: "Get Lending Pools",

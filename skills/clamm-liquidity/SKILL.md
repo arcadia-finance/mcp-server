@@ -1,7 +1,7 @@
 ---
 name: clamm-liquidity
 description: Agent guide for clAMM management on Arcadia Finance. Covers 25 MCP tools (+1 dev), automation setup (rebalancers, compounders, yield claimers, Merkl, CoW swapper), strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
-user-invokable: true
+user-invocable: true
 ---
 
 # Arcadia Finance — clAMM Agent Guide
@@ -10,14 +10,14 @@ Arcadia is a platform for managing concentrated liquidity positions — with bui
 
 ## Key Constraints
 
-- **All `build_*_tx` tools return unsigned transactions** (`{ to, data, value, chainId }`) — you must sign and broadcast them. See "Transaction Signing" below.
+- **All `write.*` and `advanced.*` tools return unsigned transactions** (`{ to, data, value, chainId }`) — you must sign and broadcast them. See "Transaction Signing" below.
 - **Automation strategy config** (tick range, rebalance thresholds) is not currently settable via MCP — this requires Arcadia platform access.
 - **Health factor** = `1 - (used_margin / liquidation_value)`. Higher is safer. `1` = no debt, `>0` = healthy, `0` = liquidation threshold, `<0` = past liquidation. Keep above 0.5 for leveraged positions; act immediately below 0.2.
-- **Minimum margin** — each lending pool enforces a fixed minimum margin denominated in the pool's numeraire (e.g. WETH for the WETH pool, USDC for the USDC pool), typically a few dollars in value. This gets **added to the debt** when computing `used_margin` (i.e. `used_margin = open_debt + minimum_margin`). It ensures liquidations remain profitable (covering gas costs) and prevents dust attacks. For small positions the fixed minimum margin dominates the used margin, pushing health factor lower than the leverage ratio alone would suggest (e.g. HF ~0.3 at 2× leverage). Increase position size for a healthier starting HF. `build_add_liquidity_tx` also validates deposits against per-asset minimum amounts from strategy risk factors.
+- **Minimum margin** — each lending pool enforces a fixed minimum margin denominated in the pool's numeraire (e.g. WETH for the WETH pool, USDC for the USDC pool), typically a few dollars in value. This gets **added to the debt** when computing `used_margin` (i.e. `used_margin = open_debt + minimum_margin`). It ensures liquidations remain profitable (covering gas costs) and prevents dust attacks. For small positions the fixed minimum margin dominates the used margin, pushing health factor lower than the leverage ratio alone would suggest (e.g. HF ~0.3 at 2× leverage). Increase position size for a healthier starting HF. `advanced.add_liquidity` also validates deposits against per-asset minimum amounts from strategy risk factors.
 
 ## Transaction Signing
 
-Write and advanced tools (`build_*_tx`) return unsigned transaction calldata. This server does NOT sign or broadcast. After receiving a transaction object, you must:
+Write and advanced tools (`write.*` / `advanced.*`) return unsigned transaction calldata. This server does NOT sign or broadcast. After receiving a transaction object, you must:
 
 1. **Sign** the transaction with the account owner's private key or wallet
 2. **Broadcast** it to the appropriate chain (Base 8453, Optimism 10, or Unichain 130)
@@ -28,7 +28,7 @@ How you sign depends on your setup:
 - **MPC wallet** (Fireblocks, Dfns, Turnkey) — pass the unsigned tx to your provider's signing API
 - **Smart account** (Safe, Biconomy) — wrap the tx as a UserOperation or Safe transaction
 - **Embedded wallet** (Privy, Dynamic) — use the provider's `sendTransaction` method
-- **Direct private key** (development only) — use the built-in `sign_and_send_tx` tool (set `PK` in a `.env` file or MCP client config), or viem/ethers `sendTransaction` with a local signer
+- **Direct private key** (development only) — use the built-in `dev.sign_and_send` tool (set `PK` in a `.env` file or MCP client config), or viem/ethers `sendTransaction` with a local signer
 
 Example with viem:
 
@@ -49,51 +49,51 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 
 ### Read Tools
 
-| Tool                  | When to use                                                                                                                                                                                                                                                                                                                                           |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_account_info`    | Account overview + liquidation price. Pass `account_address` for detail (returns positions with `asset_address`/`asset_id`, collateral, debt) or `wallet_address` to list accounts.                                                                                                                                                                   |
-| `get_account_history` | Historical account value over time. Optional `days` param (default 14).                                                                                                                                                                                                                                                                               |
-| `get_account_pnl`     | PnL and yield earned — use to check if a strategy is still profitable.                                                                                                                                                                                                                                                                                |
-| `get_assets`          | Supported collateral assets with prices. Pass `asset_addresses` (single or comma-separated) for price lookup.                                                                                                                                                                                                                                         |
-| `get_wallet_balances` | On-chain ERC20 balances and native ETH for a wallet. Use to pre-check if the wallet has enough tokens before depositing or adding liquidity.                                                                                                                                                                                                          |
-| `get_allowance`       | Check ERC20 token allowances for a spender. Use before `build_approve_tx` to avoid redundant approvals — skip if the current allowance is already sufficient.                                                                                                                                                                                         |
-| `get_lending_pools`   | Pool TVL, APY, utilization, liquidity. Pass `pool_address` for detail + APY history (optional `days`, default 14).                                                                                                                                                                                                                                    |
-| `get_strategies`      | LP strategies with fee APY, underlyings, pool protocol. List view shows 7d avg APY for the strategy's default range (e.g. ±7.5% for volatile pairs). **Pass `strategy_id` to see APY per range width** (very_narrow → full_range) — narrower range = higher APY but more rebalancing cost/risk. Use `featured_only: true` for curated top strategies. |
-| `get_points`          | Points for a wallet or leaderboard. No `chain_id` needed — points are cross-chain.                                                                                                                                                                                                                                                                    |
-| `get_recommendation`  | Rebalancing recommendation for an account. Uses 1d APY (not 7d like `get_strategies`), so numbers may differ.                                                                                                                                                                                                                                         |
-| `get_guide`           | Reference guides: `automation` (AM setup), `selection` (pool evaluation), `strategies` (step-by-step templates).                                                                                                                                                                                                                                      |
+| Tool                   | When to use                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read.account_info`    | Account overview + liquidation price. Pass `account_address` for detail (returns positions with `asset_address`/`asset_id`, collateral, debt) or `wallet_address` to list accounts.                                                                                                                                                                   |
+| `read.account_history` | Historical account value over time. Optional `days` param (default 14).                                                                                                                                                                                                                                                                               |
+| `read.account_pnl`     | PnL and yield earned — use to check if a strategy is still profitable.                                                                                                                                                                                                                                                                                |
+| `read.assets`          | Supported collateral assets with prices. Pass `asset_addresses` (single or comma-separated) for price lookup.                                                                                                                                                                                                                                         |
+| `read.wallet_balances` | On-chain ERC20 balances and native ETH for a wallet. Use to pre-check if the wallet has enough tokens before depositing or adding liquidity.                                                                                                                                                                                                          |
+| `read.allowance`       | Check ERC20 token allowances for a spender. Use before `write.approve` to avoid redundant approvals — skip if the current allowance is already sufficient.                                                                                                                                                                                            |
+| `read.lending_pools`   | Pool TVL, APY, utilization, liquidity. Pass `pool_address` for detail + APY history (optional `days`, default 14).                                                                                                                                                                                                                                    |
+| `read.strategies`      | LP strategies with fee APY, underlyings, pool protocol. List view shows 7d avg APY for the strategy's default range (e.g. ±7.5% for volatile pairs). **Pass `strategy_id` to see APY per range width** (very_narrow → full_range) — narrower range = higher APY but more rebalancing cost/risk. Use `featured_only: true` for curated top strategies. |
+| `read.points`          | Points for a wallet or leaderboard. No `chain_id` needed — points are cross-chain.                                                                                                                                                                                                                                                                    |
+| `read.recommendation`  | Rebalancing recommendation for an account. Uses 1d APY (not 7d like `read.strategies`), so numbers may differ.                                                                                                                                                                                                                                        |
+| `read.guide`           | Reference guides: `automation` (AM setup), `selection` (pool evaluation), `strategies` (step-by-step templates).                                                                                                                                                                                                                                      |
 
 ### Preferred Write Tools (atomic/multi-step — use these first)
 
 These tools batch multiple operations into ONE atomic transaction. Always prefer these over individual tools.
 
-| Tool                               | Batches                                               | When to use                                                                                                |
-| ---------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `build_add_liquidity_tx`           | deposit + swap + mint LP + optional borrow            | Open LP position. Do NOT call `build_deposit_tx` separately — this handles wallet transfer atomically.     |
-| `build_close_position_tx`          | burn LP + swap + repay debt (up to 3 steps)           | Close/exit a position. ALWAYS try this first. Tokens stay in account — follow up with `build_withdraw_tx`. |
-| `build_repay_with_collateral_tx`   | swap collateral + repay debt                          | Repay debt using account collateral (no wallet tokens needed). Preferred for health factor fixes.          |
-| `build_configure_asset_manager_tx` | grant permission + set initiator/fees/strategy params | Enable AND configure an automation (rebalancer, compounder, yield claimer, merkl) in one transaction.      |
+| Tool                             | Batches                                               | When to use                                                                                             |
+| -------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `advanced.add_liquidity`         | deposit + swap + mint LP + optional borrow            | Open LP position. Do NOT call `write.deposit` separately — this handles wallet transfer atomically.     |
+| `advanced.close_position`        | burn LP + swap + repay debt (up to 3 steps)           | Close/exit a position. ALWAYS try this first. Tokens stay in account — follow up with `write.withdraw`. |
+| `advanced.repay_with_collateral` | swap collateral + repay debt                          | Repay debt using account collateral (no wallet tokens needed). Preferred for health factor fixes.       |
+| `write.configure_asset_manager`  | grant permission + set initiator/fees/strategy params | Enable AND configure an automation (rebalancer, compounder, yield claimer, merkl) in one transaction.   |
 
 ### Individual Write Tools (use when batched tools fail or for standalone operations)
 
-| Tool                         | When to use                                                                                                                                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `build_approve_tx`           | Approve a token for spending. **Required before `build_deposit_tx`** and before `build_add_liquidity_tx` (when depositing from wallet). Call `get_allowance` first to check if already approved. |
-| `build_create_account_tx`    | Create a new Arcadia account (one-time setup). Use `account_version: 0` for the latest version (recommended).                                                                                    |
-| `build_deposit_tx`           | Deposit ERC20 tokens as collateral. NOT needed before `build_add_liquidity_tx` — that tool handles deposits atomically.                                                                          |
-| `build_withdraw_tx`          | Withdraw assets to account owner. Account version auto-detected on-chain. Params: `asset_addresses[]`, `asset_amounts[]` (exact amounts, no max_uint256), optional `asset_ids[]` (0 for ERC20).  |
-| `build_borrow_tx`            | Borrow from a lending pool. NOT needed for leveraged LP — `build_add_liquidity_tx` handles borrowing internally.                                                                                 |
-| `build_repay_tx`             | Repay debt from wallet (approve pool first). Use `amount: "max_uint256"` to repay in full. For repaying with account collateral, prefer `build_repay_with_collateral_tx`.                        |
-| `build_swap_tx`              | Swap assets within account (backend handles routing). For closing positions, prefer `build_close_position_tx`.                                                                                   |
-| `build_remove_liquidity_tx`  | PARTIAL liquidity decrease only (position stays open). For full LP removal/exit, use `build_close_position_tx`.                                                                                  |
-| `build_position_action_tx`   | Stake, unstake, or claim rewards for an LP position. Direction auto-detected from `asset_address`.                                                                                               |
-| `build_set_asset_manager_tx` | Grant/revoke AM permission only (no configuration). Use to revoke; for full setup prefer `build_configure_asset_manager_tx`.                                                                     |
+| Tool                        | When to use                                                                                                                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `write.approve`             | Approve a token for spending. **Required before `write.deposit`** and before `advanced.add_liquidity` (when depositing from wallet). Call `read.allowance` first to check if already approved.  |
+| `write.create_account`      | Create a new Arcadia account (one-time setup). Use `account_version: 0` for the latest version (recommended).                                                                                   |
+| `write.deposit`             | Deposit ERC20 tokens as collateral. NOT needed before `advanced.add_liquidity` — that tool handles deposits atomically.                                                                         |
+| `write.withdraw`            | Withdraw assets to account owner. Account version auto-detected on-chain. Params: `asset_addresses[]`, `asset_amounts[]` (exact amounts, no max_uint256), optional `asset_ids[]` (0 for ERC20). |
+| `write.borrow`              | Borrow from a lending pool. NOT needed for leveraged LP — `advanced.add_liquidity` handles borrowing internally.                                                                                |
+| `write.repay`               | Repay debt from wallet (approve pool first). Use `amount: "max_uint256"` to repay in full. For repaying with account collateral, prefer `advanced.repay_with_collateral`.                       |
+| `advanced.swap`             | Swap assets within account (backend handles routing). For closing positions, prefer `advanced.close_position`.                                                                                  |
+| `advanced.remove_liquidity` | PARTIAL liquidity decrease only (position stays open). For full LP removal/exit, use `advanced.close_position`.                                                                                 |
+| `advanced.position_action`  | Stake, unstake, or claim rewards for an LP position. Direction auto-detected from `asset_address`.                                                                                              |
+| `write.set_asset_manager`   | Grant/revoke AM permission only (no configuration). Use to revoke; for full setup prefer `write.configure_asset_manager`.                                                                       |
 
 ### Dev Tools (only available when `PK` env var is set)
 
-| Tool               | When to use                                                                                                                                                                                                                                     |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sign_and_send_tx` | Sign and broadcast an unsigned transaction using a local private key. Pass the `{ to, data, value, chainId }` from any `build_*_tx` tool. **Not for production** — use a dedicated wallet MCP server (Fireblocks, Safe, Turnkey, etc.) instead. |
+| Tool                | When to use                                                                                                                                                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dev.sign_and_send` | Sign and broadcast an unsigned transaction using a local private key. Pass the `{ to, data, value, chainId }` from any `write.*` or `advanced.*` tool. **Not for production** — use a dedicated wallet MCP server (Fireblocks, Safe, Turnkey, etc.) instead. |
 
 ## Token Addresses (Base 8453)
 
@@ -118,7 +118,7 @@ These tools batch multiple operations into ONE atomic transaction. Always prefer
 
 ## Lending Pool Addresses (Base 8453)
 
-Use as `pool_address` in `build_borrow_tx` / `build_repay_tx`, as `creditor` in `build_create_account_tx` / `build_repay_with_collateral_tx`:
+Use as `pool_address` in `write.borrow` / `write.repay`, as `creditor` in `write.create_account` / `advanced.repay_with_collateral`:
 
 | Asset | Pool Address                                 |
 | ----- | -------------------------------------------- |
@@ -128,7 +128,7 @@ Use as `pool_address` in `build_borrow_tx` / `build_repay_tx`, as `creditor` in 
 
 ## Asset Manager Addresses (Base 8453)
 
-Use with `build_configure_asset_manager_tx` (enable + configure) or `build_set_asset_manager_tx` (grant/revoke only). Both require V3/V4 accounts.
+Use with `write.configure_asset_manager` (enable + configure) or `write.set_asset_manager` (grant/revoke only). Both require V3/V4 accounts.
 
 | Type           | Protocol      | Address                                      |
 | -------------- | ------------- | -------------------------------------------- |
@@ -148,7 +148,7 @@ Use with `build_configure_asset_manager_tx` (enable + configure) or `build_set_a
 | CoW Swapper    | All           | `0xc928013A219EC9F18dE7B2dee6A50Ba626811854` |
 | Gas Relayer    | All           | `0xD938C8d04cF91094fecAF0A2018EAac483a40137` |
 
-**Slipstream V1 vs V2:** The pool determines the version — some pools are V1, some are V2. The API currently returns `protocol: "slipstream"` without V1/V2 distinction. To identify the version, check the position manager address from `get_account_info` against the known addresses (V1: `0x8279...`, V2: `0xa990...`). Alternatively, pass `pool_protocol` directly to `build_configure_asset_manager_tx` to auto-resolve the correct AM address. Staked and wrapped staked positions use the same asset managers as their base protocol.
+**Slipstream V1 vs V2:** The pool determines the version — some pools are V1, some are V2. The API currently returns `protocol: "slipstream"` without V1/V2 distinction. To identify the version, check the position manager address from `read.account_info` against the known addresses (V1: `0x8279...`, V2: `0xa990...`). Alternatively, pass `pool_protocol` directly to `write.configure_asset_manager` to auto-resolve the correct AM address. Staked and wrapped staked positions use the same asset managers as their base protocol.
 
 ## Account Versions
 
@@ -156,9 +156,9 @@ Spot vs margin is determined by whether a **creditor** (lending pool) is set at 
 
 - `account_version: 3` — **margin account** (created with a `creditor`). Can borrow, leverage, and mint LP. Uses an onchain whitelist of allowed collateral tokens.
 - `account_version: 4` or `0` (latest) — **spot account** (no creditor, no borrowing). Can hold assets and mint LP with `leverage: 0`. Accepts any ERC20 (no onchain whitelist).
-- `account_version: 1` or `2` — legacy. Not supported by current MCP tools (`build_set_asset_manager_tx` and `build_configure_asset_manager_tx` require V3/V4).
+- `account_version: 1` or `2` — legacy. Not supported by current MCP tools (`write.set_asset_manager` and `write.configure_asset_manager` require V3/V4).
 - For **leveraged LP strategies**, use `account_version: 3` with a creditor.
-- To check an existing account's version: call `get_account_info` — the response includes the account version.
+- To check an existing account's version: call `read.account_info` — the response includes the account version.
 
 ## Reference Files
 
