@@ -17,7 +17,11 @@ Node >= 22, yarn 4.13.0. All env vars are optional — RPC URLs fall back to pub
 
 ## Architecture
 
-Entry point: `src/index.ts`. Tools in `src/tools/`:
+Entry point: `src/index.ts`. Two transport modes controlled by `TRANSPORT` env var:
+- **stdio** (default) — for local MCP clients (Claude Desktop, Cursor, Claude Code)
+- **http** — Streamable HTTP on Express, session-based with 30-min TTL. Deployed at `https://mcp.arcadia.finance/mcp`. Routes: `POST /mcp`, `GET /mcp`, `DELETE /mcp`, `GET /health`.
+
+Tools in `src/tools/`:
 
 - **read/** (8 files, 11 tools) — Query account state, pools, strategies, assets, balances, guides. Pure API reads.
 - **write/** (9 files, 9 tools) — Encode unsigned transactions via viem. Return `{to, data, value, chainId}`.
@@ -30,6 +34,8 @@ Supporting code:
 - `src/config/chains.ts` — Chain resolution and config
 - `src/abis/` — Contract ABIs (JSON, copied to dist/ at build time)
 - `src/utils/attribution.ts` — ERC-8021 builder code suffix (`bc_u3g3444p`), appended to all transaction calldata via `appendDataSuffix()`
+- `src/resources/` — MCP resources (guides)
+- `src/prompts/` — MCP prompt workflows
 - `skills/` — Claude Code skills for guided workflows (shipped in npm package)
 
 ## Conventions
