@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { formatAdvancedResponse } from "./format-response.js";
+import { validateAddress } from "../../utils/validation.js";
 
 export function registerRepayWithCollateralTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
@@ -16,14 +17,12 @@ export function registerRepayWithCollateralTool(server: McpServer, api: ArcadiaA
         numeraire: z.string().describe("Debt token address"),
         creditor: z.string().describe("Lending pool address"),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ account_address, amount_in, asset_from, numeraire, creditor, slippage, chain_id }) => {
       try {
+        validateAddress(account_address, "account_address");
         const result = await api.getRepayCalldata({
           amount_in,
           chain_id,

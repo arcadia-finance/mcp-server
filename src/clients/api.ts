@@ -39,7 +39,7 @@ export class ArcadiaApiClient {
       hint = " Invalid input. The API rejected the request parameters.";
     } else if (status === 500) {
       hint =
-        " Internal backend error. Common causes: account has no creditor (spot account used where margin account is required), unsupported asset type, or transient backend issue. Retry once — if it persists, check account type and parameters.";
+        " Internal backend error. Common causes: account has no creditor (spot account used where margin required), position does not exist in the account, unsupported asset type, or transient issue. Verify account and position details with get_account_info, then retry once.";
     } else if (status === 502 || status === 503 || status === 504) {
       hint = " Backend is temporarily unavailable. Retry after a few seconds.";
     }

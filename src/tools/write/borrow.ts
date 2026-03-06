@@ -5,6 +5,7 @@ import type { ChainId, ChainConfig } from "../../config/chains.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { poolAbi } from "../../abis/index.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
+import { validateAddress } from "../../utils/validation.js";
 
 export function registerBorrowTool(
   server: McpServer,
@@ -25,14 +26,15 @@ export function registerBorrowTool(
         account_address: z.string().describe("Arcadia account address used as collateral"),
         amount: z.string().describe("Amount in raw units"),
         to: z.string().describe("Address to receive borrowed tokens"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async (params) => {
       try {
+        const validAccount = validateAddress(params.account_address, "account_address");
+        const validPool = validateAddress(params.pool_address, "pool_address");
+        const validTo = validateAddress(params.to, "to");
+
         // Validate: account must have a creditor (margin account)
         const overview = (await api.getAccountOverview(
           params.chain_id,
@@ -70,12 +72,7 @@ export function registerBorrowTool(
           encodeFunctionData({
             abi: poolAbi,
             functionName: "borrow",
-            args: [
-              BigInt(params.amount),
-              params.account_address as `0x${string}`,
-              params.to as `0x${string}`,
-              "0x000000" as `0x${string}`,
-            ],
+            args: [BigInt(params.amount), validAccount, validTo, "0x000000" as `0x${string}`],
           }),
         );
 
@@ -87,7 +84,7 @@ export function registerBorrowTool(
                 {
                   description: "Borrow from Arcadia lending pool",
                   transaction: {
-                    to: params.pool_address as `0x${string}`,
+                    to: validPool,
                     data,
                     value: "0",
                     chainId: params.chain_id,

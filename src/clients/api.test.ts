@@ -43,7 +43,7 @@ describe("ArcadiaApiClient error handling", () => {
     mockFetch(500, "internal server error");
     const api = new ArcadiaApiClient();
     await expect(api.getAccountOverview(8453, "0x123")).rejects.toThrow(
-      /spot account used where margin account is required/,
+      /spot account used where margin required/,
     );
   });
 
@@ -66,6 +66,7 @@ describe("ArcadiaApiClient error handling", () => {
   });
 
   it("truncates long error bodies to 500 chars", async () => {
+    expect.assertions(2);
     mockFetch(500, "x".repeat(1000));
     const api = new ArcadiaApiClient();
     try {
@@ -73,7 +74,7 @@ describe("ArcadiaApiClient error handling", () => {
     } catch (err) {
       const msg = (err as Error).message;
       expect(msg).toContain("...");
-      expect(msg.length).toBeLessThan(800);
+      expect(msg.length).toBeLessThan(850);
     }
   });
 
@@ -96,6 +97,6 @@ describe("ArcadiaApiClient error handling", () => {
         action_type: "test",
         slippage: 100,
       }),
-    ).rejects.toThrow(/spot account used where margin account is required/);
+    ).rejects.toThrow(/spot account used where margin required/);
   });
 });

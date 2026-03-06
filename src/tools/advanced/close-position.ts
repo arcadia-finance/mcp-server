@@ -5,6 +5,7 @@ import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { getPublicClient } from "../../clients/chain.js";
 import { readAccountMetadata } from "./account-metadata.js";
 import { formatAdvancedResponse } from "./format-response.js";
+import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 export function registerClosePositionTool(
   server: McpServer,
@@ -62,14 +63,13 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
             "true = only burn LP positions, leave underlying tokens in account. false = full close (burn + swap + repay).",
           ),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ account_address, assets, receive_assets, close_lp_only, slippage, chain_id }) => {
       try {
+        const validChainId = validateChainId(chain_id);
+        const validAccount = validateAddress(account_address, "account_address");
         const actionType = close_lp_only ? "account.closing-lp" : "account.closing-position";
 
         if (!close_lp_only && (!receive_assets || receive_assets.length === 0)) {
@@ -120,8 +120,8 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           numeraire = accountStub?.numeraire ?? "";
           version = accountStub?.creation_version ?? 3;
         } else {
-          const client = getPublicClient(chain_id as ChainId, chains);
-          const metadata = await readAccountMetadata(client, account_address as `0x${string}`);
+          const client = getPublicClient(validChainId, chains);
+          const metadata = await readAccountMetadata(client, validAccount);
           owner = metadata.owner;
           creditor = metadata.creditor;
           numeraire = metadata.numeraire;
@@ -215,12 +215,12 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
         const result = await api.getBundleCalldata(body);
         const res = result as unknown as Record<string, unknown>;
 
-        if (result.tenderly_sim_status === "false") {
-          const simUrl = result.tenderly_sim_url
-            ? `\nTenderly simulation: ${result.tenderly_sim_url}`
+        if (res.tenderly_sim_status === "false") {
+          const simUrl = res.tenderly_sim_url
+            ? `\nTenderly simulation: ${res.tenderly_sim_url}`
             : "";
-          const simError = result.tenderly_sim_error
-            ? `\nRevert reason: ${result.tenderly_sim_error}`
+          const simError = res.tenderly_sim_error
+            ? `\nRevert reason: ${res.tenderly_sim_error}`
             : "";
           return {
             content: [

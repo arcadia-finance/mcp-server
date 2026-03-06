@@ -48,14 +48,14 @@ To revoke any AM: `build_set_asset_manager_tx(..., enabled: false)` or `build_co
 
 **What it does:** When the LP position goes out of range, Arcadia's bot repositions it to a new range centered on the current price. As part of every rebalance, the old position is burned and all pending fees and staking rewards are claimed — these are automatically compounded into the new position. The rebalancer therefore also acts as a compounder at every rebalance event.
 
-**Which address:** Match to your LP protocol (Base):
+**Which address:** Match to your LP protocol. The tool returns an error if a manager isn't available on the requested chain.
 
-| Protocol                | Address                                      |
-| ----------------------- | -------------------------------------------- |
-| Aerodrome Slipstream V1 | `0x5802454749cc0c4A6F28D5001B4cD84432e2b79F` |
-| Aerodrome Slipstream V2 | `0x953Ff365d0b562ceC658dc46B394E9282338d9Ea` |
-| Uniswap V3              | `0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd` |
-| Uniswap V4              | `0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0` |
+| Protocol                | Address                                      | Chains    |
+| ----------------------- | -------------------------------------------- | --------- |
+| Aerodrome Slipstream V1 | `0x5802454749cc0c4A6F28D5001B4cD84432e2b79F` | All       |
+| Aerodrome Slipstream V2 | `0x953Ff365d0b562ceC658dc46B394E9282338d9Ea` | Base only |
+| Uniswap V3              | `0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd` | All       |
+| Uniswap V4              | `0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0` | All       |
 
 **Free rebalance quota (per owner across all accounts):**
 
@@ -83,14 +83,14 @@ Quota is also bypassed automatically when: gas cost < pending fees ÷ 2, or posi
 
 **What it does:** Bot claims accumulated LP fees and reinvests them back into the position (compound interest instead of cash flow).
 
-**Which address (Base):**
+**Which address:**
 
-| Protocol                | Address                                      |
-| ----------------------- | -------------------------------------------- |
-| Aerodrome Slipstream V1 | `0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7` |
-| Aerodrome Slipstream V2 | `0x35e59448C7145482E56212510cC689612AB4F61f` |
-| Uniswap V3              | `0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3` |
-| Uniswap V4              | `0xAA95c9c402b195D8690eCaea2341a76e3266B189` |
+| Protocol                | Address                                      | Chains    |
+| ----------------------- | -------------------------------------------- | --------- |
+| Aerodrome Slipstream V1 | `0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7` | All       |
+| Aerodrome Slipstream V2 | `0x35e59448C7145482E56212510cC689612AB4F61f` | Base only |
+| Uniswap V3              | `0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3` | All       |
+| Uniswap V4              | `0xAA95c9c402b195D8690eCaea2341a76e3266B189` | All       |
 
 **When to add a compounder on top of a rebalancer:** The rebalancer compounds fees at rebalance time. Adding a compounder also compounds fees between rebalances — more frequent compounding, higher effective APY.
 
@@ -100,14 +100,14 @@ Quota is also bypassed automatically when: gas cost < pending fees ÷ 2, or posi
 
 **What it does:** Bot periodically claims pending fees/emissions and sends them to a designated recipient (owner wallet, another account, or any address).
 
-**Which address (Base):**
+**Which address:**
 
-| Protocol                | Address                                      |
-| ----------------------- | -------------------------------------------- |
-| Aerodrome Slipstream V1 | `0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba` |
-| Aerodrome Slipstream V2 | `0xc8bF4B2c740FF665864E9494832520f18822871C` |
-| Uniswap V3              | `0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16` |
-| Uniswap V4              | `0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4` |
+| Protocol                | Address                                      | Chains    |
+| ----------------------- | -------------------------------------------- | --------- |
+| Aerodrome Slipstream V1 | `0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba` | All       |
+| Aerodrome Slipstream V2 | `0xc8bF4B2c740FF665864E9494832520f18822871C` | Base only |
+| Uniswap V3              | `0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16` | All       |
+| Uniswap V4              | `0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4` | All       |
 
 **Recipient config:** Set `fee_recipient` in `build_configure_asset_manager_tx` (V3/V4 accounts). Pass your wallet address or any destination address.
 
@@ -119,8 +119,6 @@ Quota is also bypassed automatically when: gas cost < pending fees ÷ 2, or posi
 
 **When to enable:** When the pool you LP into has active Merkl campaigns. Check by looking at the pool APY breakdown in `get_strategies` — if there's a "Merkl" or "external rewards" component, enable this.
 
-**Address:**
-
 **Address (all chains):** `0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6`
 
 **Always combine with rebalancer** when both are relevant — no conflict, extra free yield.
@@ -131,7 +129,7 @@ Quota is also bypassed automatically when: gas cost < pending fees ÷ 2, or posi
 
 **What it does:** Bot places CoW Protocol batch auction swap orders to sell tokens accumulated in the account (e.g., claimed AERO emissions → USDC). Uses MEV-protected execution via CoW's batch auction mechanism.
 
-**Address (Base):** `0xc928013A219EC9F18dE7B2dee6A50Ba626811854`
+**Address (Base only):** `0xc928013A219EC9F18dE7B2dee6A50Ba626811854`
 
 **Config:** Which tokens to sell and what to buy is configured in the Arcadia platform — not settable via MCP.
 

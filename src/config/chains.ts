@@ -1,4 +1,4 @@
-export const SUPPORTED_CHAIN_IDS = [8453, 10, 130] as const;
+export const SUPPORTED_CHAIN_IDS = [8453, 130] as const;
 export type ChainId = (typeof SUPPORTED_CHAIN_IDS)[number];
 
 export interface ChainConfig {
@@ -16,12 +16,6 @@ export function getChainConfigs(): Record<ChainId, ChainConfig> {
       rpcUrl: process.env.RPC_URL_BASE ?? "https://mainnet.base.org",
       stateViewer: "0xA3c0c9b65baD0b08107Aa264b0f3dB444b867A71",
     },
-    10: {
-      name: "optimism",
-      chainId: 10,
-      rpcUrl: process.env.RPC_URL_OPTIMISM ?? "https://mainnet.optimism.io",
-      stateViewer: null, // TBD — Optimism deployment pending
-    },
     130: {
       name: "unichain",
       chainId: 130,
@@ -35,7 +29,7 @@ export function resolveChainId(input: number | string): ChainId {
   const id = typeof input === "string" ? parseInt(input, 10) : input;
   if (!SUPPORTED_CHAIN_IDS.includes(id as ChainId)) {
     throw new Error(
-      `Unsupported chain ID: ${id}. Arcadia is deployed on Base (8453), Optimism (10), and Unichain (130).`,
+      `Unsupported chain_id: ${id}. Supported chains: Base (8453) and Unichain (130).`,
     );
   }
   return id as ChainId;

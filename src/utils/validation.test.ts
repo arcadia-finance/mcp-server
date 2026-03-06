@@ -51,7 +51,7 @@ describe("validateAddress", () => {
 });
 
 describe("validateChainId", () => {
-  it.each([8453, 10, 130])("accepts supported chain ID %d", (id) => {
+  it.each([8453, 130])("accepts supported chain ID %d", (id) => {
     expect(validateChainId(id)).toBe(id);
   });
 
