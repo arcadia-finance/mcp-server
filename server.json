@@ -43,6 +43,13 @@
           "isSecret": true
         }
       ]
+    },
+    {
+      "registryType": "url",
+      "identifier": "https://mcp.arcadia.finance/mcp",
+      "transport": {
+        "type": "streamablehttp"
+      }
     }
   ]
 }

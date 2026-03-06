@@ -130,7 +130,19 @@ yarn build
 
 ## MCP Client Configuration
 
-**Via npx** (recommended):
+**Remote (no install needed):**
+
+```json
+{
+  "mcpServers": {
+    "arcadia-finance": {
+      "url": "https://mcp.arcadia.finance/mcp"
+    }
+  }
+}
+```
+
+**Via npx** (local stdio):
 
 ```json
 {
@@ -149,6 +161,10 @@ yarn build
 **Claude Code:**
 
 ```bash
+# Remote
+claude mcp add arcadia-finance --transport http https://mcp.arcadia.finance/mcp
+
+# Local
 claude mcp add arcadia-finance -- npx -y @arcadia-finance/mcp-server
 ```
 
