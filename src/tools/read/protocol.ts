@@ -7,7 +7,7 @@ export function registerProtocolTools(server: McpServer, api: ArcadiaApiClient) 
     "get_strategies",
     {
       description:
-        "Get Arcadia LP strategies. Use featured_only=true for curated top strategies (recommended first call). Use strategy_id for full detail on a specific strategy — includes APY per range width (narrower range = higher APY but more rebalancing cost/risk). Without filters, returns a compact summary with 7d avg APY for the strategy's default range. Increase limit or use offset for pagination.",
+        "Get Arcadia LP strategies. Use featured_only=true for curated top strategies (recommended first call). Use strategy_id for full detail on a specific strategy — includes APY per range width (narrower range = higher APY but more rebalancing cost/risk). Without filters, returns a compact summary with 7d avg APY for the strategy's default range. Increase limit or use offset for pagination. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%).",
       inputSchema: {
         strategy_id: z.number().optional().describe("Strategy ID for full detail"),
         featured_only: z
@@ -19,10 +19,7 @@ export function registerProtocolTools(server: McpServer, api: ArcadiaApiClient) 
           .default(25)
           .describe("Max strategies to return in compact list (default 25)"),
         offset: z.number().default(0).describe("Skip first N strategies for pagination"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ strategy_id, featured_only, limit, offset, chain_id }) => {
@@ -85,16 +82,25 @@ export function registerProtocolTools(server: McpServer, api: ArcadiaApiClient) 
         "Get a rebalancing recommendation for an Arcadia account — suggests asset changes to optimize yield. Uses 1d APY (not 7d like get_strategies list view), so recommended strategies may differ from the list ranking.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ account_address, chain_id }) => {
       try {
         const result = await api.getRecommendation(chain_id, account_address);
-        return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+        const rec = result as Record<string, unknown>;
+        if (
+          Array.isArray(rec.added_assets) &&
+          rec.added_assets.length === 0 &&
+          Array.isArray(rec.removed_assets) &&
+          rec.removed_assets.length === 0 &&
+          Number(rec.current_apy ?? 0) === 0 &&
+          Number(rec.proposed_apy ?? 0) === 0
+        ) {
+          rec.context_note =
+            "Account has no active positions — no rebalancing recommendations available.";
+        }
+        return { content: [{ type: "text" as const, text: JSON.stringify(rec, null, 2) }] };
       } catch (err) {
         return {
           content: [

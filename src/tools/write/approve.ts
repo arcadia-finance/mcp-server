@@ -4,6 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { erc20Abi, nftmanagerAbi } from "../../abis/index.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
+import { validateAddress } from "../../utils/validation.js";
 
 const MAX_UINT256 = 2n ** 256n - 1n;
 
@@ -30,14 +31,14 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
           .describe(
             "ERC20 only: amount in raw units, or 'max_uint256' for unlimited. Ignored for NFTs.",
           ),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async (params) => {
       try {
+        const validToken = validateAddress(params.token_address, "token_address");
+        const validSpender = validateAddress(params.spender_address, "spender_address");
+
         let data: `0x${string}`;
         let description: string;
 
@@ -45,7 +46,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
           data = encodeFunctionData({
             abi: nftmanagerAbi,
             functionName: "setApprovalForAll",
-            args: [params.spender_address as `0x${string}`, true],
+            args: [validSpender, true],
           });
           description = `Approve ${params.spender_address} to transfer all ${params.asset_type.toUpperCase()} tokens from ${params.token_address}`;
         } else {
@@ -54,7 +55,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
           data = encodeFunctionData({
             abi: erc20Abi,
             functionName: "approve",
-            args: [params.spender_address as `0x${string}`, amount],
+            args: [validSpender, amount],
           });
           description = `Approve ${params.spender_address} to spend ${params.token_address}`;
         }
@@ -68,7 +69,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
                 {
                   description,
                   transaction: {
-                    to: params.token_address as `0x${string}`,
+                    to: validToken,
                     data,
                     value: "0",
                     chainId: params.chain_id,

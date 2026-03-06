@@ -16,7 +16,7 @@ export function validateAddress(address: string, label = "address"): `0x${string
 export function validateChainId(chainId: number): ChainId {
   if (!SUPPORTED_CHAIN_IDS.includes(chainId as ChainId)) {
     throw new Error(
-      `Unsupported chain_id: ${chainId}. Arcadia is deployed on Base (8453), Optimism (10), and Unichain (130).`,
+      `Unsupported chain_id: ${chainId}. Supported chains: Base (8453) and Unichain (130).`,
     );
   }
   return chainId as ChainId;

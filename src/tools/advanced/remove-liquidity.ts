@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { formatAdvancedResponse } from "./format-response.js";
+import { validateAddress } from "../../utils/validation.js";
 
 export function registerRemoveLiquidityTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
@@ -21,14 +22,13 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           .describe(
             "Liquidity amount to remove (raw uint128 value as string). Must be less than total liquidity — for full removal use build_close_position_tx.",
           ),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ account_address, asset_address, asset_id, adjustment, chain_id }) => {
       try {
+        validateAddress(account_address, "account_address");
+        validateAddress(asset_address, "asset_address");
         const result = await api.getDecreaseLiquidityCalldata({
           chain_id,
           account_address,

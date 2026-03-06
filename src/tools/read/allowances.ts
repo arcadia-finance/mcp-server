@@ -4,6 +4,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { erc20Abi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
+import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 const MAX_UINT256 = 2n ** 256n - 1n;
 
@@ -19,17 +20,15 @@ export function registerAllowanceTools(server: McpServer, chains: Record<ChainId
           .string()
           .describe("Spender address to check allowance for (e.g. Arcadia account address)"),
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ owner_address, spender_address, token_addresses, chain_id }) => {
       try {
-        const client = getPublicClient(chain_id as ChainId, chains);
-        const owner = owner_address as `0x${string}`;
-        const spender = spender_address as `0x${string}`;
+        const validChainId = validateChainId(chain_id);
+        const owner = validateAddress(owner_address, "owner_address");
+        const spender = validateAddress(spender_address, "spender_address");
+        const client = getPublicClient(validChainId, chains);
 
         const calls = token_addresses.flatMap((addr) => [
           {

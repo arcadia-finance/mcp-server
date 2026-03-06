@@ -5,6 +5,7 @@ import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { accountAbi, getAccountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
+import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
@@ -30,10 +31,7 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
           .number()
           .optional()
           .describe("Override account version (3 or 4). Auto-detected on-chain if omitted."),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async (params) => {
@@ -61,12 +59,15 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
           };
         }
 
+        const validChainId = validateChainId(params.chain_id);
+        const validAccount = validateAddress(params.account_address, "account_address");
+
         let version = params.account_version ?? 0;
         if (!version) {
-          const client = getPublicClient(params.chain_id as ChainId, chains);
+          const client = getPublicClient(validChainId, chains);
           version = Number(
             await client.readContract({
-              address: params.account_address as `0x${string}`,
+              address: validAccount,
               abi: accountAbi,
               functionName: "ACCOUNT_VERSION",
             }),
@@ -101,10 +102,10 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
                 {
                   description: `Withdraw assets from Arcadia account (V${version})`,
                   transaction: {
-                    to: params.account_address as `0x${string}`,
+                    to: validAccount,
                     data,
                     value: "0",
-                    chainId: params.chain_id,
+                    chainId: validChainId,
                   },
                 },
                 null,

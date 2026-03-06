@@ -160,6 +160,24 @@ describe("build_configure_asset_manager_tx", () => {
     expect((rewardRecipient as string).toLowerCase()).toBe(FEE_RECIPIENT.toLowerCase());
   });
 
+  it("returns error when slipstream_v2 requested on Unichain", async () => {
+    const handler = setup();
+    const result = await handler({
+      account_address: TEST_ACCOUNT,
+      am_type: "rebalancer",
+      pool_protocol: "slipstream_v2",
+      trigger_lower_ratio: 0,
+      trigger_upper_ratio: 0,
+      compound_leftovers: "all",
+      min_rebalance_time: 3600,
+      chain_id: 130,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("not available");
+    expect(result.content[0].text).toContain("Unichain");
+  });
+
   it("returns error when yield_claimer missing fee_recipient", async () => {
     const handler = setup();
     const result = await handler({

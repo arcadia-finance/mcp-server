@@ -4,13 +4,14 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { poolAbi } from "../../abis/index.js";
 import { appendDataSuffix } from "../../utils/attribution.js";
+import { validateAddress } from "../../utils/validation.js";
 
 export function registerRepayTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
     "build_repay_tx",
     {
       description:
-        "Build an unsigned transaction to repay debt to an Arcadia lending pool from your wallet. Check allowance first (get_allowance), then approve the pool if needed (build_approve_tx). To repay using account collateral instead, use build_repay_with_collateral_tx.",
+        "Build an unsigned transaction to repay debt to an Arcadia lending pool from your wallet. This tool does not validate whether the account has outstanding debt — check with get_account_info first. Check allowance first (get_allowance), then approve the pool if needed (build_approve_tx). To repay using account collateral instead, use build_repay_with_collateral_tx.",
       inputSchema: {
         pool_address: z
           .string()
@@ -21,20 +22,20 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
         amount: z
           .string()
           .describe("Amount in raw units, or 'max_uint256' to repay all debt in full"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async (params) => {
       try {
+        const validAccount = validateAddress(params.account_address, "account_address");
+        const validPool = validateAddress(params.pool_address, "pool_address");
+
         const amount = params.amount === "max_uint256" ? 2n ** 256n - 1n : BigInt(params.amount);
         const data = appendDataSuffix(
           encodeFunctionData({
             abi: poolAbi,
             functionName: "repay",
-            args: [amount, params.account_address as `0x${string}`],
+            args: [amount, validAccount],
           }),
         );
 
@@ -46,7 +47,7 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
                 {
                   description: "Repay debt to Arcadia lending pool",
                   transaction: {
-                    to: params.pool_address as `0x${string}`,
+                    to: validPool,
                     data,
                     value: "0",
                     chainId: params.chain_id,

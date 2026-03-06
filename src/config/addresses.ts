@@ -84,51 +84,122 @@ export const TOKENS: Partial<
   },
 };
 
-export const ASSET_MANAGERS = {
-  base: {
-    // Rebalancers — use V2.1.1 (latest). Match to your LP protocol.
-    rebalancers: {
-      slipstreamV1: "0x5802454749cc0c4A6F28D5001B4cD84432e2b79F",
-      slipstreamV2: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
-      uniV3: "0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd",
-      uniV4: "0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0",
-    },
-    // Compounders — auto-reinvest trading fees into the position
-    compounders: {
-      slipstreamV1: "0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7",
-      slipstreamV2: "0x35e59448C7145482E56212510cC689612AB4F61f",
-      uniV3: "0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3",
-      uniV4: "0xAA95c9c402b195D8690eCaea2341a76e3266B189",
-    },
-    // Yield Claimers — claim pending fees/emissions to a recipient
-    yieldClaimers: {
-      slipstreamV1: "0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba",
-      slipstreamV2: "0xc8bF4B2c740FF665864E9494832520f18822871C",
-      uniV3: "0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16",
-      uniV4: "0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4",
-    },
-    // Merkl Operator — claims external Merkl incentive rewards for the account
-    merklOperator: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
-    // CoW Swapper — places CoW Protocol swap orders on behalf of the account
-    cowSwapper: "0xc928013A219EC9F18dE7B2dee6A50Ba626811854",
-    // Gas Relayer — approve AAA tokens here to pay for extra rebalances beyond free quota
-    gasRelayer: "0xD938C8d04cF91094fecAF0A2018EAac483a40137",
+// Asset manager protocol keys (protocol-specific AMs: rebalancer, compounder, yield claimer)
+export type AmProtocol = "slipstreamV1" | "slipstreamV2" | "uniV3" | "uniV4";
+
+// Standalone AM keys (protocol-agnostic)
+export type StandaloneAm = "merklOperator" | "gasRelayer" | "cowSwapper";
+
+export type AmCategory = "rebalancers" | "compounders" | "yieldClaimers";
+
+// Single source of truth — all addresses, no chain dimension
+const AM_ADDRESSES = {
+  rebalancers: {
+    slipstreamV1: "0x5802454749cc0c4A6F28D5001B4cD84432e2b79F",
+    slipstreamV2: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
+    uniV3: "0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd",
+    uniV4: "0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0",
   },
+  compounders: {
+    slipstreamV1: "0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7",
+    slipstreamV2: "0x35e59448C7145482E56212510cC689612AB4F61f",
+    uniV3: "0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3",
+    uniV4: "0xAA95c9c402b195D8690eCaea2341a76e3266B189",
+  },
+  yieldClaimers: {
+    slipstreamV1: "0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba",
+    slipstreamV2: "0xc8bF4B2c740FF665864E9494832520f18822871C",
+    uniV3: "0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16",
+    uniV4: "0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4",
+  },
+  merklOperator: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
+  gasRelayer: "0xD938C8d04cF91094fecAF0A2018EAac483a40137",
+  cowSwapper: "0xc928013A219EC9F18dE7B2dee6A50Ba626811854",
 } as const;
+
+// Per-chain availability — update these when deploying to new chains
+const CHAIN_PROTOCOLS: Record<ChainId, ReadonlySet<AmProtocol>> = {
+  8453: new Set(["slipstreamV1", "slipstreamV2", "uniV3", "uniV4"]),
+  130: new Set(["slipstreamV1", "uniV3", "uniV4"]),
+};
+
+const CHAIN_STANDALONE_AMS: Record<ChainId, ReadonlySet<StandaloneAm>> = {
+  8453: new Set(["merklOperator", "gasRelayer", "cowSwapper"]),
+  130: new Set(["merklOperator", "gasRelayer"]),
+};
+
+const CHAIN_NAMES: Record<ChainId, string> = { 8453: "Base", 130: "Unichain" };
+
+export function getAmProtocolAddress(
+  chainId: ChainId,
+  category: AmCategory,
+  protocol: AmProtocol,
+): string {
+  if (!CHAIN_PROTOCOLS[chainId].has(protocol)) {
+    const available = [...CHAIN_PROTOCOLS[chainId]].join(", ");
+    throw new Error(
+      `${protocol} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available protocols: ${available}.`,
+    );
+  }
+  return AM_ADDRESSES[category][protocol];
+}
+
+export function getStandaloneAmAddress(chainId: ChainId, am: StandaloneAm): string {
+  if (!CHAIN_STANDALONE_AMS[chainId].has(am)) {
+    const available = [...CHAIN_STANDALONE_AMS[chainId]].join(", ");
+    throw new Error(
+      `${am} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available: ${available}.`,
+    );
+  }
+  return AM_ADDRESSES[am];
+}
+
+export interface AmCheck {
+  group: string;
+  protocol: string | null;
+  address: string;
+}
+
+const CATEGORY_TO_GROUP: Record<AmCategory, string> = {
+  rebalancers: "rebalancer",
+  compounders: "compounder",
+  yieldClaimers: "yield_claimer",
+};
+
+const STANDALONE_TO_GROUP: Record<StandaloneAm, string> = {
+  merklOperator: "merkl_operator",
+  gasRelayer: "gas_relayer",
+  cowSwapper: "cow_swapper",
+};
+
+export function getChainAmChecks(chainId: ChainId): AmCheck[] {
+  const protocols = CHAIN_PROTOCOLS[chainId];
+  const standalone = CHAIN_STANDALONE_AMS[chainId];
+  const checks: AmCheck[] = [];
+
+  for (const category of ["rebalancers", "compounders", "yieldClaimers"] as const) {
+    for (const protocol of protocols) {
+      checks.push({
+        group: CATEGORY_TO_GROUP[category],
+        protocol,
+        address: AM_ADDRESSES[category][protocol],
+      });
+    }
+  }
+
+  for (const am of standalone) {
+    checks.push({
+      group: STANDALONE_TO_GROUP[am],
+      protocol: null,
+      address: AM_ADDRESSES[am],
+    });
+  }
+
+  return checks;
+}
 
 // Minimal strategy hook — required for rebalancer onSetAssetManager callback
 export const MINIMAL_STRATEGY_HOOK = "0x13beD1A58d87c0454872656c5328103aAe5eB86A" as const;
-
-// Position manager → protocol mapping (for Slipstream V1/V2 detection)
-// Staked and wrapped staked variants use the same asset managers as their base protocol.
-export const POSITION_MANAGERS: Record<string, string> = {
-  "0x827922686190790b37229fd06084350e74485b72": "slipstream",
-  "0x1dc7a0f5336f52724b650e39174cfcbbedd67bf1": "slipstream",
-  "0xd74339e0f10fce96894916b93e5cc7de89c98272": "slipstream",
-  "0xa990c6a764b73bf43cee5bb40339c3322fb9d55f": "slipstream_v2",
-  "0xbed6c3e35b9b1e044b3bc71465769edfdc0fdd4c": "slipstream_v2",
-  "0x147a2ccbaf4521ad209a2875ae0b3c496f4b25a4": "slipstream_v2",
-};
 
 // Chain-specific addresses
 export const STATE_VIEWERS: Partial<Record<ChainId, `0x${string}`>> = {

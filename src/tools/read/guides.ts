@@ -56,22 +56,8 @@ export function registerGuideTools(server: McpServer) {
           ),
       },
     },
-    async ({ topic }) => {
-      try {
-        return {
-          content: [{ type: "text" as const, text: guides.get(topic)! }],
-        };
-      } catch (err) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-    },
+    async ({ topic }) => ({
+      content: [{ type: "text" as const, text: guides.get(topic)! }],
+    }),
   );
 }

@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { formatAdvancedResponse } from "./format-response.js";
+import { validateAddress } from "../../utils/validation.js";
 
 export function registerPositionActionsTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
@@ -14,14 +15,13 @@ export function registerPositionActionsTool(server: McpServer, api: ArcadiaApiCl
         action: z.enum(["stake", "unstake", "claim"]).describe("Action to perform"),
         asset_address: z.string().describe("Position manager contract address"),
         asset_id: z.number().describe("NFT token ID of the LP position"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain ID: 8453 (Base), 10 (Optimism), or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
     },
     async ({ account_address, action, asset_address, asset_id, chain_id }) => {
       try {
+        validateAddress(account_address, "account_address");
+        validateAddress(asset_address, "asset_address");
         if (action === "claim") {
           const result = await api.getClaimCalldata({
             chain_id,
