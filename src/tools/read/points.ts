@@ -6,6 +6,13 @@ export function registerPointsTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
     "get_points",
     {
+      annotations: {
+        title: "Get Points",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get Arcadia points balance for a wallet, or the points leaderboard (paginated) if no wallet is specified.",
       inputSchema: {

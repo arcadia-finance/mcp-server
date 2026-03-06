@@ -11,6 +11,13 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
   server.registerTool(
     "build_withdraw_tx",
     {
+      annotations: {
+        title: "Build Withdraw Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
       description:
         "Build an unsigned transaction to withdraw assets from an Arcadia account to the owner's wallet. Only the account owner can withdraw. Will revert if the account has debt and withdrawal would make it undercollateralized. Does not support max_uint256 — pass exact amounts from get_account_info. Account version is auto-detected on-chain (override with account_version if needed).",
       inputSchema: {

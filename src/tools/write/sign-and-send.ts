@@ -15,6 +15,13 @@ export function registerSignAndSendTool(server: McpServer, chains: Record<ChainI
   server.registerTool(
     "sign_and_send_tx",
     {
+      annotations: {
+        title: "Sign and Send Transaction",
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
       description:
         "DEV ONLY — Sign and broadcast an unsigned transaction using a local private key (PK env var). For production, use a dedicated wallet MCP server (Fireblocks, Safe, Turnkey, etc.) instead of this tool. Takes the transaction object returned by any build_*_tx tool and submits it onchain.",
       inputSchema: {

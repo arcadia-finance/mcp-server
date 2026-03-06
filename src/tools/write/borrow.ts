@@ -15,6 +15,13 @@ export function registerBorrowTool(
   server.registerTool(
     "build_borrow_tx",
     {
+      annotations: {
+        title: "Build Borrow Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
       description:
         "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral. Only works with margin accounts (created with a creditor/lending pool). Spot accounts (no creditor) cannot borrow — the tool will validate this and reject. Before borrowing, verify the account has positive free margin via get_account_info: collateral_value must exceed used_margin.",
       inputSchema: {

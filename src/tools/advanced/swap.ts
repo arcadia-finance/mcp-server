@@ -8,6 +8,13 @@ export function registerSwapTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
     "build_swap_tx",
     {
+      annotations: {
+        title: "Build Swap Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Flash-action: swaps assets within an Arcadia account in one atomic transaction. The backend finds the optimal swap route. NOTE: If you are closing a position (swap + repay + withdraw), prefer build_close_position_tx which batches everything atomically. Only use this tool for standalone swaps within an active position. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
       inputSchema: {

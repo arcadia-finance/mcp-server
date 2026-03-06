@@ -6,6 +6,13 @@ export function registerProtocolTools(server: McpServer, api: ArcadiaApiClient) 
   server.registerTool(
     "get_strategies",
     {
+      annotations: {
+        title: "Get Strategies",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get Arcadia LP strategies. Use featured_only=true for curated top strategies (recommended first call). Use strategy_id for full detail on a specific strategy — includes APY per range width (narrower range = higher APY but more rebalancing cost/risk). Without filters, returns a compact summary with 7d avg APY for the strategy's default range. Increase limit or use offset for pagination. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%).",
       inputSchema: {
@@ -78,6 +85,13 @@ export function registerProtocolTools(server: McpServer, api: ArcadiaApiClient) 
   server.registerTool(
     "get_recommendation",
     {
+      annotations: {
+        title: "Get Recommendation",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get a rebalancing recommendation for an Arcadia account — suggests asset changes to optimize yield. Uses 1d APY (not 7d like get_strategies list view), so recommended strategies may differ from the list ranking.",
       inputSchema: {

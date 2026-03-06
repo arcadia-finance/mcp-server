@@ -43,6 +43,13 @@ export function registerCreateAccountTool(server: McpServer, chains: Record<Chai
   server.registerTool(
     "build_create_account_tx",
     {
+      annotations: {
+        title: "Build Create Account Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
       description:
         "Build an unsigned transaction to create a new Arcadia account via the Factory contract. account_version: 3 with creditor → V3 margin account (can borrow/leverage). account_version: 0 or 4 → V4 spot account (no borrowing, creditor is ignored, any ERC20 allowed). Returns the predicted account address (deterministic via CREATE2).",
       inputSchema: {

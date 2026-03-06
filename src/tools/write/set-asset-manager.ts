@@ -13,6 +13,13 @@ export function registerSetAssetManagerTool(
   server.registerTool(
     "build_set_asset_manager_tx",
     {
+      annotations: {
+        title: "Build Set Asset Manager Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
       description:
         "Build an unsigned transaction to grant or revoke an asset manager's permission on an Arcadia V3/V4 account via setAssetManagers. This ONLY toggles the permission flag — it does NOT configure initiator, fees, or strategy parameters. For full setup (enable + configure in one tx), use build_configure_asset_manager_tx instead. For asset manager addresses, call get_guide('automation'). Returns { transaction: { to, data, value, chainId } }.",
       inputSchema: {

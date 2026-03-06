@@ -10,6 +10,13 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
   server.registerTool(
     "build_repay_tx",
     {
+      annotations: {
+        title: "Build Repay Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
       description:
         "Build an unsigned transaction to repay debt to an Arcadia lending pool from your wallet. This tool does not validate whether the account has outstanding debt — check with get_account_info first. Check allowance first (get_allowance), then approve the pool if needed (build_approve_tx). To repay using account collateral instead, use build_repay_with_collateral_tx.",
       inputSchema: {

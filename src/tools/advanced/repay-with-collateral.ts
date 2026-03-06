@@ -8,6 +8,13 @@ export function registerRepayWithCollateralTool(server: McpServer, api: ArcadiaA
   server.registerTool(
     "build_repay_with_collateral_tx",
     {
+      annotations: {
+        title: "Build Repay With Collateral Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Multi-step flash-action: swaps account collateral to debt token and repays in one atomic transaction. To repay from wallet instead, use build_repay_tx. NOTE: If you are closing a position (remove LP + swap + repay + withdraw), prefer build_close_position_tx which batches everything atomically. Only use this tool for standalone repayment while keeping the position active. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
       inputSchema: {

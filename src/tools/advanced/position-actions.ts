@@ -8,6 +8,13 @@ export function registerPositionActionsTool(server: McpServer, api: ArcadiaApiCl
   server.registerTool(
     "build_position_action_tx",
     {
+      annotations: {
+        title: "Build Position Action Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Flash-action: stake, unstake, or claim rewards for an LP position in one atomic transaction. The stake/unstake direction is auto-detected from asset_address: pass the non-staked position manager to stake, or the staked position manager to unstake. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up).",
       inputSchema: {

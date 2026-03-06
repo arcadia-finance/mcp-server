@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-2025--03--26-green)](https://modelcontextprotocol.io/)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
-[![Glama](https://glama.ai/mcp/servers/@arcadia-finance/arcadia-finance-mcp-server/badge)](https://glama.ai/mcp/servers/@arcadia-finance/arcadia-finance-mcp-server)
+[![Glama](https://img.shields.io/badge/Glama-listed-blue)](https://glama.ai/mcp/servers/@arcadia-finance/mcp-server)
 
 MCP server for [Arcadia Finance](https://arcadia.finance), a platform to manage Uniswap and Aerodrome concentrated liquidity positions with built-in leverage, automated rebalancing, and yield optimization. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 

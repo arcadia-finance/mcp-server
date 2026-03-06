@@ -11,6 +11,13 @@ export function registerDepositTool(server: McpServer, chains: Record<ChainId, C
   server.registerTool(
     "build_deposit_tx",
     {
+      annotations: {
+        title: "Build Deposit Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
       description:
         "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before build_add_liquidity_tx — that tool deposits from wallet atomically. Ensure the account is approved first (call get_allowance to check, then build_approve_tx if needed). Account version is auto-detected on-chain (override with account_version if needed).",
       inputSchema: {

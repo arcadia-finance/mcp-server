@@ -10,6 +10,13 @@ export function registerBalanceTools(server: McpServer, chains: Record<ChainId, 
   server.registerTool(
     "get_wallet_balances",
     {
+      annotations: {
+        title: "Get Wallet Balances",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get native ETH and ERC20 token balances for a wallet address. Reads directly from chain via RPC multicall. Use before build_add_liquidity_tx or build_deposit_tx to verify the wallet has sufficient tokens.",
       inputSchema: {

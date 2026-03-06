@@ -54,6 +54,13 @@ export function registerAccountTools(
   server.registerTool(
     "get_account_info",
     {
+      annotations: {
+        title: "Get Account Info",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Pass account_address for a specific account, or wallet_address to list all accounts owned by a wallet. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. On Base, also returns which asset managers are enabled (rebalancer, compounder, yield_claimer, merkl_operator, cow_swapper).",
       inputSchema: {
@@ -204,6 +211,13 @@ export function registerAccountTools(
   server.registerTool(
     "get_account_history",
     {
+      annotations: {
+        title: "Get Account History",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get historical collateral and debt values for an Arcadia account over time. Returns a time series of snapshots (timestamp, collateral_value, debt_value, net_value in USD). Useful for charting account performance over a period.",
       inputSchema: {
@@ -233,6 +247,13 @@ export function registerAccountTools(
   server.registerTool(
     "get_account_pnl",
     {
+      annotations: {
+        title: "Get Account PnL",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
       description:
         "Get PnL (cost basis) and yield earned for an Arcadia account. Returns lifetime totals: cost basis vs current value (negative cost_basis = net profit withdrawn), net transfers per token, total yield earned in USD and per token. All monetary values are in USD unless suffixed otherwise.",
       inputSchema: {

@@ -12,6 +12,13 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
   server.registerTool(
     "build_approve_tx",
     {
+      annotations: {
+        title: "Build Approve Transaction",
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
       description:
         "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before build_deposit_tx or build_add_liquidity_tx (when depositing from wallet). Tip: call get_allowance first to check if approval already exists — skip this if the current allowance is sufficient.",
       inputSchema: {
