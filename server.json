@@ -25,12 +25,6 @@
           "isSecret": true
         },
         {
-          "name": "RPC_URL_OPTIMISM",
-          "description": "RPC URL for Optimism (10). Falls back to public RPC if not set.",
-          "isRequired": false,
-          "isSecret": true
-        },
-        {
           "name": "RPC_URL_UNICHAIN",
           "description": "RPC URL for Unichain (130). Falls back to public RPC if not set.",
           "isRequired": false,
