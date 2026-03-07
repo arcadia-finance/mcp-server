@@ -44,7 +44,7 @@ export function registerGuideTools(server: McpServer) {
   }
 
   server.registerTool(
-    "read.guide",
+    "read.guides",
     {
       annotations: {
         title: "Get Guide",

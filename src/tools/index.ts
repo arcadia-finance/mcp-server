@@ -1,29 +1,28 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../clients/api.js";
 import type { ChainId, ChainConfig } from "../config/chains.js";
-import { registerAccountTools } from "./read/accounts.js";
+import { registerAccountTools } from "./read/account.js";
 import { registerPoolTools } from "./read/pools.js";
 import { registerAssetTools } from "./read/assets.js";
-import { registerProtocolTools } from "./read/protocol.js";
+import { registerStrategyTools } from "./read/strategy.js";
 import { registerPointsTools } from "./read/points.js";
 import { registerGuideTools } from "./read/guides.js";
-import { registerBalanceTools } from "./read/balances.js";
-import { registerAllowanceTools } from "./read/allowances.js";
-import { registerCreateAccountTool } from "./write/create-account.js";
-import { registerDepositTool } from "./write/deposit.js";
-import { registerWithdrawTool } from "./write/withdraw.js";
-import { registerBorrowTool } from "./write/borrow.js";
-import { registerRepayTool } from "./write/repay.js";
-import { registerApproveTool } from "./write/approve.js";
-import { registerSetAssetManagerTool } from "./write/set-asset-manager.js";
-import { registerConfigureAssetManagerTool } from "./write/configure-asset-manager.js";
-import { registerSignAndSendTool } from "./write/sign-and-send.js";
-import { registerAddLiquidityTool } from "./advanced/add-liquidity.js";
-import { registerRemoveLiquidityTool } from "./advanced/remove-liquidity.js";
-import { registerSwapTool } from "./advanced/swap.js";
-import { registerRepayWithCollateralTool } from "./advanced/repay-with-collateral.js";
-import { registerPositionActionsTool } from "./advanced/position-actions.js";
-import { registerClosePositionTool } from "./advanced/close-position.js";
+import { registerWalletTools } from "./read/wallet.js";
+import { registerCreateTool } from "./write/account/create.js";
+import { registerDepositTool } from "./write/account/deposit.js";
+import { registerWithdrawTool } from "./write/account/withdraw.js";
+import { registerBorrowTool } from "./write/account/borrow.js";
+import { registerRepayTool } from "./write/account/repay.js";
+import { registerApproveTool } from "./write/wallet/approve.js";
+import { registerSetTool } from "./write/asset-manager/set.js";
+import { registerConfigureTool } from "./write/asset-manager/configure.js";
+import { registerSendTool } from "./dev/send.js";
+import { registerAddLiquidityTool } from "./write/account/add-liquidity.js";
+import { registerRemoveLiquidityTool } from "./write/account/remove-liquidity.js";
+import { registerSwapTool } from "./write/account/swap.js";
+import { registerDeleverageTool } from "./write/account/deleverage.js";
+import { registerStakeTool } from "./write/account/stake.js";
+import { registerCloseTool } from "./write/account/close.js";
 
 export function registerAllTools(
   server: McpServer,
@@ -34,28 +33,31 @@ export function registerAllTools(
   registerAccountTools(server, api, chains);
   registerPoolTools(server, api);
   registerAssetTools(server, api);
-  registerProtocolTools(server, api);
+  registerStrategyTools(server, api);
   registerPointsTools(server, api);
   registerGuideTools(server);
-  registerBalanceTools(server, chains);
-  registerAllowanceTools(server, chains);
+  registerWalletTools(server, chains);
 
-  // Simple write tools
-  registerCreateAccountTool(server, chains);
+  // Write tools — account
+  registerCreateTool(server, chains);
   registerDepositTool(server, chains);
   registerWithdrawTool(server, chains);
   registerBorrowTool(server, chains, api);
   registerRepayTool(server, chains);
-  registerApproveTool(server, chains);
-  registerSetAssetManagerTool(server, chains);
-  registerConfigureAssetManagerTool(server, chains);
-  registerSignAndSendTool(server, chains);
-
-  // Advanced write tools (via backend API)
   registerAddLiquidityTool(server, api, chains);
   registerRemoveLiquidityTool(server, api);
   registerSwapTool(server, api);
-  registerRepayWithCollateralTool(server, api);
-  registerPositionActionsTool(server, api);
-  registerClosePositionTool(server, api, chains);
+  registerDeleverageTool(server, api);
+  registerStakeTool(server, api);
+  registerCloseTool(server, api, chains);
+
+  // Write tools — wallet
+  registerApproveTool(server, chains);
+
+  // Write tools — asset manager
+  registerSetTool(server, chains);
+  registerConfigureTool(server, chains);
+
+  // Dev tools
+  registerSendTool(server, chains);
 }

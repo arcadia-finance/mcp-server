@@ -4,17 +4,17 @@ These are templates and examples — not the only valid approaches. Adapt parame
 
 ## Key Parameter Notes
 
-- **`advanced.add_liquidity`** capital sources: `deposits` array (wallet tokens), `use_account_assets=true` (existing account collateral), or both. Supports depositing multiple tokens and minting multiple LP positions in one tx. The backend swaps everything to the optimal ratio for the LP. You do NOT need to `write.deposit` first — `advanced.add_liquidity` handles the wallet transfer atomically. Check allowances first (`read.allowance`), then approve if needed (`write.approve`).
+- **`write.account.add_liquidity`** capital sources: `deposits` array (wallet tokens), `use_account_assets=true` (existing account collateral), or both. Supports depositing multiple tokens and minting multiple LP positions in one tx. The backend swaps everything to the optimal ratio for the LP. You do NOT need to `write.account.deposit` first — `write.account.add_liquidity` handles the wallet transfer atomically. Check allowances first (`read.wallet.allowance`), then approve if needed (`write.wallet.approve`).
 - **V4 spot accounts CAN mint LP** but cannot leverage (set `leverage: 0`). V3 margin accounts (created with a `creditor`) can both mint LP and leverage. If the user wants leveraged LP, create a V3 margin account with a creditor (`account_version: 3`).
-- **`numeraire`** in `advanced.repay_with_collateral`: the debt token you're repaying (e.g. WETH when repaying WETH debt). `advanced.add_liquidity` auto-detects numeraire — no param needed.
-- **`leverage`**: `0` = no leverage. `2` = 2x. Do NOT use `1` for no leverage — use `0`. When `leverage > 0`, borrowing is handled internally by `advanced.add_liquidity` — do NOT call `write.borrow` separately.
-- **LP NFT details**: after `advanced.add_liquidity`, call `read.account_info` to find `asset_address` (the position manager contract) and `asset_id` (NFT token ID) in the positions list — needed for unstake/remove/claim actions.
-- **`amount: "max_uint256"`** in `write.repay` repays all debt in full.
+- **`numeraire`** in `write.account.deleverage`: the debt token you're repaying (e.g. WETH when repaying WETH debt). `write.account.add_liquidity` auto-detects numeraire — no param needed.
+- **`leverage`**: `0` = no leverage. `2` = 2x. Do NOT use `1` for no leverage — use `0`. When `leverage > 0`, borrowing is handled internally by `write.account.add_liquidity` — do NOT call `write.account.borrow` separately.
+- **LP NFT details**: after `write.account.add_liquidity`, call `read.account.info` to find `asset_address` (the position manager contract) and `asset_id` (NFT token ID) in the positions list — needed for unstake/remove/claim actions.
+- **`amount: "max_uint256"`** in `write.account.repay` repays all debt in full.
 - **`slippage`** is in basis points: 100 = 1%, 50 = 0.5%.
-- **`salt`** in `write.create_account` is a random uint32 used for deterministic address derivation. Use any random 32-bit integer (e.g. `Math.floor(Math.random() * 2**32)`).
-- **`creditor`** = the lending pool address you want to borrow from. Set at account creation via `write.create_account`. Determines which asset the account can borrow. **Required for leveraged LP strategies.** Omit for spot-only accounts (no borrowing, but LP minting still works with `leverage: 0`).
-- **`write.withdraw`**: pass exact amounts from `read.account_info`. Does NOT support `"max_uint256"` — will error.
-- **Getting the account address after creation:** The address is deterministic from the salt. It's visible in the tx receipt events. Or call `read.account_info(wallet_address: ...)` after creation to list all accounts.
+- **`salt`** in `write.account.create` is a random uint32 used for deterministic address derivation. Use any random 32-bit integer (e.g. `Math.floor(Math.random() * 2**32)`).
+- **`creditor`** = the lending pool address you want to borrow from. Set at account creation via `write.account.create`. Determines which asset the account can borrow. **Required for leveraged LP strategies.** Omit for spot-only accounts (no borrowing, but LP minting still works with `leverage: 0`).
+- **`write.account.withdraw`**: pass exact amounts from `read.account.info`. Does NOT support `"max_uint256"` — will error.
+- **Getting the account address after creation:** The address is deterministic from the salt. It's visible in the tx receipt events. Or call `read.account.info(wallet_address: ...)` after creation to list all accounts.
 
 ---
 
@@ -22,14 +22,14 @@ These are templates and examples — not the only valid approaches. Adapt parame
 
 ```
 Open:    check allowances → approve tokens if needed → create account → add liquidity (atomic: deposit + swap + mint + borrow) → enable automation
-Monitor: read.account_info (health), read.account_pnl (profitability)
+Monitor: read.account.info (health), read.account.pnl (profitability)
 Adjust:  add collateral or repay debt if health drops; remove + re-add liquidity to manually rebalance range
 Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay) → withdraw
 ```
 
 ### Batching vs splitting
 
-**Default: always use atomic tools.** `advanced.add_liquidity` batches opening, `advanced.close_position` batches closing, `advanced.repay_with_collateral` batches debt repayment from collateral. These reduce transaction count and eliminate exposure to price movement between steps.
+**Default: always use atomic tools.** `write.account.add_liquidity` batches opening, `write.account.close` batches closing, `write.account.deleverage` batches debt repayment from collateral. These reduce transaction count and eliminate exposure to price movement between steps.
 
 **When to split:** In high-volatility markets or for low-liquidity pools, atomic transactions may revert because on-chain state diverges from when the backend computed the calldata. If an atomic tool fails, fall back to individual tools with tighter slippage. Always try atomic first — split only on failure.
 
@@ -52,38 +52,38 @@ Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay
 
 ### Step-by-step
 
-> Addresses below are Base mainnet examples. Always verify current addresses via `read.lending_pools` and `read.assets` before executing.
+> Addresses below are Base mainnet examples. Always verify current addresses via `read.pools` and `read.assets` before executing.
 
 ```
 // 1. FIND A POOL
-read.strategies(chain_id: 8453)
+read.strategy.list(chain_id: 8453)
 → Filter for volatile/stable pair (WETH/USDC, cbBTC/USDC, etc.)
 → Note: strategy_id (integer), pool_protocol (Slipstream V1/V2, UniV3, UniV4), fee_APY
 
 // 2. CHECK BORROW COST
-read.lending_pools(chain_id: 8453)
+read.pools(chain_id: 8453)
 → Find the WETH lending pool (address: 0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2)
 → If borrow_apy > fee_apy → stop, strategy not profitable
 
 // 3. CREATE MARGIN ACCOUNT (V3 + creditor = can borrow/leverage)
-write.create_account(
+write.account.create(
   salt: <random uint32, e.g. 3141592653>,
   account_version: 3,   // V3 margin — required for leverage
   creditor: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",  // WETH lending pool — enables borrow
   chain_id: 8453
 )
 → Submit tx, note deployed account address from tx receipt
-→ Or call read.account_info(wallet_address: ...) to find the new account address
+→ Or call read.account.info(wallet_address: ...) to find the new account address
 
 // 4. CHECK ALLOWANCE + APPROVE (skip approve if already sufficient)
-read.allowance(
+read.wallet.allowance(
   owner_address: <owner_wallet>,
   spender_address: <account_address>,
   token_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"],  // USDC
   chain_id: 8453
 )
 // → If allowance is insufficient or zero:
-write.approve(
+write.wallet.approve(
   token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  // USDC
   spender_address: <account_address>,
   amount: "max_uint256",
@@ -91,8 +91,8 @@ write.approve(
 )
 
 // 5. OPEN LEVERAGED LP (atomic: pull USDC from wallet + borrow WETH + swap to ratio + mint LP)
-// No separate write.deposit needed — advanced.add_liquidity handles the wallet transfer atomically.
-advanced.add_liquidity(
+// No separate write.account.deposit needed — write.account.add_liquidity handles the wallet transfer atomically.
+write.account.add_liquidity(
   account_address: <account_address>,
   wallet_address: <owner_wallet>,
   positions: [{ strategy_id: <integer from step 1> }],
@@ -103,7 +103,7 @@ advanced.add_liquidity(
 )
 
 // 6. ENABLE AND CONFIGURE REBALANCER (match address to LP protocol from step 1)
-write.configure_asset_manager(
+write.asset_manager.configure(
   account_address: <account_address>,
   asset_manager_address: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",  // Slipstream V2
   am_type: "rebalancer",
@@ -116,7 +116,7 @@ write.configure_asset_manager(
 // → Range width and reposition mode must be configured in the Arcadia platform
 
 // 7. ENABLE MERKL (if pool has Merkl incentives — check fee APY breakdown in step 1)
-write.configure_asset_manager(
+write.asset_manager.configure(
   account_address: <account_address>,
   asset_manager_address: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
   am_type: "merkl_operator",
@@ -129,7 +129,7 @@ write.configure_asset_manager(
 
 ```
 // Run periodically (daily or on request)
-read.account_info(account_address: <account_address>, chain_id: 8453)
+read.account.info(account_address: <account_address>, chain_id: 8453)
 → health_factor = 1 - (used_margin / liquidation_value). Higher = safer.
     1        → no debt (safest)
     > 0.5    → healthy
@@ -144,10 +144,10 @@ typically a few dollars in value) to the debt when computing used_margin
 dominates, pushing HF lower than the leverage ratio suggests — e.g. HF ~0.3 at 2×
 instead of ~0.5–0.7. Increase position size for a healthier starting HF.
 
-read.account_pnl(account_address: <account_address>, chain_id: 8453)
+read.account.pnl(account_address: <account_address>, chain_id: 8453)
 → If net yield is consistently negative → evaluate exit
 
-read.lending_pools(chain_id: 8453)
+read.pools(chain_id: 8453)
 → If borrow_APY risen above fee_APY → exit signal
 ```
 
@@ -156,15 +156,15 @@ read.lending_pools(chain_id: 8453)
 ```
 // Option A: Add collateral (raises health factor, cheapest)
 // Check allowance first — skip approve if already sufficient
-read.allowance(owner_address: <wallet>, spender_address: <account>, token_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], chain_id: 8453)
-write.approve(token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender_address: <account>, amount: "max_uint256", chain_id: 8453)
-write.deposit(account_address: <account>, asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], asset_amounts: ["<amount>"], chain_id: 8453)
+read.wallet.allowance(owner_address: <wallet>, spender_address: <account>, token_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], chain_id: 8453)
+write.wallet.approve(token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender_address: <account>, amount: "max_uint256", chain_id: 8453)
+write.account.deposit(account_address: <account>, asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], asset_amounts: ["<amount>"], chain_id: 8453)
 
 // Option B: Repay some WETH debt (reduces leverage)
 // NOTE: you must approve the WETH pool to spend WETH from your wallet first — check allowance, then approve if needed
-read.allowance(owner_address: <wallet>, spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", token_addresses: ["0x4200000000000000000000000000000000000006"], chain_id: 8453)
-write.approve(token_address: "0x4200000000000000000000000000000000000006", spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", amount: "max_uint256", chain_id: 8453)
-write.repay(
+read.wallet.allowance(owner_address: <wallet>, spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", token_addresses: ["0x4200000000000000000000000000000000000006"], chain_id: 8453)
+write.wallet.approve(token_address: "0x4200000000000000000000000000000000000006", spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", amount: "max_uint256", chain_id: 8453)
+write.account.repay(
   pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",  // WETH pool
   account_address: <account>,
   amount: "<raw_weth_amount_in_wei>",  // e.g. "100000000000000000" = 0.1 WETH
@@ -172,7 +172,7 @@ write.repay(
 )
 
 // Option C: Atomic sell USDC collateral → repay WETH debt (one flash tx, no wallet WETH needed)
-advanced.repay_with_collateral(
+write.account.deleverage(
   account_address: <account>,
   asset_from: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  // sell USDC from account
   amount_in: "<usdc_amount_to_sell>",                          // collateral amount to sell (input side, NOT debt amount)
@@ -191,7 +191,7 @@ advanced.repay_with_collateral(
 
 ```
 // 0. Disable automation first (prevents rebalancer from acting during close)
-write.set_asset_manager(
+write.asset_manager.set(
   account_address: <account>,
   asset_manager_address: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
   enabled: false,
@@ -199,13 +199,13 @@ write.set_asset_manager(
 )
 
 // 1. Get account state — need asset list for the close call
-read.account_info(account_address: <account>, chain_id: 8453)
+read.account.info(account_address: <account>, chain_id: 8453)
 
 // 2. Unstake if staked (required before close)
-advanced.position_action(action: "unstake", asset_address: <staked_pm_address>, asset_id: <nft_id>, account_address: <account>, chain_id: 8453)
+write.account.stake(action: "unstake", asset_address: <staked_pm_address>, asset_id: <nft_id>, account_address: <account>, chain_id: 8453)
 
 // 3. Atomic close: burns LP + swaps all tokens to USDC + repays debt — ONE transaction
-advanced.close_position(
+write.account.close(
   account_address: <account>,
   assets: [
     { asset_address: "<position_manager>", asset_id: <nft_id>, amount: "1", decimals: 1 }
@@ -216,7 +216,7 @@ advanced.close_position(
 )
 
 // 4. Withdraw remaining assets to wallet
-write.withdraw(
+write.account.withdraw(
   account_address: <account>,
   asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"],
   asset_amounts: ["<balance>"],
@@ -228,19 +228,19 @@ write.withdraw(
 
 If the full atomic close fails, split into two steps:
 
-1. `advanced.close_position(close_lp_only=true)` — burns LP only, tokens stay in account
-2. Then use individual tools: `advanced.repay_with_collateral` → `write.withdraw`
+1. `write.account.close(close_lp_only=true)` — burns LP only, tokens stay in account
+2. Then use individual tools: `write.account.deleverage` → `write.account.withdraw`
 
 #### Last resort: Manual step-by-step
 
 Only if both atomic approaches fail:
 
 ```
-advanced.position_action(action: "claim", ...)   // claim fees
-advanced.remove_liquidity(adjustment: <amount>)   // partial decrease
-advanced.repay_with_collateral(...)               // swap collateral → repay debt
-write.repay(amount: "max_uint256")             // repay remaining from wallet
-write.withdraw(...)                            // withdraw all to wallet
+write.account.stake(action: "claim", ...)   // claim fees
+write.account.remove_liquidity(adjustment: <amount>)   // partial decrease
+write.account.deleverage(...)               // swap collateral → repay debt
+write.account.repay(amount: "max_uint256")             // repay remaining from wallet
+write.account.withdraw(...)                            // withdraw all to wallet
 ```
 
 **Key risks:**
@@ -283,23 +283,23 @@ The `protocol_owned_liquidity` strategy type uses a dynamic range algorithm (k1/
 // Same tools, different intent — no leverage, wider slippage tolerance
 
 // 1. Check allowance + approve treasury tokens (skip approve if already sufficient)
-read.allowance(owner_address: <treasury_wallet>, spender_address: <account>, token_addresses: [<token>], chain_id: 8453)
-write.approve(token_address: <token>, spender_address: <account>, amount: "max_uint256", chain_id: 8453)
+read.wallet.allowance(owner_address: <treasury_wallet>, spender_address: <account>, token_addresses: [<token>], chain_id: 8453)
+write.wallet.approve(token_address: <token>, spender_address: <account>, amount: "max_uint256", chain_id: 8453)
 
 // 2. Create account (separate from retail positions)
 // For POL without leverage, a spot account (V4) works fine.
 // Use V3 + creditor only if you want the option to leverage later.
-write.create_account(
+write.account.create(
   salt: <random uint32>,
   account_version: 0,  // V4 spot — no leverage needed for POL
   chain_id: 8453
 )
 
 // 3. Deposit treasury tokens
-write.deposit(account_address: <account>, ...)
+write.account.deposit(account_address: <account>, ...)
 
 // 4. Open LP (no leverage — deposits are pulled from wallet)
-advanced.add_liquidity(
+write.account.add_liquidity(
   account_address: <account>,
   wallet_address: <treasury_wallet>,
   positions: [{ strategy_id: <from step 1> }],
@@ -310,7 +310,7 @@ advanced.add_liquidity(
 )
 
 // 5. Enable rebalancer with POL strategy hook
-write.configure_asset_manager(
+write.asset_manager.configure(
   account_address: <account>,
   asset_manager_address: <rebalancer matching LP protocol>,
   am_type: "rebalancer",
@@ -329,11 +329,11 @@ write.configure_asset_manager(
 ### Monitoring for POL
 
 ```
-read.account_info → verify position is in range (primary check — no liquidation risk since no leverage)
-read.account_pnl  → track IL vs. fee income
+read.account.info → verify position is in range (primary check — no liquidation risk since no leverage)
+read.account.pnl  → track IL vs. fee income
                    Note: net negative IL is EXPECTED and ACCEPTABLE for POL
                    The treasury is "paying" for market liquidity
-read.recommendation → check if rebalancing is needed
+read.strategy.recommendation → check if rebalancing is needed
 ```
 
 **POL monitoring goal:** Ensure sufficient liquidity is deployed and treasury capital is not eroding excessively — not maximizing return.

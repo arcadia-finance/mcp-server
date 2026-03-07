@@ -4,14 +4,14 @@ All automation on Arcadia uses one of two tools (both V3/V4 accounts only), then
 
 ## Which tool to use
 
-**To enable + configure (recommended):** Use `write.configure_asset_manager`. This grants permission AND sets strategy parameters (initiator, fee limits, trigger thresholds, fee recipient, etc.) in a single transaction.
+**To enable + configure (recommended):** Use `write.asset_manager.configure`. This grants permission AND sets strategy parameters (initiator, fee limits, trigger thresholds, fee recipient, etc.) in a single transaction.
 
-**To grant/revoke only:** Use `write.set_asset_manager`. This only grants or revokes permission — no configuration. Use this to revoke an asset manager.
+**To grant/revoke only:** Use `write.asset_manager.set`. This only grants or revokes permission — no configuration. Use this to revoke an asset manager.
 
 ## Configure + enable
 
 ```
-write.configure_asset_manager(
+write.asset_manager.configure(
   account_address: <account>,
   asset_manager_address: <address from table below>,
   am_type: "rebalancer" | "compounder" | "yield_claimer" | "merkl_operator",
@@ -32,7 +32,7 @@ write.configure_asset_manager(
 ## Grant/revoke only
 
 ```
-write.set_asset_manager(
+write.asset_manager.set(
   account_address: <account>,
   asset_manager_address: <address from table below>,
   enabled: true,      // false to revoke
@@ -40,7 +40,7 @@ write.set_asset_manager(
 )
 ```
 
-To revoke any AM: `write.set_asset_manager(..., enabled: false)` or `write.configure_asset_manager` is not used for revocation — use `write.set_asset_manager` with `enabled: false`.
+To revoke any AM: `write.asset_manager.set(..., enabled: false)` or `write.asset_manager.configure` is not used for revocation — use `write.asset_manager.set` with `enabled: false`.
 
 ---
 
@@ -109,7 +109,7 @@ Quota is also bypassed automatically when: gas cost < pending fees ÷ 2, or posi
 | Uniswap V3              | `0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16` | All       |
 | Uniswap V4              | `0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4` | All       |
 
-**Recipient config:** Set `fee_recipient` in `write.configure_asset_manager` (V3/V4 accounts). Pass your wallet address or any destination address.
+**Recipient config:** Set `fee_recipient` in `write.asset_manager.configure` (V3/V4 accounts). Pass your wallet address or any destination address.
 
 ---
 
@@ -117,7 +117,7 @@ Quota is also bypassed automatically when: gas cost < pending fees ÷ 2, or posi
 
 **What it does:** Bot claims external Merkl protocol incentive rewards into the account. These are additional rewards paid by token teams on top of regular LP fees — completely separate from trading fee yield.
 
-**When to enable:** When the pool you LP into has active Merkl campaigns. Check by looking at the pool APY breakdown in `read.strategies` — if there's a "Merkl" or "external rewards" component, enable this.
+**When to enable:** When the pool you LP into has active Merkl campaigns. Check by looking at the pool APY breakdown in `read.strategy.list` — if there's a "Merkl" or "external rewards" component, enable this.
 
 **Address (all chains):** `0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6`
 
