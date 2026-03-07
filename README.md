@@ -115,11 +115,10 @@ yarn build
 | Variable           | Required | Description                                                      |
 | ------------------ | -------- | ---------------------------------------------------------------- |
 | `RPC_URL_BASE`     | No       | RPC URL for Base (8453). Falls back to public RPC if not set.    |
-| `RPC_URL_OPTIMISM` | No       | RPC URL for Optimism (10). Falls back to public RPC if not set.  |
 | `RPC_URL_UNICHAIN` | No       | RPC URL for Unichain (130). Falls back to public RPC if not set. |
 | `PK`               | No       | Private key (hex) for dev-only `dev.send` tool.                  |
 
-**Supported chains:** Base (8453), Optimism (10), Unichain (130)
+**Supported chains:** Base (8453), Unichain (130)
 
 ## MCP Client Configuration
 

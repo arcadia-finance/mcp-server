@@ -28,7 +28,7 @@ function createServer() {
     name: "arcadia-finance",
     version: pkg.version,
     description:
-      "Arcadia Finance. Manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base, Optimism, and Unichain.",
+      "Arcadia Finance. Manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base and Unichain.",
   });
   registerAllTools(server, apiClient, chainConfigs);
   registerAllResources(server);

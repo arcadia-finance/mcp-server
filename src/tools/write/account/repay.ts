@@ -38,6 +38,17 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
         const validPool = validateAddress(params.pool_address, "pool_address");
 
         const amount = params.amount === "max_uint256" ? 2n ** 256n - 1n : BigInt(params.amount);
+        if (amount === 0n) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "Error: amount must be greater than 0. Use 'max_uint256' to repay all debt.",
+              },
+            ],
+            isError: true,
+          };
+        }
         const data = appendDataSuffix(
           encodeFunctionData({
             abi: poolAbi,

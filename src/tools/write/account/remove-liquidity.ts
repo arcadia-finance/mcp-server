@@ -72,13 +72,13 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           ],
         };
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const hint =
+          msg.includes("500") || msg.includes("Web3")
+            ? " This usually means the position (asset_id) does not exist in the account. Verify with read.account.info first."
+            : "";
         return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
-            },
-          ],
+          content: [{ type: "text" as const, text: `Error: ${msg}${hint}` }],
           isError: true,
         };
       }

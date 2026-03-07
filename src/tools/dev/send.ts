@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { createWalletClient, createPublicClient, http, type Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { base, optimism, unichain } from "viem/chains";
+import { base, unichain } from "viem/chains";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { validateAddress } from "../../utils/validation.js";
 
 const VIEM_CHAINS: Record<number, Chain> = {
   8453: base,
-  10: optimism,
   130: unichain,
 };
 
@@ -46,6 +46,7 @@ export function registerSendTool(server: McpServer, chains: Record<ChainId, Chai
           };
         }
 
+        const validTo = validateAddress(params.to, "to");
         const chain = VIEM_CHAINS[params.chain_id];
         const chainConfig = chains[params.chain_id as ChainId];
         if (!chainConfig) {
@@ -64,14 +65,14 @@ export function registerSendTool(server: McpServer, chains: Record<ChainId, Chai
 
         const gasEstimate = await client.estimateGas({
           account: account.address,
-          to: params.to as `0x${string}`,
+          to: validTo,
           data: params.data as `0x${string}`,
           value: BigInt(params.value),
         });
         const gasLimit = (gasEstimate * 120n) / 100n;
 
         const hash = await wallet.sendTransaction({
-          to: params.to as `0x${string}`,
+          to: validTo,
           data: params.data as `0x${string}`,
           value: BigInt(params.value),
           gas: gasLimit,

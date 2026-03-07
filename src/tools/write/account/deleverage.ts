@@ -9,14 +9,14 @@ export function registerDeleverageTool(server: McpServer, api: ArcadiaApiClient)
     "write.account.deleverage",
     {
       annotations: {
-        title: "Build Repay With Collateral Transaction",
+        title: "Build Deleverage Transaction",
         readOnlyHint: false,
         destructiveHint: false,
         idempotentHint: true,
         openWorldHint: true,
       },
       description:
-        "Multi-step flash-action: sells account collateral to the debt token and repays in one atomic transaction — no wallet tokens needed. To repay from wallet tokens instead, use write.account.repay. NOTE: If you are closing a position (remove LP + swap + repay + withdraw), prefer write.account.close which batches everything atomically. Only use this tool for standalone repayment while keeping the position active. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.",
+        "Multi-step flash-action: sells account collateral to the debt token and repays in one atomic transaction — no wallet tokens needed. To repay from wallet tokens instead, use write.account.repay. NOTE: If you are closing a position (remove LP + swap + repay + withdraw), prefer write.account.close which batches everything atomically. Only use this tool for standalone repayment while keeping the position active. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation — if tenderly_sim_status is 'false', do NOT broadcast the transaction.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         amount_in: z.string().describe("Collateral amount to sell"),
@@ -30,6 +30,9 @@ export function registerDeleverageTool(server: McpServer, api: ArcadiaApiClient)
     async ({ account_address, amount_in, asset_from, numeraire, creditor, slippage, chain_id }) => {
       try {
         validateAddress(account_address, "account_address");
+        validateAddress(asset_from, "asset_from");
+        validateAddress(numeraire, "numeraire");
+        validateAddress(creditor, "creditor");
         const result = await api.getRepayCalldata({
           amount_in,
           chain_id,

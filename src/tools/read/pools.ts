@@ -59,6 +59,20 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
           };
         }
         const result = await api.getPools(chain_id);
+        if (Array.isArray(result) && result.length === 0) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify(
+                  { pools: [], note: `No lending pools found on chain ${chain_id}.` },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        }
         return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
       } catch (err) {
         return {

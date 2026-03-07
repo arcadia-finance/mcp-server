@@ -43,7 +43,7 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
             }),
           )
           .describe(
-            "Assets to close/sell from the account. For LP positions: asset_address = position manager, asset_id = NFT ID, amount = '1', decimals = 1. For ERC20 tokens: asset_id = 0, amount = full balance, decimals = token decimals. Get these from read.account.info.",
+            "Assets to close/sell from the account. IMPORTANT: For LP positions (NFTs), always use amount='1' and decimals=1 — do NOT pass the liquidity amount. asset_address = position manager, asset_id = NFT token ID. For ERC20 tokens: asset_id = 0, amount = full balance in raw units, decimals = real token decimals. Get all values from read.account.info.",
           ),
         receive_assets: z
           .array(
@@ -249,13 +249,13 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           ],
         };
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const hint =
+          msg.includes("500") || msg.includes("Web3")
+            ? " This usually means the position (asset_id) does not exist in the account. Verify with read.account.info first."
+            : "";
         return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
-            },
-          ],
+          content: [{ type: "text" as const, text: `Error: ${msg}${hint}` }],
           isError: true,
         };
       }
