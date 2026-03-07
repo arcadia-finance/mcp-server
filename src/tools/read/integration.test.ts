@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { createMockServer, createMockChains, parseToolResponse } from "../../test-utils.js";
 import { ArcadiaApiClient } from "../../clients/api.js";
-import { registerAccountTools } from "./accounts.js";
+import { registerAccountTools } from "./account.js";
 import { registerPoolTools } from "./pools.js";
 import { registerAssetTools } from "./assets.js";
-import { registerProtocolTools } from "./protocol.js";
+import { registerStrategyTools } from "./strategy.js";
 import { registerPointsTools } from "./points.js";
 import { discoverTestAccounts, type TestAccount } from "../test-fixtures.js";
 
@@ -20,7 +20,7 @@ function setup() {
   registerAccountTools(mock.server, api, createMockChains());
   registerPoolTools(mock.server, api);
   registerAssetTools(mock.server, api);
-  registerProtocolTools(mock.server, api);
+  registerStrategyTools(mock.server, api);
   registerPointsTools(mock.server, api);
   return { mock, api };
 }
@@ -42,8 +42,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Pools ───────────────────────────────────────────────────
 
-  it("read.lending_pools returns array of pools", async () => {
-    const handler = mock.getHandler("read.lending_pools");
+  it("read.pools returns array of pools", async () => {
+    const handler = mock.getHandler("read.pools");
     const result = await handler({ chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -55,8 +55,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(pool).toHaveProperty("apy");
   });
 
-  it("read.lending_pools with pool_address returns detail + APY history", async () => {
-    const handler = mock.getHandler("read.lending_pools");
+  it("read.pools with pool_address returns detail + APY history", async () => {
+    const handler = mock.getHandler("read.pools");
     const result = await handler({
       pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",
       chain_id: 8453,
@@ -67,8 +67,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(data).toHaveProperty("apy_history");
   });
 
-  it("read.lending_pools APY history returns array with date and pool_apy", async () => {
-    const handler = mock.getHandler("read.lending_pools");
+  it("read.pools APY history returns array with date and pool_apy", async () => {
+    const handler = mock.getHandler("read.pools");
     const result = await handler({
       pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",
       chain_id: 8453,
@@ -131,8 +131,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Strategies ──────────────────────────────────────────────
 
-  it("read.strategies returns paginated strategies object", async () => {
-    const handler = mock.getHandler("read.strategies");
+  it("read.strategy.list returns paginated strategies object", async () => {
+    const handler = mock.getHandler("read.strategy.list");
     const result = await handler({ chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -145,8 +145,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(strategy).toHaveProperty("strategy_id");
   });
 
-  it("read.strategies with featured_only returns subset with expected fields", async () => {
-    const handler = mock.getHandler("read.strategies");
+  it("read.strategy.list with featured_only returns subset with expected fields", async () => {
+    const handler = mock.getHandler("read.strategy.list");
     const result = await handler({ featured_only: true, chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -159,8 +159,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     }
   });
 
-  it("read.strategies with strategy_id returns detail", async () => {
-    const handler = mock.getHandler("read.strategies");
+  it("read.strategy.list with strategy_id returns detail", async () => {
+    const handler = mock.getHandler("read.strategy.list");
     const result = await handler({ strategy_id: 7, chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -194,8 +194,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Accounts (discovered dynamically) ─────────────────────
 
-  it("read.account_info with wallet returns accounts object", async () => {
-    const handler = mock.getHandler("read.account_info");
+  it("read.account.info with wallet returns accounts object", async () => {
+    const handler = mock.getHandler("read.account.info");
     const result = await handler({ wallet_address: walletAddress, chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -207,8 +207,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(acct).toHaveProperty("account_id");
   });
 
-  it("read.account_info with account_address returns version + overview + liquidation + automation", async () => {
-    const handler = mock.getHandler("read.account_info");
+  it("read.account.info with account_address returns version + overview + liquidation + automation", async () => {
+    const handler = mock.getHandler("read.account.info");
     const result = await handler({ account_address: accountAddress, chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -224,8 +224,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     }
   });
 
-  it("read.account_history returns historical data", async () => {
-    const handler = mock.getHandler("read.account_history");
+  it("read.account.history returns historical data", async () => {
+    const handler = mock.getHandler("read.account.history");
     const result = await handler({
       account_address: accountAddress,
       days: 3,
@@ -236,8 +236,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(data).toBeDefined();
   });
 
-  it("read.account_pnl returns pnl_cost_basis and yield_earned", async () => {
-    const handler = mock.getHandler("read.account_pnl");
+  it("read.account.pnl returns pnl_cost_basis and yield_earned", async () => {
+    const handler = mock.getHandler("read.account.pnl");
     const result = await handler({ account_address: accountAddress, chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -245,8 +245,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(data).toHaveProperty("yield_earned");
   });
 
-  it("read.recommendation with unknown account returns error gracefully", async () => {
-    const handler = mock.getHandler("read.recommendation");
+  it("read.strategy.recommendation with unknown account returns error gracefully", async () => {
+    const handler = mock.getHandler("read.strategy.recommendation");
     const result = await handler({
       account_address: "0x0000000000000000000000000000000000000001",
       chain_id: 8453,

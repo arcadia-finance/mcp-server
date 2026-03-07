@@ -39,7 +39,7 @@ export class ArcadiaApiClient {
       hint = " Invalid input. The API rejected the request parameters.";
     } else if (status === 500) {
       hint =
-        " Internal backend error. Common causes: account has no creditor (spot account used where margin required), position does not exist in the account, unsupported asset type, or transient issue. Verify account and position details with read.account_info, then retry once.";
+        " Internal backend error. Common causes: account has no creditor (spot account used where margin required), position does not exist in the account, unsupported asset type, or transient issue. Verify account and position details with read.account.info, then retry once.";
     } else if (status === 502 || status === 503 || status === 504) {
       hint = " Backend is temporarily unavailable. Retry after a few seconds.";
     }
@@ -201,7 +201,7 @@ export class ArcadiaApiClient {
     return this.get<number>("/aaa/circulating_cmc");
   }
 
-  // ── Bundle / Calldata (for advanced write tools) ─────────────────
+  // ── Bundle / Calldata (for batched write tools) ──────────────────
 
   async getBundleCalldata(body: BundleCalldataRequest) {
     return this.post<BundleCalldataResponse>("/bundles/calldata", body);

@@ -21,11 +21,14 @@ Entry point: `src/index.ts`. Two transport modes controlled by `TRANSPORT` env v
 - **stdio** (default) — for local MCP clients (Claude Desktop, Cursor, Claude Code)
 - **http** — Streamable HTTP on Express, session-based with 30-min TTL. Deployed at `https://mcp.arcadia.finance/mcp`. Routes: `POST /mcp`, `GET /mcp`, `DELETE /mcp`, `GET /health`.
 
-Tools in `src/tools/`:
+Tools in `src/tools/`, organized by category and entity:
 
-- **read/** (8 files, 11 tools) — Query account state, pools, strategies, assets, balances, guides. Pure API reads.
-- **write/** (9 files, 9 tools) — Encode unsigned transactions via viem. Return `{to, data, value, chainId}`.
-- **advanced/** (6 tool files + helpers) — Complex position management proxied through backend API. `format-response.ts` and `account-metadata.ts` are shared helpers, not tools.
+- **read/** — Query tools. One file per entity group:
+  - `account.ts` (3 tools: info, history, pnl), `wallet.ts` (2 tools: balances, allowance), `strategy.ts` (2 tools: list, recommendation), `assets.ts`, `pools.ts`, `points.ts`, `guides.ts`
+- **write/account/** — Account transaction builders (11 tools). Simple tools encode via viem; batched tools (add-liquidity, close, swap, deleverage, remove-liquidity, stake) proxy through backend API. `format-response.ts` and `metadata.ts` are shared helpers.
+- **write/wallet/** — Wallet transaction builders. `approve.ts` (1 tool)
+- **write/asset-manager/** — Asset manager transaction builders. `set.ts`, `configure.ts` (2 tools)
+- **dev/** — Dev-only tools. `send.ts` (1 tool)
 
 Supporting code:
 - `src/clients/api.ts` — Centralized API client with `throwApiError` for error handling
@@ -40,8 +43,8 @@ Supporting code:
 
 ## Conventions
 
-- All `write.*` and `advanced.*` tools return **unsigned** transaction objects — signing is the client's responsibility
-- Tool names use dot-notation hierarchy: `read.*`, `write.*`, `advanced.*`, `dev.*`
-- Advanced tool responses go through `formatAdvancedResponse()` which appends the ERC-8021 suffix to calldata
+- All `write.*` tools return **unsigned** transaction objects — signing is the client's responsibility
+- Tool names use dot-notation hierarchy: `read.{entity}.{action}`, `write.{entity}.{action}`, `dev.{action}`
+- Batched write tool responses go through `formatBatchedResponse()` which appends the ERC-8021 suffix to calldata
 - Tests: unit tests use mock fetch, integration tests (`*.integration.test.ts`) hit live APIs — exclude from CI
-- `dev.sign_and_send` is always registered but checks `PK` env var at runtime — returns error if not set
+- `dev.send` is always registered but checks `PK` env var at runtime — returns error if not set
