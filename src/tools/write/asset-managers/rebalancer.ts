@@ -8,7 +8,7 @@ import {
   encodeRebalancerMetadata,
   encodeRebalancerCallbackData,
   disabledIntent,
-  type EncodedIntent,
+  DEFAULT_REBALANCER_PARAMS,
 } from "./encoding.js";
 import { POOL_PROTOCOL_SCHEMA, poolProtocolToAmKey, formatResult } from "./shared.js";
 
@@ -101,10 +101,28 @@ export function registerRebalancerTool(server: McpServer, _chains: Record<ChainI
           metaData,
         );
 
-        const result: EncodedIntent = {
+        const d = DEFAULT_REBALANCER_PARAMS;
+        const isCustom =
+          params.compound_leftovers !== d.compoundLeftovers ||
+          params.optimal_token0_ratio !== d.optimalToken0Ratio ||
+          params.trigger_lower_ratio !== d.triggerLowerRatio ||
+          params.trigger_upper_ratio !== d.triggerUpperRatio ||
+          params.min_rebalance_time !== d.minRebalanceTime ||
+          params.max_rebalance_time !== d.maxRebalanceTime;
+
+        const result = {
           asset_managers: [amAddress],
           statuses: [true],
           datas: [callbackData],
+          summary: {
+            strategy: isCustom ? "custom" : "default",
+            compound_leftovers: params.compound_leftovers,
+            optimal_token0_ratio: params.optimal_token0_ratio,
+            trigger_lower_ratio: params.trigger_lower_ratio,
+            trigger_upper_ratio: params.trigger_upper_ratio,
+            min_rebalance_time: params.min_rebalance_time,
+            max_rebalance_time: params.max_rebalance_time,
+          },
         };
 
         return formatResult(result);
