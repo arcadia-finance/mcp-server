@@ -28,8 +28,10 @@ function trimOverview(overview: Record<string, unknown>): Record<string, unknown
         asset.strategy_count = related_strategies.length;
       }
       const details = asset_details as Record<string, unknown> | undefined;
-      if (details?.reward_token) {
-        asset.reward_token = details.reward_token;
+      if (details) {
+        if (details.reward_token) asset.reward_token = details.reward_token;
+        if (details.token0) asset.token0 = details.token0;
+        if (details.token1) asset.token1 = details.token1;
       }
       const protocol = lpNameToPoolProtocol(asset.name as string);
       if (protocol) {
