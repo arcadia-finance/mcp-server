@@ -130,25 +130,47 @@ const CHAIN_STANDALONE_AMS: Record<ChainId, ReadonlySet<StandaloneAm>> = {
 
 const CHAIN_NAMES: Record<ChainId, string> = { 8453: "Base", 130: "Unichain" };
 
+// Map internal keys to user-facing pool_protocol values for error messages
+const AM_KEY_TO_POOL_PROTOCOL: Record<AmProtocol, string> = {
+  slipstreamV1: "slipstream",
+  slipstreamV2: "slipstream_v2",
+  uniV3: "uniV3",
+  uniV4: "uniV4",
+};
+
 export function getAmProtocolAddress(
   chainId: ChainId,
   category: AmCategory,
   protocol: AmProtocol,
 ): string {
   if (!CHAIN_PROTOCOLS[chainId].has(protocol)) {
-    const available = [...CHAIN_PROTOCOLS[chainId]].join(", ");
+    const available = [...CHAIN_PROTOCOLS[chainId]]
+      .map((k) => AM_KEY_TO_POOL_PROTOCOL[k])
+      .join(", ");
     throw new Error(
-      `${protocol} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available protocols: ${available}.`,
+      `${AM_KEY_TO_POOL_PROTOCOL[protocol]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available protocols: ${available}.`,
     );
   }
   return AM_ADDRESSES[category][protocol];
 }
 
+const STANDALONE_TO_USER_FACING: Record<StandaloneAm, string> = {
+  merklOperator: "merkl_operator",
+  gasRelayer: "gas_relayer",
+  cowSwapper: "cow_swapper",
+};
+
+// Standalone AMs that have corresponding intent tools (exclude internal-only ones from error messages)
+const INTENT_STANDALONE_AMS: ReadonlySet<StandaloneAm> = new Set(["merklOperator", "cowSwapper"]);
+
 export function getStandaloneAmAddress(chainId: ChainId, am: StandaloneAm): string {
   if (!CHAIN_STANDALONE_AMS[chainId].has(am)) {
-    const available = [...CHAIN_STANDALONE_AMS[chainId]].join(", ");
+    const available = [...CHAIN_STANDALONE_AMS[chainId]]
+      .filter((a) => INTENT_STANDALONE_AMS.has(a))
+      .map((a) => STANDALONE_TO_USER_FACING[a])
+      .join(", ");
     throw new Error(
-      `${am} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available: ${available}.`,
+      `${STANDALONE_TO_USER_FACING[am]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available: ${available}.`,
     );
   }
   return AM_ADDRESSES[am];

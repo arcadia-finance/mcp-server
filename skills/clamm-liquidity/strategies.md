@@ -102,25 +102,23 @@ write.account.add_liquidity(
   chain_id: 8453
 )
 
-// 6. ENABLE AND CONFIGURE REBALANCER (match address to LP protocol from step 1)
-write.asset_manager.configure(
-  account_address: <account_address>,
-  asset_manager_address: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",  // Slipstream V2
-  am_type: "rebalancer",
-  trigger_lower_ratio: 0,      // 0 = trigger exactly at boundary. Values scaled by 1e6: 50000 = 5% before boundary
-  trigger_upper_ratio: 0,      // same as above — must be integer
-  compound_leftovers: "all",   // "all" | "none" | "token0" | "token1"
-  min_rebalance_time: 3600,    // minimum seconds between rebalances (3600 = 1 hour)
+// 6. ENCODE AND ENABLE REBALANCER + MERKL (match pool_protocol to LP protocol from step 1)
+// Step 6a: Encode rebalancer intent
+write.asset_managers.rebalancer(
+  pool_protocol: "slipstream_v2",
+  enabled: true,
+  compound_leftovers: "all",
+  trigger_lower_ratio: 0,
+  trigger_upper_ratio: 0,
+  min_rebalance_time: 3600,
   chain_id: 8453
 )
-// → Range width and reposition mode must be configured in the Arcadia platform
+// → Returns { asset_managers, statuses, datas } for the rebalancer
 
-// 7. ENABLE MERKL (if pool has Merkl incentives — check fee APY breakdown in step 1)
-write.asset_manager.configure(
-  account_address: <account_address>,
-  asset_manager_address: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
-  am_type: "merkl_operator",
+// 7. ENCODE MERKL (if pool has Merkl incentives — check fee APY breakdown in step 1)
+write.asset_managers.merkl_operator(
   reward_recipient: <owner_wallet>,
+  enabled: true,
   chain_id: 8453
 )
 ```
@@ -191,12 +189,12 @@ write.account.deleverage(
 
 ```
 // 0. Disable automation first (prevents rebalancer from acting during close)
-write.asset_manager.set(
-  account_address: <account>,
-  asset_manager_address: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
+write.asset_managers.rebalancer(
+  pool_protocol: "slipstream_v2",
   enabled: false,
   chain_id: 8453
 )
+// → Merge result into write.account.set_asset_managers(account_address: <account>, ...)
 
 // 1. Get account state — need asset list for the close call
 read.account.info(account_address: <account>, chain_id: 8453)
@@ -310,10 +308,9 @@ write.account.add_liquidity(
 )
 
 // 5. Enable rebalancer with POL strategy hook
-write.asset_manager.configure(
-  account_address: <account>,
-  asset_manager_address: <rebalancer matching LP protocol>,
-  am_type: "rebalancer",
+write.asset_managers.rebalancer(
+  pool_protocol: <pool_protocol>,   // e.g. "slipstream_v2", "uniV3"
+  enabled: true,
   strategy_hook: "0x13beD1A58d87c0454872656c5328103aAe5eB86A",  // POL dynamic range algorithm
   trigger_lower_ratio: 0,
   trigger_upper_ratio: 0,
@@ -321,6 +318,7 @@ write.asset_manager.configure(
   min_rebalance_time: 3600,
   chain_id: 8453
 )
+// → Pass result to write.account.set_asset_managers(account_address: <account>, ...)
 // → POL tuning params (base_range, k1, k2, rebalance_threshold) configured in Arcadia platform
 ```
 
