@@ -20,7 +20,7 @@ export function registerWalletTools(server: McpServer, chains: Record<ChainId, C
         openWorldHint: true,
       },
       description:
-        "Get native ETH and ERC20 token balances for a wallet address. Reads directly from chain via RPC multicall. Use before write.account.add_liquidity or write.account.deposit to verify the wallet has sufficient tokens.",
+        "Get native ETH and ERC20 token balances for a wallet address. Reads directly from chain via RPC multicall. Use before write.account.add_liquidity or write.account.deposit to verify the wallet has sufficient tokens. Returns both raw balance (smallest unit/wei) and formatted (human-readable) per token.",
       inputSchema: {
         wallet_address: z.string().describe("Wallet address to check balances for"),
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),

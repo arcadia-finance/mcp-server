@@ -62,7 +62,7 @@ export function registerAccountTools(
         openWorldHint: true,
       },
       description:
-        "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Pass account_address for a specific account, or wallet_address to list all accounts owned by a wallet. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. On Base, also returns which asset managers are enabled (rebalancer, compounder, yield_claimer, merkl_operator, cow_swapper).",
+        "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Pass account_address for a specific account, or wallet_address to list all accounts owned by a wallet. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. On Base, also returns which asset managers are enabled (rebalancer, compounder, yield_claimer, merkl_operator, cow_swapper). Numeric fields without a _usd suffix are in the account's numeraire token raw units (divide by 10^decimals: 6 for USDC, 18 for WETH, 8 for cbBTC). Fields ending in _usd are in USD with 18 decimals (divide by 1e18). health_factor is unitless. Asset amounts are raw token units.",
       inputSchema: {
         account_address: z.string().optional().describe("Arcadia account address"),
         wallet_address: z
@@ -77,6 +77,17 @@ export function registerAccountTools(
     async ({ account_address, wallet_address, chain_id }) => {
       try {
         const validChainId = validateChainId(chain_id);
+        if (wallet_address && account_address) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: "Error: Provide either account_address or wallet_address, not both",
+              },
+            ],
+            isError: true,
+          };
+        }
         if (wallet_address) {
           validateAddress(wallet_address, "wallet_address");
           const result = await api.getAccounts(validChainId, wallet_address);
@@ -219,7 +230,7 @@ export function registerAccountTools(
         openWorldHint: true,
       },
       description:
-        "Get historical collateral and debt values for an Arcadia account over time. Returns a time series of snapshots (timestamp, collateral_value, debt_value, net_value in USD). Useful for charting account performance over a period.",
+        "Get historical collateral and debt values for an Arcadia account over time. Returns a time series of snapshots (timestamp, collateral_value, debt_value, net_value). Each value is the account's net value in USD (human-readable, not raw units). Useful for charting account performance over a period.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         days: z.number().default(14).describe("Number of days of history (default 14)"),
@@ -228,7 +239,14 @@ export function registerAccountTools(
     },
     async ({ account_address, days, chain_id }) => {
       try {
-        const result = await api.getAccountHistory(chain_id, account_address, days);
+        const validChainId = validateChainId(chain_id);
+        if (days <= 0) {
+          return {
+            content: [{ type: "text" as const, text: "Error: days must be a positive number" }],
+            isError: true,
+          };
+        }
+        const result = await api.getAccountHistory(validChainId, account_address, days);
         return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
       } catch (err) {
         return {
@@ -255,7 +273,7 @@ export function registerAccountTools(
         openWorldHint: true,
       },
       description:
-        "Get PnL (cost basis) and yield earned for an Arcadia account. Returns lifetime totals: cost basis vs current value (negative cost_basis = net profit withdrawn), net transfers per token, total yield earned in USD and per token. All monetary values are in USD unless suffixed otherwise.",
+        "Get PnL (cost basis) and yield earned for an Arcadia account. Returns lifetime totals: cost basis vs current value (negative cost_basis = net profit withdrawn), net transfers per token, total yield earned in USD and per token. cost_basis, current_value, cost_diff are in USD (human-readable). Per-token fields (net_transfers, summed_yields_earned) are in raw token units.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
@@ -263,9 +281,10 @@ export function registerAccountTools(
     },
     async ({ account_address, chain_id }) => {
       try {
+        const validChainId = validateChainId(chain_id);
         const [pnlRaw, yieldRaw] = await Promise.all([
-          api.getPnlCostBasis(chain_id, account_address),
-          api.getYieldEarned(chain_id, account_address),
+          api.getPnlCostBasis(validChainId, account_address),
+          api.getYieldEarned(validChainId, account_address),
         ]);
 
         const {
