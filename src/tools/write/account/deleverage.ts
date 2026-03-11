@@ -19,7 +19,7 @@ export function registerDeleverageTool(server: McpServer, api: ArcadiaApiClient)
         "Multi-step flash-action: sells account collateral to the debt token and repays in one atomic transaction — no wallet tokens needed. To repay from wallet tokens instead, use write.account.repay. NOTE: If you are closing a position (remove LP + swap + repay + withdraw), prefer write.account.close which batches everything atomically. Only use this tool for standalone repayment while keeping the position active. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation — if tenderly_sim_status is 'false', do NOT broadcast the transaction.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
-        amount_in: z.string().describe("Collateral amount to sell"),
+        amount_in: z.string().describe("Collateral amount to sell (raw units)"),
         asset_from: z.string().describe("Collateral token to sell"),
         numeraire: z.string().describe("Debt token address"),
         creditor: z.string().describe("Lending pool address"),
