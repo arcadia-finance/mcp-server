@@ -2,13 +2,24 @@ import { z } from "zod";
 import { formatUnits } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
+import type { ArcadiaApiClient } from "../../clients/api.js";
 import { erc20Abi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
 import { validateAddress, validateChainId } from "../../utils/validation.js";
+import {
+  WalletBalancesOutput,
+  WalletAllowanceOutput,
+  AccountListOutput,
+  PointsWalletOutput,
+} from "../output-schemas.js";
 
 const MAX_UINT256 = 2n ** 256n - 1n;
 
-export function registerWalletTools(server: McpServer, chains: Record<ChainId, ChainConfig>) {
+export function registerWalletTools(
+  server: McpServer,
+  chains: Record<ChainId, ChainConfig>,
+  api: ArcadiaApiClient,
+) {
   server.registerTool(
     "read.wallet.balances",
     {
@@ -26,6 +37,7 @@ export function registerWalletTools(server: McpServer, chains: Record<ChainId, C
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
         chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
+      outputSchema: WalletBalancesOutput,
     },
     async ({ wallet_address, token_addresses, chain_id }) => {
       try {
@@ -78,7 +90,10 @@ export function registerWalletTools(server: McpServer, chains: Record<ChainId, C
           tokens,
         };
 
-        return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+          structuredContent: result,
+        };
       } catch (err) {
         return {
           content: [
@@ -94,10 +109,10 @@ export function registerWalletTools(server: McpServer, chains: Record<ChainId, C
   );
 
   server.registerTool(
-    "read.wallet.allowance",
+    "read.wallet.allowances",
     {
       annotations: {
-        title: "Get Token Allowance",
+        title: "Get Token Allowances",
         readOnlyHint: true,
         destructiveHint: false,
         idempotentHint: true,
@@ -113,6 +128,7 @@ export function registerWalletTools(server: McpServer, chains: Record<ChainId, C
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
         chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
+      outputSchema: WalletAllowanceOutput,
     },
     async ({ owner_address, spender_address, token_addresses, chain_id }) => {
       try {
@@ -156,7 +172,88 @@ export function registerWalletTools(server: McpServer, chains: Record<ChainId, C
           };
         });
 
-        return { content: [{ type: "text" as const, text: JSON.stringify({ tokens }, null, 2) }] };
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ tokens }, null, 2) }],
+          structuredContent: { tokens },
+        };
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "read.wallet.accounts",
+    {
+      annotations: {
+        title: "List Wallet Accounts",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+      description:
+        "List all Arcadia accounts owned by a wallet address. Returns a summary of each account (address, name). Call read.account.info with a specific account_address for full details like health factor, collateral, and debt.",
+      inputSchema: {
+        wallet_address: z.string().describe("Wallet address to list accounts for"),
+        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+      },
+      outputSchema: AccountListOutput,
+    },
+    async ({ wallet_address, chain_id }) => {
+      try {
+        const validChainId = validateChainId(chain_id);
+        validateAddress(wallet_address, "wallet_address");
+        const result = await api.getAccounts(validChainId, wallet_address);
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+          structuredContent: result as Record<string, unknown>,
+        };
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "read.wallet.points",
+    {
+      annotations: {
+        title: "Get Wallet Points",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+      description: "Get Arcadia points balance for a specific wallet address.",
+      inputSchema: {
+        wallet_address: z.string().describe("Wallet address to get points for"),
+      },
+      outputSchema: PointsWalletOutput,
+    },
+    async ({ wallet_address }) => {
+      try {
+        const result = await api.getPoints(wallet_address);
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+          structuredContent: result as Record<string, unknown>,
+        };
       } catch (err) {
         return {
           content: [

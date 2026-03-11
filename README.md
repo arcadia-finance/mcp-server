@@ -5,7 +5,7 @@
 [![smithery badge](https://smithery.ai/badge/@arcadia-finance/mcp-server)](https://smithery.ai/server/@arcadia-finance/mcp-server)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
-[![MCP](https://img.shields.io/badge/MCP-2025--03--26-green)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-2025--11--25-green)](https://modelcontextprotocol.io/)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 [![Glama](https://img.shields.io/badge/Glama-listed-blue)](https://glama.ai/mcp/servers/@arcadia-finance/mcp-server)
 
@@ -22,47 +22,52 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 
 ### Read Tools
 
-| Tool                           | Description                                                                                                                  |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| `read.account.info`            | Account overview: health factor, collateral, debt, positions, liquidation price. Pass `account_address` or `wallet_address`. |
-| `read.account.history`         | Historical account value over time.                                                                                          |
-| `read.account.pnl`             | PnL and yield data for an account.                                                                                           |
-| `read.assets`                  | Supported collateral assets with addresses, types, decimals. Optional USD price lookup.                                      |
-| `read.wallet.balances`         | On-chain ERC20 balances and native ETH for a wallet address.                                                                 |
-| `read.wallet.allowance`        | Check ERC20 token allowances for a spender. Use before `write.wallet.approve` to avoid redundant approvals.                  |
-| `read.points`                  | Points balance for a wallet, or leaderboard.                                                                                 |
-| `read.pools`                   | Pool data: TVL, APY, utilization, liquidity. Optional single-pool detail with APY history.                                   |
-| `read.strategy.list`           | LP strategies with APY, underlyings, pool info. Optional detail or featured filter.                                          |
-| `read.strategy.recommendation` | Rebalancing recommendation for an account.                                                                                   |
-| `read.guides`                  | Reference guides: automation setup, strategy selection, strategy templates.                                                  |
+| Tool                           | Description                                                                                                 |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `read.account.info`            | Account overview: health factor, collateral, debt, positions, liquidation price, automation status.         |
+| `read.account.history`         | Historical account value over time.                                                                         |
+| `read.account.pnl`             | PnL and yield data for an account.                                                                          |
+| `read.wallet.accounts`         | List all Arcadia accounts owned by a wallet address.                                                        |
+| `read.wallet.balances`         | On-chain ERC20 balances and native ETH for a wallet address.                                                |
+| `read.wallet.allowances`       | Check ERC20 token allowances for a spender. Use before `write.wallet.approve` to avoid redundant approvals. |
+| `read.wallet.points`           | Points balance for a specific wallet address.                                                               |
+| `read.asset.list`              | Supported collateral assets with addresses, types, decimals.                                                |
+| `read.asset.prices`            | USD prices for one or more asset addresses.                                                                 |
+| `read.pool.list`               | All lending pools: TVL, APY, utilization, liquidity.                                                        |
+| `read.pool.info`               | Single pool detail with APY history over time.                                                              |
+| `read.point_leaderboard`       | Paginated Arcadia points leaderboard.                                                                       |
+| `read.strategy.list`           | LP strategies with APY, underlyings, pool info. Supports featured filter and pagination.                    |
+| `read.strategy.info`           | Full detail for a specific LP strategy: APY per range width, pool config.                                   |
+| `read.strategy.recommendation` | Rebalancing recommendation for an account.                                                                  |
+| `read.guides`                  | Reference guides: automation setup, strategy selection, strategy templates.                                 |
+| `read.asset_manager.intents`   | Available automation intents with tool names, required params, and supported chains.                        |
 
 ### Write Tools
 
 All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
-| Tool                                         | Description                                                                                                                                       |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `write.wallet.approve`                       | Approve an ERC20 token for spending. Required before depositing into an account. Call `read.wallet.allowance` first to check if already approved. |
-| `write.account.create`                       | Create a new Arcadia account via Factory.                                                                                                         |
-| `write.account.deposit`                      | Deposit ERC20 tokens into an account.                                                                                                             |
-| `write.account.withdraw`                     | Withdraw assets from an account.                                                                                                                  |
-| `write.account.borrow`                       | Borrow from a lending pool.                                                                                                                       |
-| `write.account.repay`                        | Repay debt to a lending pool from wallet.                                                                                                         |
-| `write.account.add_liquidity`                | Flash-action: deposit + swap + mint LP + optional leverage, atomically.                                                                           |
-| `write.account.remove_liquidity`             | Remove/decrease LP position liquidity.                                                                                                            |
-| `write.account.swap`                         | Swap assets within an account (backend-routed).                                                                                                   |
-| `write.account.deleverage`                   | Repay debt by selling collateral (swap + repay in one tx).                                                                                        |
-| `write.account.close`                        | Atomic close: burn LP + swap + repay debt in one tx.                                                                                              |
-| `write.account.stake`                        | Stake, unstake, or claim rewards for LP positions.                                                                                                |
-| `read.asset_managers.intents`                | List available automation intents with tool names, required params, and supported chains.                                                         |
-| `write.asset_managers.rebalancer`            | Encode rebalancer automation args (strategy config, triggers, compound mode).                                                                     |
-| `write.asset_managers.compounder`            | Encode standalone compounder args.                                                                                                                |
-| `write.asset_managers.compounder_staked`     | Encode compounder + CowSwap coupled args (sell rewards, buy target token).                                                                        |
-| `write.asset_managers.yield_claimer`         | Encode yield claimer args (claim fees to recipient).                                                                                              |
-| `write.asset_managers.yield_claimer_cowswap` | Encode yield claimer + CowSwap coupled args.                                                                                                      |
-| `write.asset_managers.cow_swapper`           | Encode direct CowSwap mode args (Base only).                                                                                                      |
-| `write.asset_managers.merkl_operator`        | Encode Merkl operator args (claim external rewards).                                                                                              |
-| `write.account.set_asset_managers`           | Build unsigned setAssetManagers tx from encoded intent args. Combine multiple intents by merging arrays.                                          |
+| Tool                                        | Description                                                                                                                                        |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `write.wallet.approve`                      | Approve an ERC20 token for spending. Required before depositing into an account. Call `read.wallet.allowances` first to check if already approved. |
+| `write.account.create`                      | Create a new Arcadia account via Factory.                                                                                                          |
+| `write.account.deposit`                     | Deposit ERC20 tokens into an account.                                                                                                              |
+| `write.account.withdraw`                    | Withdraw assets from an account.                                                                                                                   |
+| `write.account.borrow`                      | Borrow from a lending pool.                                                                                                                        |
+| `write.account.repay`                       | Repay debt to a lending pool from wallet.                                                                                                          |
+| `write.account.add_liquidity`               | Flash-action: deposit + swap + mint LP + optional leverage, atomically.                                                                            |
+| `write.account.remove_liquidity`            | Remove/decrease LP position liquidity.                                                                                                             |
+| `write.account.swap`                        | Swap assets within an account (backend-routed).                                                                                                    |
+| `write.account.deleverage`                  | Repay debt by selling collateral (swap + repay in one tx).                                                                                         |
+| `write.account.close`                       | Atomic close: burn LP + swap + repay debt in one tx.                                                                                               |
+| `write.account.stake`                       | Stake, unstake, or claim rewards for LP positions.                                                                                                 |
+| `write.asset_manager.rebalancer`            | Encode rebalancer automation args (strategy config, triggers, compound mode).                                                                      |
+| `write.asset_manager.compounder`            | Encode standalone compounder args.                                                                                                                 |
+| `write.asset_manager.compounder_staked`     | Encode compounder + CowSwap coupled args (sell rewards, buy target token).                                                                         |
+| `write.asset_manager.yield_claimer`         | Encode yield claimer args (claim fees to recipient).                                                                                               |
+| `write.asset_manager.yield_claimer_cowswap` | Encode yield claimer + CowSwap coupled args.                                                                                                       |
+| `write.asset_manager.cow_swapper`           | Encode direct CowSwap mode args (Base only).                                                                                                       |
+| `write.asset_manager.merkl_operator`        | Encode Merkl operator args (claim external rewards).                                                                                               |
+| `write.account.set_asset_managers`          | Build unsigned setAssetManagers tx from encoded intent args. Combine multiple intents by merging arrays.                                           |
 
 ### Dev Tools
 
@@ -119,11 +124,15 @@ yarn build
 
 **Environment variables:**
 
-| Variable           | Required | Description                                                      |
-| ------------------ | -------- | ---------------------------------------------------------------- |
-| `RPC_URL_BASE`     | No       | RPC URL for Base (8453). Falls back to public RPC if not set.    |
-| `RPC_URL_UNICHAIN` | No       | RPC URL for Unichain (130). Falls back to public RPC if not set. |
-| `PK`               | No       | Private key (hex) for dev-only `dev.send` tool.                  |
+| Variable           | Required | Default                       | Transport | Description                                                    |
+| ------------------ | -------- | ----------------------------- | --------- | -------------------------------------------------------------- |
+| `RPC_URL_BASE`     | No       | Public RPC                    | Both      | RPC URL for Base (8453).                                       |
+| `RPC_URL_UNICHAIN` | No       | Public RPC                    | Both      | RPC URL for Unichain (130).                                    |
+| `PK`               | No       | —                             | Both      | Private key (hex) for dev-only `dev.send` tool.                |
+| `TRANSPORT`        | No       | `stdio`                       | —         | Transport mode: `stdio` or `http`.                             |
+| `PORT`             | No       | `3000`                        | HTTP      | Listen port for HTTP transport.                                |
+| `ALLOWED_ORIGINS`  | No       | `https://mcp.arcadia.finance` | HTTP      | Comma-separated allowed Origin headers (CORS / DNS rebinding). |
+| `RATE_LIMIT_RPM`   | No       | `60`                          | HTTP      | Max requests per minute per session.                           |
 
 **Supported chains:** Base (8453), Unichain (130)
 

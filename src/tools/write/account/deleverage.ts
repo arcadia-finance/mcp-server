@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { formatBatchedResponse } from "./format-response.js";
 import { validateAddress } from "../../../utils/validation.js";
+import { BatchedTransactionOutput } from "../../output-schemas.js";
 
 export function registerDeleverageTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
@@ -15,6 +16,7 @@ export function registerDeleverageTool(server: McpServer, api: ArcadiaApiClient)
         idempotentHint: true,
         openWorldHint: true,
       },
+      outputSchema: BatchedTransactionOutput,
       description:
         "Multi-step flash-action: sells account collateral to the debt token and repays in one atomic transaction — no wallet tokens needed. To repay from wallet tokens instead, use write.account.repay. NOTE: If you are closing a position (remove LP + swap + repay + withdraw), prefer write.account.close which batches everything atomically. Only use this tool for standalone repayment while keeping the position active. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation — if tenderly_sim_status is 'false', do NOT broadcast the transaction.",
       inputSchema: {
@@ -62,17 +64,15 @@ export function registerDeleverageTool(server: McpServer, api: ArcadiaApiClient)
           };
         }
 
+        const response = formatBatchedResponse(res, chain_id, "Deleverage account position");
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                formatBatchedResponse(res, chain_id, "Deleverage account position"),
-                null,
-                2,
-              ),
+              text: JSON.stringify(response, null, 2),
             },
           ],
+          structuredContent: response,
         };
       } catch (err) {
         return {

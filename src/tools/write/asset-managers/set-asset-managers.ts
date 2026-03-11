@@ -3,6 +3,7 @@ import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../../config/chains.js";
 import { accountAbi } from "../../../abis/index.js";
+import { SimpleTransactionOutput } from "../../output-schemas.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
 
@@ -21,7 +22,8 @@ export function registerSetAssetManagersTool(
         openWorldHint: false,
       },
       description:
-        "Build an unsigned setAssetManagers transaction from encoded intent args. Takes the { asset_managers, statuses, datas } arrays returned by write.asset_managers.* intent tools and builds a single unsigned tx targeting the account. To combine multiple automations in one tx, concatenate the arrays from multiple intent tool calls before passing them here. Example: to enable rebalancer + merkl_operator, call both intent tools, merge their arrays, then pass the merged arrays to this tool. Returns { description, asset_managers: [{address, enabled}], transaction: { to, data, value, chainId } }.",
+        "Build an unsigned setAssetManagers transaction from encoded intent args. Takes the { asset_managers, statuses, datas } arrays returned by write.asset_manager.* intent tools and builds a single unsigned tx targeting the account. To combine multiple automations in one tx, concatenate the arrays from multiple intent tool calls before passing them here. Example: to enable rebalancer + merkl_operator, call both intent tools, merge their arrays, then pass the merged arrays to this tool. Returns { transaction: { to, data, value, chainId } }.",
+      outputSchema: SimpleTransactionOutput,
       inputSchema: {
         account_address: z.string().describe("Arcadia account address (V3 or V4)"),
         asset_managers: z.array(z.string()).describe("Asset manager addresses from intent tools"),
@@ -62,31 +64,24 @@ export function registerSetAssetManagersTool(
           }),
         );
 
-        const details = params.asset_managers.map((addr, i) => ({
-          address: addr,
-          enabled: params.statuses[i],
-        }));
+        const result = {
+          description: `Set ${params.asset_managers.length} asset manager(s) on account ${params.account_address}`,
+          transaction: {
+            to: validAccount,
+            data,
+            value: "0",
+            chainId: params.chain_id,
+          },
+        };
 
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                {
-                  description: `Set ${params.asset_managers.length} asset manager(s) on account ${params.account_address}`,
-                  asset_managers: details,
-                  transaction: {
-                    to: validAccount,
-                    data,
-                    value: "0",
-                    chainId: params.chain_id,
-                  },
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(result, null, 2),
             },
           ],
+          structuredContent: result,
         };
       } catch (err) {
         return {

@@ -49,11 +49,11 @@ describe("workflow prompts", () => {
     expect(result.messages[0].content.text).toContain("8453");
   });
 
-  it("setup-automation mentions write.asset_managers tools", async () => {
+  it("setup-automation mentions write.asset_manager tools", async () => {
     const prompts = setup();
     const prompt = prompts.find((p) => p.name === "setup-automation")!;
     const result = await prompt.callback({ account_address: "0xdef" });
-    expect(result.messages[0].content.text).toContain("write.asset_managers.");
+    expect(result.messages[0].content.text).toContain("write.asset_manager.");
   });
 
   it("find-yield-strategy includes deposit_token when specified", async () => {

@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { GuideOutput } from "../output-schemas.js";
 
 const TOPICS = {
   overview: {
@@ -58,13 +59,33 @@ export function registerGuideTools(server: McpServer) {
       inputSchema: {
         topic: z
           .enum(TOPIC_KEYS)
+          .optional()
           .describe(
             "overview = addresses + tool catalog, automation = rebalancer/compounder/claimer setup, strategies = step-by-step LP templates, selection = pool evaluation + leverage sizing",
           ),
       },
+      outputSchema: GuideOutput,
     },
-    async ({ topic }) => ({
-      content: [{ type: "text" as const, text: guides.get(topic)! }],
-    }),
+    async ({ topic }) => {
+      if (!topic) {
+        const topicList = Object.entries(TOPICS)
+          .map(([key, { summary }]) => `  ${key}: ${summary}`)
+          .join("\n");
+        const result = {
+          topic: "",
+          content: `topic is required. Valid topics:\n${topicList}`,
+        };
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+          structuredContent: result,
+          isError: true,
+        };
+      }
+      const result = { topic, content: guides.get(topic)! };
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+        structuredContent: result,
+      };
+    },
   );
 }

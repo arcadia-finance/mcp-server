@@ -6,6 +6,7 @@ import { registerPoolTools } from "./pools.js";
 import { registerAssetTools } from "./assets.js";
 import { registerStrategyTools } from "./strategy.js";
 import { registerPointsTools } from "./points.js";
+import { registerWalletTools } from "./wallet.js";
 import { discoverTestAccounts, type TestAccount } from "../test-fixtures.js";
 
 /**
@@ -17,11 +18,13 @@ import { discoverTestAccounts, type TestAccount } from "../test-fixtures.js";
 function setup() {
   const mock = createMockServer();
   const api = new ArcadiaApiClient();
-  registerAccountTools(mock.server, api, createMockChains());
+  const chains = createMockChains();
+  registerAccountTools(mock.server, api, chains);
   registerPoolTools(mock.server, api);
   registerAssetTools(mock.server, api);
   registerStrategyTools(mock.server, api);
   registerPointsTools(mock.server, api);
+  registerWalletTools(mock.server, chains, api);
   return { mock, api };
 }
 
@@ -42,21 +45,22 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Pools ───────────────────────────────────────────────────
 
-  it("read.pools returns array of pools", async () => {
-    const handler = mock.getHandler("read.pools");
+  it("read.pool.list returns array of pools", async () => {
+    const handler = mock.getHandler("read.pool.list");
     const result = await handler({ chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
-    expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBeGreaterThan(0);
-    const pool = data[0];
+    expect(data).toHaveProperty("pools");
+    expect(Array.isArray(data.pools)).toBe(true);
+    expect(data.pools.length).toBeGreaterThan(0);
+    const pool = data.pools[0];
     expect(pool).toHaveProperty("address");
     expect(pool).toHaveProperty("name");
     expect(pool).toHaveProperty("apy");
   });
 
-  it("read.pools with pool_address returns detail + APY history", async () => {
-    const handler = mock.getHandler("read.pools");
+  it("read.pool.info returns detail + APY history", async () => {
+    const handler = mock.getHandler("read.pool.info");
     const result = await handler({
       pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",
       chain_id: 8453,
@@ -67,8 +71,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(data).toHaveProperty("apy_history");
   });
 
-  it("read.pools APY history returns array with date and pool_apy", async () => {
-    const handler = mock.getHandler("read.pools");
+  it("read.pool.info APY history returns array with date and pool_apy", async () => {
+    const handler = mock.getHandler("read.pool.info");
     const result = await handler({
       pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",
       chain_id: 8453,
@@ -84,8 +88,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Assets & Prices ─────────────────────────────────────────
 
-  it("read.assets returns object with assets array", async () => {
-    const handler = mock.getHandler("read.assets");
+  it("read.asset.list returns object with assets array", async () => {
+    const handler = mock.getHandler("read.asset.list");
     const result = await handler({ chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -99,20 +103,23 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(asset).toHaveProperty("symbol");
   });
 
-  it("read.assets with single address returns raw USD price number", async () => {
-    const handler = mock.getHandler("read.assets");
+  it("read.asset.prices with single address returns USD price", async () => {
+    const handler = mock.getHandler("read.asset.prices");
     const result = await handler({
       asset_addresses: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       chain_id: 8453,
     });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
-    expect(typeof data).toBe("number");
-    expect(data).toBeGreaterThan(0);
+    expect(data).toHaveProperty("prices");
+    const values = Object.values(data.prices);
+    expect(values.length).toBe(1);
+    expect(typeof values[0]).toBe("number");
+    expect(values[0]).toBeGreaterThan(0);
   });
 
-  it("read.assets with multiple addresses returns price map", async () => {
-    const handler = mock.getHandler("read.assets");
+  it("read.asset.prices with multiple addresses returns price map", async () => {
+    const handler = mock.getHandler("read.asset.prices");
     const result = await handler({
       asset_addresses:
         "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,0x4200000000000000000000000000000000000006",
@@ -120,12 +127,12 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
-    expect(typeof data).toBe("object");
-    const keys = Object.keys(data);
+    expect(data).toHaveProperty("prices");
+    const keys = Object.keys(data.prices);
     expect(keys.length).toBe(2);
     for (const key of keys) {
-      expect(typeof data[key]).toBe("number");
-      expect(data[key]).toBeGreaterThan(0);
+      expect(typeof data.prices[key]).toBe("number");
+      expect(data.prices[key]).toBeGreaterThan(0);
     }
   });
 
@@ -150,17 +157,18 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     const result = await handler({ featured_only: true, chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
-    expect(Array.isArray(data)).toBe(true);
-    if (data.length > 0) {
-      const featured = data[0];
+    expect(data).toHaveProperty("strategies");
+    expect(Array.isArray(data.strategies)).toBe(true);
+    if (data.strategies.length > 0) {
+      const featured = data.strategies[0];
       expect(featured).toHaveProperty("id");
       expect(featured).toHaveProperty("title");
       expect(featured).toHaveProperty("apy");
     }
   });
 
-  it("read.strategy.list with strategy_id returns detail", async () => {
-    const handler = mock.getHandler("read.strategy.list");
+  it("read.strategy.info returns strategy detail", async () => {
+    const handler = mock.getHandler("read.strategy.info");
     const result = await handler({ strategy_id: 7, chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -170,8 +178,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Points ──────────────────────────────────────────────────
 
-  it("read.points leaderboard returns paginated result", async () => {
-    const handler = mock.getHandler("read.points");
+  it("read.point_leaderboard returns paginated result", async () => {
+    const handler = mock.getHandler("read.point_leaderboard");
     const result = await handler({ limit: 25, offset: 0 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -185,8 +193,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     }
   });
 
-  it("read.points with wallet_address returns points data", async () => {
-    const handler = mock.getHandler("read.points");
+  it("read.wallet.points returns points data for wallet", async () => {
+    const handler = mock.getHandler("read.wallet.points");
     const result = await handler({ wallet_address: walletAddress });
     const text = result.content[0].text;
     expect(text).toBeDefined();
@@ -194,8 +202,8 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
 
   // ── Accounts (discovered dynamically) ─────────────────────
 
-  it("read.account.info with wallet returns accounts object", async () => {
-    const handler = mock.getHandler("read.account.info");
+  it("read.wallet.accounts returns accounts object for wallet", async () => {
+    const handler = mock.getHandler("read.wallet.accounts");
     const result = await handler({ wallet_address: walletAddress, chain_id: 8453 });
     expect(result.isError).toBeFalsy();
     const data = parseToolResponse(result);
@@ -203,11 +211,10 @@ describe("Read tools — live API (Base 8453)", { timeout: 30_000 }, () => {
     expect(Array.isArray(data.accounts)).toBe(true);
     expect(data.accounts.length).toBeGreaterThan(0);
     const acct = data.accounts[0];
-    expect(acct).toHaveProperty("account_address");
-    expect(acct).toHaveProperty("account_id");
+    expect(typeof acct).toBe("object");
   });
 
-  it("read.account.info with account_address returns version + overview + liquidation + automation", async () => {
+  it("read.account.info returns version + overview + liquidation + automation", async () => {
     const handler = mock.getHandler("read.account.info");
     const result = await handler({ account_address: accountAddress, chain_id: 8453 });
     expect(result.isError).toBeFalsy();

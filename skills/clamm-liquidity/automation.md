@@ -5,8 +5,8 @@ All automation on Arcadia uses V3/V4 accounts only. Arcadia's backend bots do th
 ## Agent Workflow
 
 ```
-1. Call read.asset_managers.intents to discover available automations and their params
-2. Call write.asset_managers.{intent} for each desired automation → returns encoded args
+1. Call read.asset_manager.intents to discover available automations and their params
+2. Call write.asset_manager.{intent} for each desired automation → returns encoded args
 3. Optionally merge arrays from multiple intent calls to combine changes
 4. Call write.account.set_asset_managers with the (merged) args → unsigned tx
 ```
@@ -18,8 +18,8 @@ Each intent tool returns `{ description, asset_managers: [...], statuses: [...],
 Example: enable rebalancer + merkl_operator in one tx:
 
 ```
-rebalancer = write.asset_managers.rebalancer(pool_protocol: "slipstream", ...)
-merkl = write.asset_managers.merkl_operator(reward_recipient: "0x...", ...)
+rebalancer = write.asset_manager.rebalancer(dex_protocol: "slipstream", ...)
+merkl = write.asset_manager.merkl_operator(reward_recipient: "0x...", ...)
 write.account.set_asset_managers(
   account_address: "0x...",
   asset_managers: [...rebalancer.asset_managers, ...merkl.asset_managers],
@@ -36,7 +36,7 @@ To disable: call any intent tool with `enabled: false`, then merge and submit.
 
 **What it does:** When the LP position goes out of range, Arcadia's bot repositions it to a new range centered on the current price. All pending fees and staking rewards are claimed and compounded into the new position.
 
-**Tool:** `write.asset_managers.rebalancer`
+**Tool:** `write.asset_manager.rebalancer`
 
 **Strategy modes:**
 
@@ -78,7 +78,7 @@ Quota is bypassed when: gas cost < pending fees ÷ 2, or position value ≥ $50k
 
 **What it does:** Claims accumulated LP fees and reinvests them back into the position.
 
-**Tool:** `write.asset_managers.compounder`
+**Tool:** `write.asset_manager.compounder`
 
 **When to add on top of a rebalancer:** The rebalancer compounds at rebalance time. Adding a compounder also compounds between rebalances — more frequent compounding, higher effective APY.
 
@@ -88,7 +88,7 @@ Quota is bypassed when: gas cost < pending fees ÷ 2, or position value ≥ $50k
 
 **What it does:** Claims staked CL rewards (typically AERO), swaps them to a target token via CowSwap batch auctions (MEV-protected), then compounds into the LP position.
 
-**Tool:** `write.asset_managers.compounder_staked`
+**Tool:** `write.asset_manager.compounder_staked`
 
 **Params:**
 
@@ -103,7 +103,7 @@ Sets metadata on both CowSwapper and Compounder in one call. Base only.
 
 **What it does:** Periodically claims pending fees/emissions and sends them to a designated recipient.
 
-**Tool:** `write.asset_managers.yield_claimer`
+**Tool:** `write.asset_manager.yield_claimer`
 
 **Params:** `fee_recipient` — address to receive claimed fees.
 
@@ -113,7 +113,7 @@ Sets metadata on both CowSwapper and Compounder in one call. Base only.
 
 **What it does:** Claims LP fees, swaps claimed tokens to a target token via CowSwap, sends to recipient.
 
-**Tool:** `write.asset_managers.yield_claimer_cowswap`
+**Tool:** `write.asset_manager.yield_claimer_cowswap`
 
 **Params:**
 
@@ -129,7 +129,7 @@ Sets metadata on both CowSwapper and Yield Claimer. Base only.
 
 **What it does:** Swap any ERC20 → ERC20 via CoW Protocol batch auctions (MEV-protected). Each swap requires account owner signature.
 
-**Tool:** `write.asset_managers.cow_swapper`
+**Tool:** `write.asset_manager.cow_swapper`
 
 Base only. Not coupled to any other automation.
 
@@ -139,7 +139,7 @@ Base only. Not coupled to any other automation.
 
 **What it does:** Claims external Merkl protocol incentive rewards into the account — additional rewards paid by token teams on top of regular LP fees.
 
-**Tool:** `write.asset_managers.merkl_operator`
+**Tool:** `write.asset_manager.merkl_operator`
 
 **When to enable:** When the pool has active Merkl campaigns (check APY breakdown in `read.strategy.list`).
 

@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { formatBatchedResponse } from "./format-response.js";
 import { validateAddress } from "../../../utils/validation.js";
+import { BatchedTransactionOutput } from "../../output-schemas.js";
 
 export function registerRemoveLiquidityTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
@@ -15,6 +16,7 @@ export function registerRemoveLiquidityTool(server: McpServer, api: ArcadiaApiCl
         idempotentHint: true,
         openWorldHint: true,
       },
+      outputSchema: BatchedTransactionOutput,
       description: `Flash-action: PARTIALLY decreases liquidity from an LP position. The position remains open with reduced liquidity; underlying tokens stay in the account.
 
 For FULL position exit (burn LP + swap + repay + withdraw), use write.account.close instead — it batches everything into one atomic transaction.
@@ -63,17 +65,15 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           };
         }
 
+        const response = formatBatchedResponse(res, chain_id, "Remove liquidity from LP position");
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                formatBatchedResponse(res, chain_id, "Remove liquidity from LP position"),
-                null,
-                2,
-              ),
+              text: JSON.stringify(response, null, 2),
             },
           ],
+          structuredContent: response,
         };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

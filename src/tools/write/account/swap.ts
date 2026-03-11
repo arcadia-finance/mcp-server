@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { formatBatchedResponse } from "./format-response.js";
 import { validateAddress } from "../../../utils/validation.js";
+import { BatchedTransactionOutput } from "../../output-schemas.js";
 
 export function registerSwapTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
@@ -15,6 +16,7 @@ export function registerSwapTool(server: McpServer, api: ArcadiaApiClient) {
         idempotentHint: true,
         openWorldHint: true,
       },
+      outputSchema: BatchedTransactionOutput,
       description:
         "Flash-action: swaps assets within an Arcadia account in one atomic transaction. The backend finds the optimal swap route. NOTE: If you are closing a position (swap + repay + withdraw), prefer write.account.close which batches everything atomically. Only use this tool for standalone swaps within an active position. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation — if tenderly_sim_status is 'false', do NOT broadcast the transaction.",
       inputSchema: {
@@ -59,17 +61,15 @@ export function registerSwapTool(server: McpServer, api: ArcadiaApiClient) {
           };
         }
 
+        const response = formatBatchedResponse(res, chain_id, "Swap tokens in account");
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                formatBatchedResponse(res, chain_id, "Swap tokens in account"),
-                null,
-                2,
-              ),
+              text: JSON.stringify(response, null, 2),
             },
           ],
+          structuredContent: response,
         };
       } catch (err) {
         return {

@@ -5,6 +5,7 @@ import type { ChainId, ChainConfig } from "../../../config/chains.js";
 import { poolAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { validateAddress } from "../../../utils/validation.js";
+import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 export function registerRepayTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
@@ -17,8 +18,9 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
         idempotentHint: true,
         openWorldHint: false,
       },
+      outputSchema: SimpleTransactionOutput,
       description:
-        "Repay debt to an Arcadia lending pool using tokens from the wallet (requires ERC20 allowance). To repay using account collateral instead (no wallet tokens needed), use write.account.deleverage. Check allowance first (read.wallet.allowance), then approve the pool if needed (write.wallet.approve). Check outstanding debt with read.account.info.",
+        "Repay debt to an Arcadia lending pool using tokens from the wallet (requires ERC20 allowance). To repay using account collateral instead (no wallet tokens needed), use write.account.deleverage. Check allowance first (read.wallet.allowances), then approve the pool if needed (write.wallet.approve). Check outstanding debt with read.account.info.",
       inputSchema: {
         pool_address: z
           .string()
@@ -57,25 +59,23 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
           }),
         );
 
+        const result = {
+          description: "Repay debt to Arcadia lending pool",
+          transaction: {
+            to: validPool,
+            data,
+            value: "0",
+            chainId: params.chain_id,
+          },
+        };
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                {
-                  description: "Repay debt to Arcadia lending pool",
-                  transaction: {
-                    to: validPool,
-                    data,
-                    value: "0",
-                    chainId: params.chain_id,
-                  },
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(result, null, 2),
             },
           ],
+          structuredContent: result,
         };
       } catch (err) {
         return {

@@ -11,11 +11,12 @@ import {
   encodeCowSwapTokenMetadata,
   disabledIntent,
 } from "./encoding.js";
-import { POOL_PROTOCOL_SCHEMA, poolProtocolToAmKey, formatResult } from "./shared.js";
+import { IntentOutput } from "../../output-schemas.js";
+import { DEX_PROTOCOL_SCHEMA, dexProtocolToAmKey, formatResult } from "./shared.js";
 
 export function registerCompounderTools(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "write.asset_managers.compounder",
+    "write.asset_manager.compounder",
     {
       annotations: {
         title: "Encode Compounder Automation",
@@ -25,9 +26,10 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         openWorldHint: false,
       },
       description:
-        "Encode args for the standalone compounder automation. Claims accumulated LP fees and reinvests them back into the position (compound interest). When paired with a rebalancer, the rebalancer compounds at rebalance time — adding a compounder also compounds between rebalances for higher effective APY. Returns { description, asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
+        "Encode args for the standalone compounder automation. Claims accumulated LP trading fees and reinvests them back into the position (compound interest). LP fees only — does NOT claim staking rewards like AERO; use write.asset_manager.compounder_staked for staked positions earning emission tokens. When paired with a rebalancer, the rebalancer compounds at rebalance time — adding a compounder also compounds between rebalances for higher effective APY. Returns { asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
+      outputSchema: IntentOutput,
       inputSchema: {
-        pool_protocol: POOL_PROTOCOL_SCHEMA,
+        dex_protocol: DEX_PROTOCOL_SCHEMA,
         enabled: z.boolean().default(true).describe("True to enable, false to disable"),
         chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
       },
@@ -35,17 +37,17 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
     async (params) => {
       try {
         const validChainId = validateChainId(params.chain_id);
-        const amKey = poolProtocolToAmKey(params.pool_protocol);
+        const amKey = dexProtocolToAmKey(params.dex_protocol);
         const amAddress = getAmProtocolAddress(validChainId, "compounders", amKey);
 
         if (!params.enabled)
           return formatResult(
-            disabledIntent([amAddress], `Disable compounder (${params.pool_protocol})`),
+            disabledIntent([amAddress], `Disable compounder (${params.dex_protocol})`),
           );
 
         const callbackData = encodeCompounderCallbackData(COMPOUNDER_INITIATOR);
         const result = {
-          description: `Enable compounder (${params.pool_protocol})`,
+          description: `Enable compounder (${params.dex_protocol})`,
           asset_managers: [amAddress],
           statuses: [true],
           datas: [callbackData],
@@ -66,7 +68,7 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
   );
 
   server.registerTool(
-    "write.asset_managers.compounder_staked",
+    "write.asset_manager.compounder_staked",
     {
       annotations: {
         title: "Encode Compounder + CowSwap Automation",
@@ -76,9 +78,10 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         openWorldHint: false,
       },
       description:
-        "Encode args for compounder coupled with CowSwap. Claims staked CL rewards (typically AERO), swaps them to a target token via CowSwap batch auctions (MEV-protected), then compounds back into the LP position. Sets metadata on BOTH the CowSwapper and the Compounder in a single call. sell_tokens is typically [AERO] for staked positions. buy_token should be a major token in the pair (USDC, WETH, cbBTC). Returns { description, asset_managers, statuses, datas } with 2 entries (cowswapper + compounder). Combinable with other intent tools.",
+        "Encode args for compounder coupled with CowSwap for staked LP positions (e.g. staked Slipstream/Aerodrome). Staked positions earn staking emission rewards (e.g. AERO, OP, or any configured emission token) — not LP fees. Claims these staking rewards, swaps them to a target token via CowSwap batch auctions (MEV-protected), then compounds back into the LP position. Sets metadata on BOTH the CowSwapper and the Compounder in a single call. sell_tokens is the list of reward token addresses (e.g. [AERO_address]). buy_token should be a major token in the pair (USDC, WETH, cbBTC). Returns { asset_managers, statuses, datas } with 2 entries (cowswapper + compounder). Base only. Combinable with other intent tools.",
+      outputSchema: IntentOutput,
       inputSchema: {
-        pool_protocol: POOL_PROTOCOL_SCHEMA,
+        dex_protocol: DEX_PROTOCOL_SCHEMA,
         sell_tokens: z
           .array(z.string())
           .describe("Token addresses to sell via CowSwap (typically [AERO] for staked positions)"),
@@ -94,7 +97,7 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
     async (params) => {
       try {
         const validChainId = validateChainId(params.chain_id);
-        const amKey = poolProtocolToAmKey(params.pool_protocol);
+        const amKey = dexProtocolToAmKey(params.dex_protocol);
         let cowSwapperAddress: string;
         try {
           cowSwapperAddress = getStandaloneAmAddress(validChainId, "cowSwapper");
@@ -109,7 +112,7 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
           return formatResult(
             disabledIntent(
               [cowSwapperAddress, compounderAddress],
-              `Disable compounder_staked (${params.pool_protocol})`,
+              `Disable compounder_staked (${params.dex_protocol})`,
             ),
           );
         }
@@ -131,7 +134,7 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         );
 
         const result = {
-          description: `Enable compounder_staked (${params.pool_protocol}, cowswap)`,
+          description: `Enable compounder_staked (${params.dex_protocol}, cowswap)`,
           asset_managers: [cowSwapperAddress, compounderAddress],
           statuses: [true, true],
           datas: [cowSwapperData, compounderData],

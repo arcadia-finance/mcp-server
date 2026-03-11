@@ -37,12 +37,12 @@ function setupAll() {
   return mock;
 }
 
-describe("write.asset_managers.rebalancer", () => {
+describe("write.asset_manager.rebalancer", () => {
   it("encodes rebalancer with default params", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.rebalancer");
+    const handler = mock.getHandler("write.asset_manager.rebalancer");
     const result = await handler({
-      pool_protocol: "slipstream",
+      dex_protocol: "slipstream",
       enabled: true,
       compound_leftovers: "all",
       optimal_token0_ratio: 500000,
@@ -67,9 +67,9 @@ describe("write.asset_managers.rebalancer", () => {
 
   it("returns disabled intent with enabled=false", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.rebalancer");
+    const handler = mock.getHandler("write.asset_manager.rebalancer");
     const result = await handler({
-      pool_protocol: "slipstream",
+      dex_protocol: "slipstream",
       enabled: false,
       compound_leftovers: "all",
       optimal_token0_ratio: 500000,
@@ -87,9 +87,9 @@ describe("write.asset_managers.rebalancer", () => {
 
   it("returns error for slipstream_v2 on Unichain", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.rebalancer");
+    const handler = mock.getHandler("write.asset_manager.rebalancer");
     const result = await handler({
-      pool_protocol: "slipstream_v2",
+      dex_protocol: "slipstream_v2",
       enabled: true,
       compound_leftovers: "all",
       optimal_token0_ratio: 500000,
@@ -105,12 +105,12 @@ describe("write.asset_managers.rebalancer", () => {
   });
 });
 
-describe("write.asset_managers.compounder", () => {
+describe("write.asset_manager.compounder", () => {
   it("encodes compounder with correct initiator", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.compounder");
+    const handler = mock.getHandler("write.asset_manager.compounder");
     const result = await handler({
-      pool_protocol: "uniV3",
+      dex_protocol: "uniV3",
       enabled: true,
       chain_id: 8453,
     });
@@ -127,12 +127,12 @@ describe("write.asset_managers.compounder", () => {
   });
 });
 
-describe("write.asset_managers.compounder_staked", () => {
+describe("write.asset_manager.compounder_staked", () => {
   it("encodes cowswapper + compounder with 2 entries", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.compounder_staked");
+    const handler = mock.getHandler("write.asset_manager.compounder_staked");
     const result = await handler({
-      pool_protocol: "slipstream",
+      dex_protocol: "slipstream",
       sell_tokens: [AERO],
       buy_token: USDC,
       enabled: true,
@@ -147,9 +147,9 @@ describe("write.asset_managers.compounder_staked", () => {
 
   it("returns error for cowswapper on Unichain", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.compounder_staked");
+    const handler = mock.getHandler("write.asset_manager.compounder_staked");
     const result = await handler({
-      pool_protocol: "slipstream",
+      dex_protocol: "slipstream",
       sell_tokens: [AERO],
       buy_token: USDC,
       enabled: true,
@@ -161,12 +161,12 @@ describe("write.asset_managers.compounder_staked", () => {
   });
 });
 
-describe("write.asset_managers.yield_claimer", () => {
+describe("write.asset_manager.yield_claimer", () => {
   it("encodes yield claimer with fee_recipient", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.yield_claimer");
+    const handler = mock.getHandler("write.asset_manager.yield_claimer");
     const result = await handler({
-      pool_protocol: "slipstream",
+      dex_protocol: "slipstream",
       fee_recipient: FEE_RECIPIENT,
       enabled: true,
       chain_id: 8453,
@@ -187,12 +187,12 @@ describe("write.asset_managers.yield_claimer", () => {
   });
 });
 
-describe("write.asset_managers.yield_claimer_cowswap", () => {
+describe("write.asset_manager.yield_claimer_cowswap", () => {
   it("encodes cowswapper + yield claimer with 2 entries", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.yield_claimer_cowswap");
+    const handler = mock.getHandler("write.asset_manager.yield_claimer_cowswap");
     const result = await handler({
-      pool_protocol: "slipstream",
+      dex_protocol: "slipstream",
       sell_tokens: [AERO],
       buy_token: USDC,
       fee_recipient: FEE_RECIPIENT,
@@ -206,10 +206,10 @@ describe("write.asset_managers.yield_claimer_cowswap", () => {
   });
 });
 
-describe("write.asset_managers.cow_swapper", () => {
+describe("write.asset_manager.cow_swapper", () => {
   it("encodes direct cowswap mode", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.cow_swapper");
+    const handler = mock.getHandler("write.asset_manager.cow_swapper");
     const result = await handler({
       enabled: true,
       chain_id: 8453,
@@ -222,7 +222,7 @@ describe("write.asset_managers.cow_swapper", () => {
 
   it("returns error on Unichain", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.cow_swapper");
+    const handler = mock.getHandler("write.asset_manager.cow_swapper");
     const result = await handler({
       enabled: true,
       chain_id: 130,
@@ -233,10 +233,10 @@ describe("write.asset_managers.cow_swapper", () => {
   });
 });
 
-describe("write.asset_managers.merkl_operator", () => {
+describe("write.asset_manager.merkl_operator", () => {
   it("encodes merkl operator with reward_recipient", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("write.asset_managers.merkl_operator");
+    const handler = mock.getHandler("write.asset_manager.merkl_operator");
     const result = await handler({
       reward_recipient: FEE_RECIPIENT,
       enabled: true,
@@ -263,9 +263,9 @@ describe("write.account.set_asset_managers", () => {
     const mock = setupAll();
 
     // First get encoded args from rebalancer
-    const rebalancerHandler = mock.getHandler("write.asset_managers.rebalancer");
+    const rebalancerHandler = mock.getHandler("write.asset_manager.rebalancer");
     const rebalancerResult = await rebalancerHandler({
-      pool_protocol: "slipstream",
+      dex_protocol: "slipstream",
       enabled: true,
       compound_leftovers: "all",
       optimal_token0_ratio: 500000,
@@ -327,10 +327,10 @@ describe("write.account.set_asset_managers", () => {
   });
 });
 
-describe("read.asset_managers.intents", () => {
+describe("read.asset_manager.intents", () => {
   it("returns all 7 automations without chain filter", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("read.asset_managers.intents");
+    const handler = mock.getHandler("read.asset_manager.intents");
     const result = await handler({});
 
     const parsed = parseToolResponse(result);
@@ -348,7 +348,7 @@ describe("read.asset_managers.intents", () => {
 
   it("filters by chain_id — Unichain excludes cowswapper intents", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("read.asset_managers.intents");
+    const handler = mock.getHandler("read.asset_manager.intents");
     const result = await handler({ chain_id: 130 });
 
     const parsed = parseToolResponse(result);
@@ -362,7 +362,7 @@ describe("read.asset_managers.intents", () => {
 
   it("each automation has required fields", async () => {
     const mock = setupAll();
-    const handler = mock.getHandler("read.asset_managers.intents");
+    const handler = mock.getHandler("read.asset_manager.intents");
     const result = await handler({});
 
     const parsed = parseToolResponse(result);
