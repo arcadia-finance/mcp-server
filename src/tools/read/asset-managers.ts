@@ -60,7 +60,11 @@ const INTENTS: AutomationIntent[] = [
     description:
       "Compounder coupled with CowSwap. Claims staked rewards (AERO), swaps to target token via batch auction, compounds into LP.",
     sets_managers: ["cowswapper", "compounder"],
-    required_params: ["pool_protocol", "sell_tokens", "buy_token"],
+    required_params: [
+      { name: "pool_protocol", values: POOL_PROTOCOLS },
+      "sell_tokens",
+      "buy_token",
+    ],
     optional_params: [],
     chains: BASE_ONLY,
   },
@@ -69,7 +73,7 @@ const INTENTS: AutomationIntent[] = [
     tool: "write.asset_managers.yield_claimer",
     description: "Claims pending fees/emissions and sends to a designated recipient address.",
     sets_managers: ["yield_claimer"],
-    required_params: ["pool_protocol", "fee_recipient"],
+    required_params: [{ name: "pool_protocol", values: POOL_PROTOCOLS }, "fee_recipient"],
     optional_params: [],
     chains: ALL_CHAINS,
   },
@@ -79,7 +83,12 @@ const INTENTS: AutomationIntent[] = [
     description:
       "Yield claimer coupled with CowSwap. Claims fees, swaps to target token via batch auction, sends to recipient.",
     sets_managers: ["cowswapper", "yield_claimer"],
-    required_params: ["pool_protocol", "sell_tokens", "buy_token", "fee_recipient"],
+    required_params: [
+      { name: "pool_protocol", values: POOL_PROTOCOLS },
+      "sell_tokens",
+      "buy_token",
+      "fee_recipient",
+    ],
     optional_params: [],
     chains: BASE_ONLY,
   },

@@ -1,7 +1,5 @@
 import { z } from "zod";
 import type { AmProtocol } from "../../../config/addresses.js";
-import type { EncodedIntent } from "./encoding.js";
-
 export type PoolProtocol =
   | "slipstream"
   | "slipstream_v2"
@@ -36,7 +34,8 @@ export const POOL_PROTOCOL_SCHEMA = z
     "LP protocol — resolves the correct AM address. staked_slipstream variants are aliases for slipstream (same AM contracts).",
   );
 
-export function formatResult(result: EncodedIntent) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function formatResult(result: Record<string, any>) {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
   };

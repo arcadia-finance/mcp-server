@@ -130,8 +130,26 @@ const CHAIN_STANDALONE_AMS: Record<ChainId, ReadonlySet<StandaloneAm>> = {
 
 const CHAIN_NAMES: Record<ChainId, string> = { 8453: "Base", 130: "Unichain" };
 
-// Map internal keys to user-facing pool_protocol values for error messages
-const AM_KEY_TO_POOL_PROTOCOL: Record<AmProtocol, string> = {
+// Map LP asset names (from backend overview) to pool_protocol values for intent tools
+const LP_NAME_TO_POOL_PROTOCOL: Record<string, string> = {
+  UniV3: "uniV3",
+  UniV4: "uniV4",
+  slipstream: "slipstream",
+  slipstream_v2: "slipstream_v2",
+  "Staked Slipstream": "staked_slipstream",
+  "Staked Slipstream V2": "staked_slipstream_v2",
+  "Wrapped Staked Slipstream": "staked_slipstream",
+  "Wrapped Staked Slipstream V2": "staked_slipstream_v2",
+  "Wrapped Aerodrome": "slipstream",
+  "Staked Aerodrome": "staked_slipstream",
+};
+
+export function lpNameToPoolProtocol(name: string): string | null {
+  return LP_NAME_TO_POOL_PROTOCOL[name] ?? null;
+}
+
+// Map internal AM keys to user-facing pool_protocol values (used in error messages and account info)
+export const AM_KEY_TO_POOL_PROTOCOL: Record<AmProtocol, string> = {
   slipstreamV1: "slipstream",
   slipstreamV2: "slipstream_v2",
   uniV3: "uniV3",
@@ -160,17 +178,16 @@ const STANDALONE_TO_USER_FACING: Record<StandaloneAm, string> = {
   cowSwapper: "cow_swapper",
 };
 
-// Standalone AMs that have corresponding intent tools (exclude internal-only ones from error messages)
-const INTENT_STANDALONE_AMS: ReadonlySet<StandaloneAm> = new Set(["merklOperator", "cowSwapper"]);
-
 export function getStandaloneAmAddress(chainId: ChainId, am: StandaloneAm): string {
   if (!CHAIN_STANDALONE_AMS[chainId].has(am)) {
-    const available = [...CHAIN_STANDALONE_AMS[chainId]]
-      .filter((a) => INTENT_STANDALONE_AMS.has(a))
-      .map((a) => STANDALONE_TO_USER_FACING[a])
+    const supportedChains = (
+      Object.entries(CHAIN_STANDALONE_AMS) as [string, ReadonlySet<StandaloneAm>][]
+    )
+      .filter(([, ams]) => ams.has(am))
+      .map(([id]) => `${CHAIN_NAMES[Number(id) as ChainId]} (${id})`)
       .join(", ");
     throw new Error(
-      `${STANDALONE_TO_USER_FACING[am]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available: ${available}.`,
+      `${STANDALONE_TO_USER_FACING[am]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Supported chains: ${supportedChains}.`,
     );
   }
   return AM_ADDRESSES[am];

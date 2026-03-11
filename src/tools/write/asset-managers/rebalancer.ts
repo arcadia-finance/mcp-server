@@ -8,7 +8,7 @@ import {
   encodeRebalancerMetadata,
   encodeRebalancerCallbackData,
   disabledIntent,
-  type EncodedIntent,
+  DEFAULT_REBALANCER_PARAMS,
 } from "./encoding.js";
 import { POOL_PROTOCOL_SCHEMA, poolProtocolToAmKey, formatResult } from "./shared.js";
 
@@ -24,7 +24,7 @@ export function registerRebalancerTool(server: McpServer, _chains: Record<ChainI
         openWorldHint: false,
       },
       description:
-        "Encode args for the rebalancer automation. When the LP position goes out of range, Arcadia's bot repositions it centered on the current price. All pending fees and staking rewards are claimed and compounded into the new position. Strategy config: 'default' (all params at defaults) uses when_out_of_range — rebalances exactly when price exits range. 'custom' (any param differs) uses time_and_price_based_triggers — adds configurable trigger offsets, cooldowns, and token composition. Returns { asset_managers, statuses, datas } — pass to write.account.set_asset_managers to build the unsigned tx. Combinable: merge arrays from multiple intent tools to configure several automations in one tx.",
+        "Encode args for the rebalancer automation. When the LP position goes out of range, Arcadia's bot repositions it centered on the current price. All pending fees and staking rewards are claimed and compounded into the new position. Strategy config: 'default' (all params at defaults) uses when_out_of_range — rebalances exactly when price exits range. 'custom' (any param differs) uses time_and_price_based_triggers — adds configurable trigger offsets, cooldowns, and token composition. Returns { description, asset_managers, statuses, datas } — pass to write.account.set_asset_managers to build the unsigned tx. Combinable: merge arrays from multiple intent tools to configure several automations in one tx.",
       inputSchema: {
         pool_protocol: POOL_PROTOCOL_SCHEMA,
         enabled: z.boolean().default(true).describe("True to enable, false to disable"),
@@ -79,7 +79,9 @@ export function registerRebalancerTool(server: McpServer, _chains: Record<ChainI
         const amAddress = getAmProtocolAddress(validChainId, "rebalancers", amKey);
 
         if (!params.enabled) {
-          return formatResult(disabledIntent([amAddress]));
+          return formatResult(
+            disabledIntent([amAddress], `Disable rebalancer (${params.pool_protocol})`),
+          );
         }
 
         const metaData = encodeRebalancerMetadata({
@@ -101,7 +103,18 @@ export function registerRebalancerTool(server: McpServer, _chains: Record<ChainI
           metaData,
         );
 
-        const result: EncodedIntent = {
+        const d = DEFAULT_REBALANCER_PARAMS;
+        const isCustom =
+          params.compound_leftovers !== d.compoundLeftovers ||
+          params.optimal_token0_ratio !== d.optimalToken0Ratio ||
+          params.trigger_lower_ratio !== d.triggerLowerRatio ||
+          params.trigger_upper_ratio !== d.triggerUpperRatio ||
+          params.min_rebalance_time !== d.minRebalanceTime ||
+          params.max_rebalance_time !== d.maxRebalanceTime;
+
+        const strategyName = isCustom ? "custom" : "default";
+        const result = {
+          description: `Enable rebalancer (${strategyName} strategy, ${params.pool_protocol})`,
           asset_managers: [amAddress],
           statuses: [true],
           datas: [callbackData],

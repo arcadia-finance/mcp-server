@@ -4,7 +4,12 @@ import type { ArcadiaApiClient } from "../../clients/api.js";
 import type { ChainId, ChainConfig } from "../../config/chains.js";
 import { accountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
-import { getChainAmChecks } from "../../config/addresses.js";
+import {
+  getChainAmChecks,
+  AM_KEY_TO_POOL_PROTOCOL,
+  lpNameToPoolProtocol,
+  type AmProtocol,
+} from "../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../utils/validation.js";
 
 function trimOverview(overview: Record<string, unknown>): Record<string, unknown> {
@@ -17,10 +22,20 @@ function trimOverview(overview: Record<string, unknown>): Record<string, unknown
 
   if (Array.isArray(trimmed.assets)) {
     trimmed.assets = (trimmed.assets as Record<string, unknown>[]).map((a) => {
-      const { related_strategies, asset_details: _ad, ...rest } = a;
+      const { related_strategies, asset_details, ...rest } = a;
       const asset: Record<string, unknown> = { ...rest };
       if (Array.isArray(related_strategies) && related_strategies.length > 0) {
         asset.strategy_count = related_strategies.length;
+      }
+      const details = asset_details as Record<string, unknown> | undefined;
+      if (details) {
+        if (details.reward_token) asset.reward_token = details.reward_token;
+        if (details.token0) asset.token0 = details.token0;
+        if (details.token1) asset.token1 = details.token1;
+      }
+      const protocol = lpNameToPoolProtocol(asset.name as string);
+      if (protocol) {
+        asset.pool_protocol = protocol;
       }
       return asset;
     });
@@ -165,23 +180,48 @@ export function registerAccountTools(
               .then((results: { status: string; result?: boolean }[]) => {
                 const out: Record<string, string | boolean> = {};
                 for (const c of amChecks) out[c.group] = false;
+                let activeProtocol: string | null = null;
                 results.forEach((r: { status: string; result?: boolean }, i: number) => {
                   if (r.status !== "success" || !r.result) return;
                   const check = amChecks[i];
                   if (check.protocol) {
-                    out[check.group] = check.protocol;
+                    const userFacing = AM_KEY_TO_POOL_PROTOCOL[check.protocol as AmProtocol];
+                    out[check.group] = userFacing ?? check.protocol;
+                    if (!activeProtocol) activeProtocol = userFacing ?? check.protocol;
                   } else {
                     out[check.group] = true;
                   }
                 });
+                if (activeProtocol) {
+                  out.pool_protocol = activeProtocol;
+                }
                 return out;
               })
               .catch(() => null);
           }
 
+          const trimmedOverview = overview
+            ? trimOverview(overview as Record<string, unknown>)
+            : null;
+
+          // Fallback: derive pool_protocol from LP asset names when AMs don't provide it
+          if (automation && !automation.pool_protocol && trimmedOverview) {
+            const assets = (trimmedOverview as Record<string, unknown>).assets as
+              | Record<string, unknown>[]
+              | undefined;
+            if (assets) {
+              for (const a of assets) {
+                if (a.pool_protocol) {
+                  automation.pool_protocol = a.pool_protocol as string;
+                  break;
+                }
+              }
+            }
+          }
+
           const result: Record<string, unknown> = {
             account_version: accountVersion,
-            overview: overview ? trimOverview(overview as Record<string, unknown>) : null,
+            overview: trimmedOverview,
             liquidation_price,
           };
           if (automation) result.automation = automation;

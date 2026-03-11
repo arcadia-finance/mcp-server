@@ -113,7 +113,7 @@ write.asset_managers.rebalancer(
   min_rebalance_time: 3600,
   chain_id: 8453
 )
-// → Returns { asset_managers, statuses, datas } for the rebalancer
+// → Returns { description, asset_managers, statuses, datas } for the rebalancer
 
 // 7. ENCODE MERKL (if pool has Merkl incentives — check fee APY breakdown in step 1)
 write.asset_managers.merkl_operator(

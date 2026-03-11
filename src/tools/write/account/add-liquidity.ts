@@ -410,7 +410,11 @@ export function registerAddLiquidityTool(
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(formatBatchedResponse(res, chain_id), null, 2),
+              text: JSON.stringify(
+                formatBatchedResponse(res, chain_id, "Add liquidity to LP position"),
+                null,
+                2,
+              ),
             },
           ],
         };
