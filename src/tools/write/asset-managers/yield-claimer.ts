@@ -28,7 +28,7 @@ export function registerYieldClaimerTools(
         openWorldHint: false,
       },
       description:
-        "Encode args for the standalone yield claimer automation. Periodically claims pending fees/emissions and sends them to a designated recipient (wallet, another account, or any address). Returns { asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
+        "Encode args for the standalone yield claimer automation. Periodically claims pending fees/emissions and sends them to a designated recipient (wallet, another account, or any address). Returns { description, asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
       inputSchema: {
         pool_protocol: POOL_PROTOCOL_SCHEMA,
         fee_recipient: z
@@ -44,19 +44,19 @@ export function registerYieldClaimerTools(
         const amKey = poolProtocolToAmKey(params.pool_protocol);
         const amAddress = getAmProtocolAddress(validChainId, "yieldClaimers", amKey);
 
-        if (!params.enabled) return formatResult(disabledIntent([amAddress]));
+        if (!params.enabled)
+          return formatResult(
+            disabledIntent([amAddress], `Disable yield_claimer (${params.pool_protocol})`),
+          );
 
         const validFeeRecipient = validateAddress(params.fee_recipient, "fee_recipient");
         const callbackData = encodeYieldClaimerCallbackData(CLAIMER_INITIATOR, validFeeRecipient);
 
         const result = {
+          description: `Enable yield_claimer (${params.pool_protocol})`,
           asset_managers: [amAddress],
           statuses: [true],
           datas: [callbackData],
-          summary: {
-            pool_protocol: params.pool_protocol,
-            fee_recipient: params.fee_recipient,
-          },
         };
         return formatResult(result);
       } catch (err) {
@@ -84,7 +84,7 @@ export function registerYieldClaimerTools(
         openWorldHint: false,
       },
       description:
-        "Encode args for yield claimer coupled with CowSwap. Claims LP fees, then swaps the claimed tokens to a target token via CowSwap batch auctions (MEV-protected). For staked LPs, sell_tokens is typically [AERO]. For non-staked LPs, sell_tokens is [token0, token1] excluding the buy_token. Sets metadata on BOTH the CowSwapper and the Yield Claimer. Returns { asset_managers, statuses, datas } with 2 entries (cowswapper + yield_claimer). Combinable with other intent tools.",
+        "Encode args for yield claimer coupled with CowSwap. Claims LP fees, then swaps the claimed tokens to a target token via CowSwap batch auctions (MEV-protected). For staked LPs, sell_tokens is typically [AERO]. For non-staked LPs, sell_tokens is [token0, token1] excluding the buy_token. Sets metadata on BOTH the CowSwapper and the Yield Claimer. Returns { description, asset_managers, statuses, datas } with 2 entries (cowswapper + yield_claimer). Combinable with other intent tools.",
       inputSchema: {
         pool_protocol: POOL_PROTOCOL_SCHEMA,
         sell_tokens: z
@@ -113,7 +113,12 @@ export function registerYieldClaimerTools(
         const yieldClaimerAddress = getAmProtocolAddress(validChainId, "yieldClaimers", amKey);
 
         if (!params.enabled) {
-          return formatResult(disabledIntent([cowSwapperAddress, yieldClaimerAddress]));
+          return formatResult(
+            disabledIntent(
+              [cowSwapperAddress, yieldClaimerAddress],
+              `Disable yield_claimer_cowswap (${params.pool_protocol})`,
+            ),
+          );
         }
 
         const validSellTokens = params.sell_tokens.map((t, i) =>
@@ -135,15 +140,10 @@ export function registerYieldClaimerTools(
         );
 
         const result = {
+          description: `Enable yield_claimer_cowswap (${params.pool_protocol}, cowswap)`,
           asset_managers: [cowSwapperAddress, yieldClaimerAddress],
           statuses: [true, true],
           datas: [cowSwapperData, yieldClaimerData],
-          summary: {
-            pool_protocol: params.pool_protocol,
-            sell_tokens: params.sell_tokens,
-            buy_token: params.buy_token,
-            fee_recipient: params.fee_recipient,
-          },
         };
         return formatResult(result);
       } catch (err) {

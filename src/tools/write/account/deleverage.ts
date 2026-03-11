@@ -66,7 +66,11 @@ export function registerDeleverageTool(server: McpServer, api: ArcadiaApiClient)
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(formatBatchedResponse(res, chain_id), null, 2),
+              text: JSON.stringify(
+                formatBatchedResponse(res, chain_id, "Deleverage account position"),
+                null,
+                2,
+              ),
             },
           ],
         };

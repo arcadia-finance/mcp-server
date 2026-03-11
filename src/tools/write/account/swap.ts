@@ -63,7 +63,11 @@ export function registerSwapTool(server: McpServer, api: ArcadiaApiClient) {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(formatBatchedResponse(res, chain_id), null, 2),
+              text: JSON.stringify(
+                formatBatchedResponse(res, chain_id, "Swap tokens in account"),
+                null,
+                2,
+              ),
             },
           ],
         };

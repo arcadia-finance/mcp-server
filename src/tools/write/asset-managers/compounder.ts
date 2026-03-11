@@ -25,7 +25,7 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         openWorldHint: false,
       },
       description:
-        "Encode args for the standalone compounder automation. Claims accumulated LP fees and reinvests them back into the position (compound interest). When paired with a rebalancer, the rebalancer compounds at rebalance time — adding a compounder also compounds between rebalances for higher effective APY. Returns { asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
+        "Encode args for the standalone compounder automation. Claims accumulated LP fees and reinvests them back into the position (compound interest). When paired with a rebalancer, the rebalancer compounds at rebalance time — adding a compounder also compounds between rebalances for higher effective APY. Returns { description, asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
       inputSchema: {
         pool_protocol: POOL_PROTOCOL_SCHEMA,
         enabled: z.boolean().default(true).describe("True to enable, false to disable"),
@@ -38,14 +38,17 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         const amKey = poolProtocolToAmKey(params.pool_protocol);
         const amAddress = getAmProtocolAddress(validChainId, "compounders", amKey);
 
-        if (!params.enabled) return formatResult(disabledIntent([amAddress]));
+        if (!params.enabled)
+          return formatResult(
+            disabledIntent([amAddress], `Disable compounder (${params.pool_protocol})`),
+          );
 
         const callbackData = encodeCompounderCallbackData(COMPOUNDER_INITIATOR);
         const result = {
+          description: `Enable compounder (${params.pool_protocol})`,
           asset_managers: [amAddress],
           statuses: [true],
           datas: [callbackData],
-          summary: { pool_protocol: params.pool_protocol },
         };
         return formatResult(result);
       } catch (err) {
@@ -73,7 +76,7 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         openWorldHint: false,
       },
       description:
-        "Encode args for compounder coupled with CowSwap. Claims staked CL rewards (typically AERO), swaps them to a target token via CowSwap batch auctions (MEV-protected), then compounds back into the LP position. Sets metadata on BOTH the CowSwapper and the Compounder in a single call. sell_tokens is typically [AERO] for staked positions. buy_token should be a major token in the pair (USDC, WETH, cbBTC). Returns { asset_managers, statuses, datas } with 2 entries (cowswapper + compounder). Combinable with other intent tools.",
+        "Encode args for compounder coupled with CowSwap. Claims staked CL rewards (typically AERO), swaps them to a target token via CowSwap batch auctions (MEV-protected), then compounds back into the LP position. Sets metadata on BOTH the CowSwapper and the Compounder in a single call. sell_tokens is typically [AERO] for staked positions. buy_token should be a major token in the pair (USDC, WETH, cbBTC). Returns { description, asset_managers, statuses, datas } with 2 entries (cowswapper + compounder). Combinable with other intent tools.",
       inputSchema: {
         pool_protocol: POOL_PROTOCOL_SCHEMA,
         sell_tokens: z
@@ -103,7 +106,12 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         const compounderAddress = getAmProtocolAddress(validChainId, "compounders", amKey);
 
         if (!params.enabled) {
-          return formatResult(disabledIntent([cowSwapperAddress, compounderAddress]));
+          return formatResult(
+            disabledIntent(
+              [cowSwapperAddress, compounderAddress],
+              `Disable compounder_staked (${params.pool_protocol})`,
+            ),
+          );
         }
 
         const validSellTokens = params.sell_tokens.map((t, i) =>
@@ -123,14 +131,10 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         );
 
         const result = {
+          description: `Enable compounder_staked (${params.pool_protocol}, cowswap)`,
           asset_managers: [cowSwapperAddress, compounderAddress],
           statuses: [true, true],
           datas: [cowSwapperData, compounderData],
-          summary: {
-            pool_protocol: params.pool_protocol,
-            sell_tokens: params.sell_tokens,
-            buy_token: params.buy_token,
-          },
         };
         return formatResult(result);
       } catch (err) {

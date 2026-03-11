@@ -13,7 +13,7 @@ All automation on Arcadia uses V3/V4 accounts only. Arcadia's backend bots do th
 
 ## Combining Automations
 
-Each intent tool returns `{ asset_managers: [...], statuses: [...], datas: [...] }`. To apply multiple automations in one tx, concatenate the arrays from each call before passing to `write.account.set_asset_managers`.
+Each intent tool returns `{ description, asset_managers: [...], statuses: [...], datas: [...] }`. To apply multiple automations in one tx, concatenate the arrays from each call before passing to `write.account.set_asset_managers`.
 
 Example: enable rebalancer + merkl_operator in one tx:
 

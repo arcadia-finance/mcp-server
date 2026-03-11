@@ -67,7 +67,11 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(formatBatchedResponse(res, chain_id), null, 2),
+              text: JSON.stringify(
+                formatBatchedResponse(res, chain_id, "Remove liquidity from LP position"),
+                null,
+                2,
+              ),
             },
           ],
         };

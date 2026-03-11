@@ -60,7 +60,11 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
             content: [
               {
                 type: "text" as const,
-                text: JSON.stringify(formatBatchedResponse(claimRes, chain_id), null, 2),
+                text: JSON.stringify(
+                  formatBatchedResponse(claimRes, chain_id, "Claim staking rewards"),
+                  null,
+                  2,
+                ),
               },
             ],
           };
@@ -96,7 +100,11 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(formatBatchedResponse(res, chain_id), null, 2),
+              text: JSON.stringify(
+                formatBatchedResponse(res, chain_id, "Stake LP position"),
+                null,
+                2,
+              ),
             },
           ],
         };

@@ -19,8 +19,12 @@ export interface EncodedIntent {
   datas: `0x${string}`[];
 }
 
-export function disabledIntent(addresses: string[]): EncodedIntent {
+export function disabledIntent(
+  addresses: string[],
+  description: string,
+): EncodedIntent & { description: string } {
   return {
+    description,
     asset_managers: addresses,
     statuses: addresses.map(() => false),
     datas: addresses.map(() => "0x"),
