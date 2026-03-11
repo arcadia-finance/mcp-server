@@ -8,14 +8,19 @@ import { registerStrategyTools } from "./read/strategy.js";
 import { registerPointsTools } from "./read/points.js";
 import { registerGuideTools } from "./read/guides.js";
 import { registerWalletTools } from "./read/wallet.js";
+import { registerAssetManagerTools } from "./read/asset-managers.js";
 import { registerCreateTool } from "./write/account/create.js";
 import { registerDepositTool } from "./write/account/deposit.js";
 import { registerWithdrawTool } from "./write/account/withdraw.js";
 import { registerBorrowTool } from "./write/account/borrow.js";
 import { registerRepayTool } from "./write/account/repay.js";
 import { registerApproveTool } from "./write/wallet/approve.js";
-import { registerSetTool } from "./write/asset-manager/set.js";
-import { registerConfigureTool } from "./write/asset-manager/configure.js";
+import { registerRebalancerTool } from "./write/asset-managers/rebalancer.js";
+import { registerCompounderTools } from "./write/asset-managers/compounder.js";
+import { registerYieldClaimerTools } from "./write/asset-managers/yield-claimer.js";
+import { registerCowSwapperTool } from "./write/asset-managers/cow-swapper.js";
+import { registerMerklOperatorTool } from "./write/asset-managers/merkl-operator.js";
+import { registerSetAssetManagersTool } from "./write/asset-managers/set-asset-managers.js";
 import { registerSendTool } from "./dev/send.js";
 import { registerAddLiquidityTool } from "./write/account/add-liquidity.js";
 import { registerRemoveLiquidityTool } from "./write/account/remove-liquidity.js";
@@ -37,6 +42,7 @@ export function registerAllTools(
   registerPointsTools(server, api);
   registerGuideTools(server);
   registerWalletTools(server, chains);
+  registerAssetManagerTools(server);
 
   // Write tools — account
   registerCreateTool(server, chains);
@@ -54,9 +60,13 @@ export function registerAllTools(
   // Write tools — wallet
   registerApproveTool(server, chains);
 
-  // Write tools — asset manager
-  registerSetTool(server, chains);
-  registerConfigureTool(server, chains);
+  // Write tools — asset managers
+  registerRebalancerTool(server, chains);
+  registerCompounderTools(server, chains);
+  registerYieldClaimerTools(server, chains);
+  registerCowSwapperTool(server, chains);
+  registerMerklOperatorTool(server, chains);
+  registerSetAssetManagersTool(server, chains);
 
   // Dev tools
   registerSendTool(server, chains);

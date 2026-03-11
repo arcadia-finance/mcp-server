@@ -67,12 +67,12 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 
 These tools batch multiple operations into ONE atomic transaction. Always prefer these over individual tools.
 
-| Tool                            | Batches                                               | When to use                                                                                                     |
-| ------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `write.account.add_liquidity`   | deposit + swap + mint LP + optional borrow            | Open LP position. Do NOT call `write.account.deposit` separately — this handles wallet transfer atomically.     |
-| `write.account.close`           | burn LP + swap + repay debt (up to 3 steps)           | Close/exit a position. ALWAYS try this first. Tokens stay in account — follow up with `write.account.withdraw`. |
-| `write.account.deleverage`      | swap collateral + repay debt                          | Repay debt using account collateral (no wallet tokens needed). Preferred for health factor fixes.               |
-| `write.asset_manager.configure` | grant permission + set initiator/fees/strategy params | Enable AND configure an automation (rebalancer, compounder, yield claimer, merkl) in one transaction.           |
+| Tool                               | Batches                                            | When to use                                                                                                     |
+| ---------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `write.account.add_liquidity`      | deposit + swap + mint LP + optional borrow         | Open LP position. Do NOT call `write.account.deposit` separately — this handles wallet transfer atomically.     |
+| `write.account.close`              | burn LP + swap + repay debt (up to 3 steps)        | Close/exit a position. ALWAYS try this first. Tokens stay in account — follow up with `write.account.withdraw`. |
+| `write.account.deleverage`         | swap collateral + repay debt                       | Repay debt using account collateral (no wallet tokens needed). Preferred for health factor fixes.               |
+| `write.account.set_asset_managers` | build setAssetManagers tx from encoded intent args | Combine multiple automations by merging arrays from `write.asset_managers.*` intent tools.                      |
 
 ### Individual Write Tools (use when batched tools fail or for standalone operations)
 
@@ -87,7 +87,7 @@ These tools batch multiple operations into ONE atomic transaction. Always prefer
 | `write.account.swap`             | Swap assets within account (backend handles routing). For closing positions, prefer `write.account.close`.                                                                                                         |
 | `write.account.remove_liquidity` | PARTIAL liquidity decrease only (position stays open). For full LP removal/exit, use `write.account.close`.                                                                                                        |
 | `write.account.stake`            | Stake, unstake, or claim rewards for an LP position. Direction auto-detected from `asset_address`.                                                                                                                 |
-| `write.asset_manager.set`        | Grant/revoke AM permission only (no configuration). Use to revoke; for full setup prefer `write.asset_manager.configure`.                                                                                          |
+| `read.asset_managers.intents`    | List available automations with tool names, required params, and supported chains. Use to discover what automations can be configured.                                                                             |
 
 ### Dev Tools (only available when `PK` env var is set)
 
@@ -128,7 +128,7 @@ Use as `pool_address` in `write.account.borrow` / `write.account.repay`, as `cre
 
 ## Asset Manager Addresses (Base 8453)
 
-Use with `write.asset_manager.configure` (enable + configure) or `write.asset_manager.set` (grant/revoke only). Both require V3/V4 accounts.
+Addresses are auto-resolved by `write.asset_managers.*` intent tools based on `pool_protocol`. Listed here for reference. All require V3/V4 accounts.
 
 | Type           | Protocol      | Address                                      |
 | -------------- | ------------- | -------------------------------------------- |
@@ -148,7 +148,7 @@ Use with `write.asset_manager.configure` (enable + configure) or `write.asset_ma
 | CoW Swapper    | All           | `0xc928013A219EC9F18dE7B2dee6A50Ba626811854` |
 | Gas Relayer    | All           | `0xD938C8d04cF91094fecAF0A2018EAac483a40137` |
 
-**Slipstream V1 vs V2:** The pool determines the version — some pools are V1, some are V2. The API currently returns `protocol: "slipstream"` without V1/V2 distinction. To identify the version, check the position manager address from `read.account.info` against the known addresses (V1: `0x8279...`, V2: `0xa990...`). Alternatively, pass `pool_protocol` directly to `write.asset_manager.configure` to auto-resolve the correct AM address. Staked and wrapped staked positions use the same asset managers as their base protocol.
+**Slipstream V1 vs V2:** The pool determines the version — some pools are V1, some are V2. The API currently returns `protocol: "slipstream"` without V1/V2 distinction. To identify the version, check the position manager address from `read.account.info` against the known addresses (V1: `0x8279...`, V2: `0xa990...`). Alternatively, pass `pool_protocol` directly to `write.asset_managers.*` intent tools to auto-resolve the correct AM address. Staked and wrapped staked positions use the same asset managers as their base protocol.
 
 ## Account Versions
 
@@ -156,7 +156,7 @@ Spot vs margin is determined by whether a **creditor** (lending pool) is set at 
 
 - `account_version: 3` — **margin account** (created with a `creditor`). Can borrow, leverage, and mint LP. Uses an onchain whitelist of allowed collateral tokens.
 - `account_version: 4` or `0` (latest) — **spot account** (no creditor, no borrowing). Can hold assets and mint LP with `leverage: 0`. Accepts any ERC20 (no onchain whitelist).
-- `account_version: 1` or `2` — legacy. Not supported by current MCP tools (`write.asset_manager.set` and `write.asset_manager.configure` require V3/V4).
+- `account_version: 1` or `2` — legacy. Not supported by current MCP tools (`write.asset_managers.*` and `write.account.set_asset_managers` require V3/V4).
 - For **leveraged LP strategies**, use `account_version: 3` with a creditor.
 - To check an existing account's version: call `read.account.info` — the response includes the account version.
 

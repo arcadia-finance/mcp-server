@@ -40,22 +40,29 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 
 All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
-| Tool                             | Description                                                                                                                                                              |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `write.wallet.approve`           | Approve an ERC20 token for spending. Required before depositing into an account. Call `read.wallet.allowance` first to check if already approved.                        |
-| `write.account.create`           | Create a new Arcadia account via Factory.                                                                                                                                |
-| `write.account.deposit`          | Deposit ERC20 tokens into an account.                                                                                                                                    |
-| `write.account.withdraw`         | Withdraw assets from an account.                                                                                                                                         |
-| `write.account.borrow`           | Borrow from a lending pool.                                                                                                                                              |
-| `write.account.repay`            | Repay debt to a lending pool from wallet.                                                                                                                                |
-| `write.account.add_liquidity`    | Flash-action: deposit + swap + mint LP + optional leverage, atomically.                                                                                                  |
-| `write.account.remove_liquidity` | Remove/decrease LP position liquidity.                                                                                                                                   |
-| `write.account.swap`             | Swap assets within an account (backend-routed).                                                                                                                          |
-| `write.account.deleverage`       | Repay debt by selling collateral (swap + repay in one tx).                                                                                                               |
-| `write.account.close`            | Atomic close: burn LP + swap + repay debt in one tx.                                                                                                                     |
-| `write.account.stake`            | Stake, unstake, or claim rewards for LP positions.                                                                                                                       |
-| `write.asset_manager.set`        | Grant or revoke an asset manager contract's permission on a V3/V4 account. For full setup with config, use `write.asset_manager.configure`.                              |
-| `write.asset_manager.configure`  | Enable AND configure an asset manager in one tx for V3/V4 accounts: sets initiator, fee limits, and strategy parameters (trigger thresholds, compound mode, recipients). |
+| Tool                                         | Description                                                                                                                                       |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `write.wallet.approve`                       | Approve an ERC20 token for spending. Required before depositing into an account. Call `read.wallet.allowance` first to check if already approved. |
+| `write.account.create`                       | Create a new Arcadia account via Factory.                                                                                                         |
+| `write.account.deposit`                      | Deposit ERC20 tokens into an account.                                                                                                             |
+| `write.account.withdraw`                     | Withdraw assets from an account.                                                                                                                  |
+| `write.account.borrow`                       | Borrow from a lending pool.                                                                                                                       |
+| `write.account.repay`                        | Repay debt to a lending pool from wallet.                                                                                                         |
+| `write.account.add_liquidity`                | Flash-action: deposit + swap + mint LP + optional leverage, atomically.                                                                           |
+| `write.account.remove_liquidity`             | Remove/decrease LP position liquidity.                                                                                                            |
+| `write.account.swap`                         | Swap assets within an account (backend-routed).                                                                                                   |
+| `write.account.deleverage`                   | Repay debt by selling collateral (swap + repay in one tx).                                                                                        |
+| `write.account.close`                        | Atomic close: burn LP + swap + repay debt in one tx.                                                                                              |
+| `write.account.stake`                        | Stake, unstake, or claim rewards for LP positions.                                                                                                |
+| `read.asset_managers.intents`                | List available automation intents with tool names, required params, and supported chains.                                                         |
+| `write.asset_managers.rebalancer`            | Encode rebalancer automation args (strategy config, triggers, compound mode).                                                                     |
+| `write.asset_managers.compounder`            | Encode standalone compounder args.                                                                                                                |
+| `write.asset_managers.compounder_staked`     | Encode compounder + CowSwap coupled args (sell rewards, buy target token).                                                                        |
+| `write.asset_managers.yield_claimer`         | Encode yield claimer args (claim fees to recipient).                                                                                              |
+| `write.asset_managers.yield_claimer_cowswap` | Encode yield claimer + CowSwap coupled args.                                                                                                      |
+| `write.asset_managers.cow_swapper`           | Encode direct CowSwap mode args (Base only).                                                                                                      |
+| `write.asset_managers.merkl_operator`        | Encode Merkl operator args (claim external rewards).                                                                                              |
+| `write.account.set_asset_managers`           | Build unsigned setAssetManagers tx from encoded intent args. Combine multiple intents by merging arrays.                                          |
 
 ### Dev Tools
 
