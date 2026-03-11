@@ -10,7 +10,6 @@ import {
   encodeCompounderCoupledCallbackData,
   encodeCowSwapTokenMetadata,
   disabledIntent,
-  type EncodedIntent,
 } from "./encoding.js";
 import { POOL_PROTOCOL_SCHEMA, poolProtocolToAmKey, formatResult } from "./shared.js";
 
@@ -42,10 +41,11 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         if (!params.enabled) return formatResult(disabledIntent([amAddress]));
 
         const callbackData = encodeCompounderCallbackData(COMPOUNDER_INITIATOR);
-        const result: EncodedIntent = {
+        const result = {
           asset_managers: [amAddress],
           statuses: [true],
           datas: [callbackData],
+          summary: { pool_protocol: params.pool_protocol },
         };
         return formatResult(result);
       } catch (err) {
@@ -122,10 +122,15 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
           "cow_swap_compound",
         );
 
-        const result: EncodedIntent = {
+        const result = {
           asset_managers: [cowSwapperAddress, compounderAddress],
           statuses: [true, true],
           datas: [cowSwapperData, compounderData],
+          summary: {
+            pool_protocol: params.pool_protocol,
+            sell_tokens: params.sell_tokens,
+            buy_token: params.buy_token,
+          },
         };
         return formatResult(result);
       } catch (err) {

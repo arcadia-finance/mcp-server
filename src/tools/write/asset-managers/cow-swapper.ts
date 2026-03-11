@@ -3,7 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../../config/chains.js";
 import { getStandaloneAmAddress } from "../../../config/addresses.js";
 import { validateChainId } from "../../../utils/validation.js";
-import { encodeOuterMetadata, disabledIntent, type EncodedIntent } from "./encoding.js";
+import { encodeOuterMetadata, disabledIntent } from "./encoding.js";
 import { formatResult } from "./shared.js";
 
 export function registerCowSwapperTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
@@ -32,10 +32,11 @@ export function registerCowSwapperTool(server: McpServer, _chains: Record<ChainI
         if (!params.enabled) return formatResult(disabledIntent([cowSwapperAddress]));
 
         const cowSwapperData = encodeOuterMetadata("cow_swap_direct", "0x");
-        const result: EncodedIntent = {
+        const result = {
           asset_managers: [cowSwapperAddress],
           statuses: [true],
           datas: [cowSwapperData],
+          summary: { mode: "direct" },
         };
         return formatResult(result);
       } catch (err) {

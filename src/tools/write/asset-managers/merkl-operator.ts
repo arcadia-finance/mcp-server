@@ -3,12 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ChainId, ChainConfig } from "../../../config/chains.js";
 import { getStandaloneAmAddress } from "../../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
-import {
-  MERKL_INITIATOR,
-  encodeMerklOperatorCallbackData,
-  disabledIntent,
-  type EncodedIntent,
-} from "./encoding.js";
+import { MERKL_INITIATOR, encodeMerklOperatorCallbackData, disabledIntent } from "./encoding.js";
 import { formatResult } from "./shared.js";
 
 export function registerMerklOperatorTool(
@@ -43,10 +38,11 @@ export function registerMerklOperatorTool(
         const validRewardRecipient = validateAddress(params.reward_recipient, "reward_recipient");
         const callbackData = encodeMerklOperatorCallbackData(MERKL_INITIATOR, validRewardRecipient);
 
-        const result: EncodedIntent = {
+        const result = {
           asset_managers: [amAddress],
           statuses: [true],
           datas: [callbackData],
+          summary: { reward_recipient: params.reward_recipient },
         };
         return formatResult(result);
       } catch (err) {

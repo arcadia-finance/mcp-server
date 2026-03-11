@@ -10,7 +10,6 @@ import {
   encodeYieldClaimerCoupledCallbackData,
   encodeCowSwapTokenMetadata,
   disabledIntent,
-  type EncodedIntent,
 } from "./encoding.js";
 import { POOL_PROTOCOL_SCHEMA, poolProtocolToAmKey, formatResult } from "./shared.js";
 
@@ -50,10 +49,14 @@ export function registerYieldClaimerTools(
         const validFeeRecipient = validateAddress(params.fee_recipient, "fee_recipient");
         const callbackData = encodeYieldClaimerCallbackData(CLAIMER_INITIATOR, validFeeRecipient);
 
-        const result: EncodedIntent = {
+        const result = {
           asset_managers: [amAddress],
           statuses: [true],
           datas: [callbackData],
+          summary: {
+            pool_protocol: params.pool_protocol,
+            fee_recipient: params.fee_recipient,
+          },
         };
         return formatResult(result);
       } catch (err) {
@@ -131,10 +134,16 @@ export function registerYieldClaimerTools(
           "cow_swap_yield_claim",
         );
 
-        const result: EncodedIntent = {
+        const result = {
           asset_managers: [cowSwapperAddress, yieldClaimerAddress],
           statuses: [true, true],
           datas: [cowSwapperData, yieldClaimerData],
+          summary: {
+            pool_protocol: params.pool_protocol,
+            sell_tokens: params.sell_tokens,
+            buy_token: params.buy_token,
+            fee_recipient: params.fee_recipient,
+          },
         };
         return formatResult(result);
       } catch (err) {

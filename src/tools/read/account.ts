@@ -7,6 +7,7 @@ import { getPublicClient } from "../../clients/chain.js";
 import {
   getChainAmChecks,
   AM_KEY_TO_POOL_PROTOCOL,
+  lpNameToPoolProtocol,
   type AmProtocol,
 } from "../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../utils/validation.js";
@@ -29,6 +30,10 @@ function trimOverview(overview: Record<string, unknown>): Record<string, unknown
       const details = asset_details as Record<string, unknown> | undefined;
       if (details?.reward_token) {
         asset.reward_token = details.reward_token;
+      }
+      const protocol = lpNameToPoolProtocol(asset.name as string);
+      if (protocol) {
+        asset.pool_protocol = protocol;
       }
       return asset;
     });
@@ -193,9 +198,28 @@ export function registerAccountTools(
               .catch(() => null);
           }
 
+          const trimmedOverview = overview
+            ? trimOverview(overview as Record<string, unknown>)
+            : null;
+
+          // Fallback: derive pool_protocol from LP asset names when AMs don't provide it
+          if (automation && !automation.pool_protocol && trimmedOverview) {
+            const assets = (trimmedOverview as Record<string, unknown>).assets as
+              | Record<string, unknown>[]
+              | undefined;
+            if (assets) {
+              for (const a of assets) {
+                if (a.pool_protocol) {
+                  automation.pool_protocol = a.pool_protocol as string;
+                  break;
+                }
+              }
+            }
+          }
+
           const result: Record<string, unknown> = {
             account_version: accountVersion,
-            overview: overview ? trimOverview(overview as Record<string, unknown>) : null,
+            overview: trimmedOverview,
             liquidation_price,
           };
           if (automation) result.automation = automation;
