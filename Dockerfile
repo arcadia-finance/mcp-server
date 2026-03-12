@@ -15,11 +15,7 @@ FROM node:22-slim
 
 WORKDIR /app
 
-RUN corepack enable
-
-COPY package.json yarn.lock .yarnrc.yml ./
-RUN yarn workspaces focus --production
-
+COPY --from=build /app/node_modules/ node_modules/
 COPY --from=build /app/dist/ dist/
 COPY skills/ skills/
 
