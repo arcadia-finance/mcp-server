@@ -3,7 +3,7 @@
   "name": "io.github.arcadia-finance/mcp-server",
   "title": "Arcadia Finance",
   "description": "Manage Uniswap and Aerodrome liquidity positions with automated rebalancing and leverage.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "websiteUrl": "https://arcadia.finance",
   "repository": {
     "url": "https://github.com/arcadia-finance/mcp-server",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "@arcadia-finance/mcp-server",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "transport": {
         "type": "stdio"
       },
