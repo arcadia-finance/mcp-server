@@ -72,7 +72,7 @@ if (transportMode === "http") {
     res.status(204).end();
   });
 
-  const rateLimit = (await import("express-rate-limit")).default;
+  const { default: rateLimit, ipKeyGenerator } = await import("express-rate-limit");
   const rpm = parseInt(process.env.RATE_LIMIT_RPM ?? "60", 10);
   app.use(
     "/mcp",
@@ -80,7 +80,7 @@ if (transportMode === "http") {
       windowMs: 60_000,
       max: rpm,
       keyGenerator: (req: import("express").Request) =>
-        (req.headers["mcp-session-id"] as string) || req.ip || "unknown",
+        (req.headers["mcp-session-id"] as string) || ipKeyGenerator(req.ip ?? "") || "unknown",
       standardHeaders: true,
       legacyHeaders: false,
     }),
