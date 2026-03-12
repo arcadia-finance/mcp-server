@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { AmProtocol } from "../../../config/addresses.js";
-export type PoolProtocol =
+
+export type DexProtocol =
   | "slipstream"
   | "slipstream_v2"
   | "staked_slipstream"
@@ -8,7 +9,7 @@ export type PoolProtocol =
   | "uniV3"
   | "uniV4";
 
-const PROTOCOL_TO_AM_KEY: Record<PoolProtocol, AmProtocol> = {
+const PROTOCOL_TO_AM_KEY: Record<DexProtocol, AmProtocol> = {
   slipstream: "slipstreamV1",
   slipstream_v2: "slipstreamV2",
   staked_slipstream: "slipstreamV1",
@@ -17,11 +18,11 @@ const PROTOCOL_TO_AM_KEY: Record<PoolProtocol, AmProtocol> = {
   uniV4: "uniV4",
 };
 
-export function poolProtocolToAmKey(protocol: PoolProtocol): AmProtocol {
+export function dexProtocolToAmKey(protocol: DexProtocol): AmProtocol {
   return PROTOCOL_TO_AM_KEY[protocol];
 }
 
-export const POOL_PROTOCOL_SCHEMA = z
+export const DEX_PROTOCOL_SCHEMA = z
   .enum([
     "slipstream",
     "slipstream_v2",
@@ -30,13 +31,12 @@ export const POOL_PROTOCOL_SCHEMA = z
     "uniV3",
     "uniV4",
   ])
-  .describe(
-    "LP protocol — resolves the correct AM address. staked_slipstream variants are aliases for slipstream (same AM contracts).",
-  );
+  .describe("DEX protocol of the LP position — used to resolve the correct asset manager address.");
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function formatResult(result: Record<string, any>) {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+    structuredContent: result as unknown as Record<string, unknown>,
   };
 }

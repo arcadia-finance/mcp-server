@@ -6,6 +6,7 @@ import { getPublicClient } from "../../../clients/chain.js";
 import { readAccountMetadata } from "./metadata.js";
 import { formatBatchedResponse } from "./format-response.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
+import { BatchedTransactionOutput } from "../../output-schemas.js";
 
 export function registerCloseTool(
   server: McpServer,
@@ -22,6 +23,7 @@ export function registerCloseTool(
         idempotentHint: true,
         openWorldHint: true,
       },
+      outputSchema: BatchedTransactionOutput,
       description: `Atomic flash-action that closes an Arcadia account position in ONE transaction. Combines up to 3 steps atomically: [burn LP position] + [swap all tokens to a single target asset] + [repay debt]. Tokens remain in the account after closing — use write.account.withdraw to send them to your wallet.
 
 ALWAYS try this tool first when closing/exiting a position. Only fall back to individual tools (write.account.remove_liquidity, write.account.swap, write.account.deleverage, write.account.withdraw) if this tool fails.
@@ -240,17 +242,15 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           };
         }
 
+        const response = formatBatchedResponse(res, chain_id, "Close account position");
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                formatBatchedResponse(res, chain_id, "Close account position"),
-                null,
-                2,
-              ),
+              text: JSON.stringify(response, null, 2),
             },
           ],
+          structuredContent: response,
         };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

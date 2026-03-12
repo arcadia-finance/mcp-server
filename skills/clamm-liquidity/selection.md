@@ -8,7 +8,7 @@ Use this guide to evaluate whether a strategy makes sense and how to configure i
 
 ```
 read.strategy.list(chain_id: 8453)           // browse all LP strategies + fee APY
-read.pools(chain_id: 8453)        // check borrow cost for leveraged strategies
+read.pool.list(chain_id: 8453)        // check borrow cost for leveraged strategies
 ```
 
 **Viability check (leveraged):**
@@ -173,7 +173,7 @@ Monitor periodically with `read.account.info` and `read.account.pnl`. Exit or ad
 
 ```
 [ ] read.strategy.list → fee_APY noted (7d avg for default range; call with strategy_id for per-range APY)
-[ ] read.pools → borrow_APY noted (if leveraged)
+[ ] read.pool.list → borrow_APY noted (if leveraged)
 [ ] net_APY = fee_APY - (leverage-1) × borrow_APY > 0
 [ ] Pair type matches strategy (volatile/stable for delta neutral)
 [ ] Range width: modeled or estimated for pair volatility + stAAA quota

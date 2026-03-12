@@ -10,11 +10,12 @@ import {
   disabledIntent,
   DEFAULT_REBALANCER_PARAMS,
 } from "./encoding.js";
-import { POOL_PROTOCOL_SCHEMA, poolProtocolToAmKey, formatResult } from "./shared.js";
+import { IntentOutput } from "../../output-schemas.js";
+import { DEX_PROTOCOL_SCHEMA, dexProtocolToAmKey, formatResult } from "./shared.js";
 
 export function registerRebalancerTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "write.asset_managers.rebalancer",
+    "write.asset_manager.rebalancer",
     {
       annotations: {
         title: "Encode Rebalancer Automation",
@@ -24,9 +25,10 @@ export function registerRebalancerTool(server: McpServer, _chains: Record<ChainI
         openWorldHint: false,
       },
       description:
-        "Encode args for the rebalancer automation. When the LP position goes out of range, Arcadia's bot repositions it centered on the current price. All pending fees and staking rewards are claimed and compounded into the new position. Strategy config: 'default' (all params at defaults) uses when_out_of_range — rebalances exactly when price exits range. 'custom' (any param differs) uses time_and_price_based_triggers — adds configurable trigger offsets, cooldowns, and token composition. Returns { description, asset_managers, statuses, datas } — pass to write.account.set_asset_managers to build the unsigned tx. Combinable: merge arrays from multiple intent tools to configure several automations in one tx.",
+        "Encode args for the rebalancer automation. When the LP position goes out of range, Arcadia's bot repositions it centered on the current price. All pending fees and staking rewards are claimed and compounded into the new position. Strategy config: 'default' (all params at defaults) uses when_out_of_range — rebalances exactly when price exits range. 'custom' (any param differs) uses time_and_price_based_triggers — adds configurable trigger offsets, cooldowns, and token composition. Returns { asset_managers, statuses, datas } — pass to write.account.set_asset_managers to build the unsigned tx. Combinable: merge arrays from multiple intent tools to configure several automations in one tx. trigger_lower_ratio and trigger_upper_ratio are independent — asymmetric configs are valid (e.g. trigger_lower_ratio=-50000, trigger_upper_ratio=0 means: trigger 5% of the tick range before the lower boundary is hit, but only trigger exactly at the upper boundary). Ratios represent tick distance, not price: a ratio of 50000 shifts the trigger by 5% of (tick_upper − tick_lower) ticks, which is not the same as 5% of price.",
+      outputSchema: IntentOutput,
       inputSchema: {
-        pool_protocol: POOL_PROTOCOL_SCHEMA,
+        dex_protocol: DEX_PROTOCOL_SCHEMA,
         enabled: z.boolean().default(true).describe("True to enable, false to disable"),
         compound_leftovers: z
           .enum(["all", "none", "token0", "token1"])
@@ -44,14 +46,14 @@ export function registerRebalancerTool(server: McpServer, _chains: Record<ChainI
           .int()
           .default(0)
           .describe(
-            "Offset from the lower tick to trigger rebalance, scaled by 1e6. 0 = at boundary. Positive (e.g. 50000 = 5%) triggers BEFORE price exits range (preemptive). Negative (e.g. -50000 = -5%) triggers AFTER price has moved beyond the range (delayed).",
+            "Offset from tick_lower, as a fraction of the position's tick range, scaled by 1e6. trigger_tick_lower = tick_lower - tick_range * ratio. 0 = trigger at the boundary. Positive (e.g. 50000 = 5% of tick range): trigger tick is outside the position — price must travel further beyond the range before rebalance fires (delayed). Negative (e.g. -50000 = -5%): trigger tick is inside the position — rebalance fires while price is still within range (preemptive).",
           ),
         trigger_upper_ratio: z
           .number()
           .int()
           .default(0)
           .describe(
-            "Offset from the upper tick to trigger rebalance, scaled by 1e6. 0 = at boundary. Positive (e.g. 50000 = 5%) triggers BEFORE price exits range (preemptive). Negative (e.g. -50000 = -5%) triggers AFTER price has moved beyond the range (delayed).",
+            "Offset from tick_upper, as a fraction of the position's tick range, scaled by 1e6. trigger_tick_upper = tick_upper + tick_range * ratio. 0 = trigger at the boundary. Positive (e.g. 50000 = 5% of tick range): trigger tick is outside the position — price must travel further beyond the range before rebalance fires (delayed). Negative (e.g. -50000 = -5%): trigger tick is inside the position — rebalance fires while price is still within range (preemptive).",
           ),
         min_rebalance_time: z
           .number()
@@ -75,12 +77,12 @@ export function registerRebalancerTool(server: McpServer, _chains: Record<ChainI
     async (params) => {
       try {
         const validChainId = validateChainId(params.chain_id);
-        const amKey = poolProtocolToAmKey(params.pool_protocol);
+        const amKey = dexProtocolToAmKey(params.dex_protocol);
         const amAddress = getAmProtocolAddress(validChainId, "rebalancers", amKey);
 
         if (!params.enabled) {
           return formatResult(
-            disabledIntent([amAddress], `Disable rebalancer (${params.pool_protocol})`),
+            disabledIntent([amAddress], `Disable rebalancer (${params.dex_protocol})`),
           );
         }
 
@@ -110,14 +112,16 @@ export function registerRebalancerTool(server: McpServer, _chains: Record<ChainI
           params.trigger_lower_ratio !== d.triggerLowerRatio ||
           params.trigger_upper_ratio !== d.triggerUpperRatio ||
           params.min_rebalance_time !== d.minRebalanceTime ||
-          params.max_rebalance_time !== d.maxRebalanceTime;
+          params.max_rebalance_time !== d.maxRebalanceTime ||
+          params.strategy_hook !== undefined;
 
         const strategyName = isCustom ? "custom" : "default";
         const result = {
-          description: `Enable rebalancer (${strategyName} strategy, ${params.pool_protocol})`,
+          description: `Enable rebalancer (${strategyName} strategy, ${params.dex_protocol})`,
           asset_managers: [amAddress],
           statuses: [true],
           datas: [callbackData],
+          strategy_name: strategyName,
         };
 
         return formatResult(result);

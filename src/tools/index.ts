@@ -41,7 +41,7 @@ export function registerAllTools(
   registerStrategyTools(server, api);
   registerPointsTools(server, api);
   registerGuideTools(server);
-  registerWalletTools(server, chains);
+  registerWalletTools(server, chains, api);
   registerAssetManagerTools(server);
 
   // Write tools — account

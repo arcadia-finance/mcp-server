@@ -6,6 +6,7 @@ import { accountAbi, getAccountAbi } from "../../../abis/index.js";
 import { getPublicClient } from "../../../clients/chain.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
+import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
@@ -18,6 +19,7 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
         idempotentHint: true,
         openWorldHint: false,
       },
+      outputSchema: SimpleTransactionOutput,
       description:
         "Build an unsigned transaction to withdraw assets from an Arcadia account to the owner's wallet. Only the account owner can withdraw. Will revert if the account has debt and withdrawal would make it undercollateralized. Does not support max_uint256 — pass exact amounts from read.account.info. Account version is auto-detected on-chain (override with account_version if needed).",
       inputSchema: {
@@ -101,25 +103,23 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
           }),
         );
 
+        const result = {
+          description: `Withdraw assets from Arcadia account (V${version})`,
+          transaction: {
+            to: validAccount,
+            data,
+            value: "0",
+            chainId: validChainId,
+          },
+        };
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                {
-                  description: `Withdraw assets from Arcadia account (V${version})`,
-                  transaction: {
-                    to: validAccount,
-                    data,
-                    value: "0",
-                    chainId: validChainId,
-                  },
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(result, null, 2),
             },
           ],
+          structuredContent: result,
         };
       } catch (err) {
         return {

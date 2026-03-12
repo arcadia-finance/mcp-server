@@ -7,6 +7,7 @@ import { PROTOCOL } from "../../../config/addresses.js";
 import { getPublicClient } from "../../../clients/chain.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
+import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 // Arcadia Proxy bytecode from CreateProxyLib.sol — used to compute CREATE2 addresses.
 const PROXY_BYTECODE =
@@ -50,6 +51,7 @@ export function registerCreateTool(server: McpServer, chains: Record<ChainId, Ch
         idempotentHint: true,
         openWorldHint: false,
       },
+      outputSchema: SimpleTransactionOutput,
       description:
         "Build an unsigned transaction to create a new Arcadia account via the Factory contract. account_version: 3 with creditor → V3 margin account (can borrow/leverage). account_version: 0 or 4 → V4 spot account (no borrowing, creditor is ignored, any ERC20 allowed). Returns the predicted account address (deterministic via CREATE2).",
       inputSchema: {
@@ -121,29 +123,24 @@ export function registerCreateTool(server: McpServer, chains: Record<ChainId, Ch
           // RPC unavailable — skip address prediction
         }
 
+        const result = {
+          description: "Create a new Arcadia account",
+          transaction: {
+            to: PROTOCOL.factory,
+            data,
+            value: "0",
+            chainId: validChainId,
+          },
+          ...(predictedAddress && { predicted_account_address: predictedAddress }),
+        };
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                {
-                  description: "Create a new Arcadia account",
-                  transaction: {
-                    to: PROTOCOL.factory,
-                    data,
-                    value: "0",
-                    chainId: validChainId,
-                  },
-                  ...(predictedAddress && { predicted_account_address: predictedAddress }),
-                  next_steps: predictedAddress
-                    ? "The new account will be at predicted_account_address after tx confirms. You can use it immediately without waiting for indexing."
-                    : "After tx confirms, call read.account.info with wallet_address to find the new account. Note: there may be a short indexing delay.",
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(result, null, 2),
             },
           ],
+          structuredContent: result,
         };
       } catch (err) {
         return {

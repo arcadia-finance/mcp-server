@@ -7,6 +7,7 @@ import { readAccountMetadata } from "./metadata.js";
 import { formatBatchedResponse } from "./format-response.js";
 import { TOKENS } from "../../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
+import { BatchedTransactionOutput } from "../../output-schemas.js";
 
 interface StrategyUnderlying {
   underlying_address: string;
@@ -55,15 +56,18 @@ export function registerAddLiquidityTool(
         idempotentHint: true,
         openWorldHint: true,
       },
+      outputSchema: BatchedTransactionOutput,
       description:
-        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call write.account.deposit separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (read.wallet.allowance), then approve if needed (write.wallet.approve). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call read.guides('strategies'). The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation. expected_value_change is in raw units of the account's numeraire token (6 decimals for USDC, 18 for WETH). Negative = cost to open, positive = value gained. Compare before.total_account_value and after.total_account_value for the full picture.",
+        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call write.account.deposit separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (read.wallet.allowances), then approve if needed (write.wallet.approve). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call read.guides('strategies'). The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation. expected_value_change is in raw units of the account's numeraire token (6 decimals for USDC, 18 for WETH). Negative = cost to open, positive = value gained. Compare before.total_account_value and after.total_account_value for the full picture.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         wallet_address: z.string().describe("Wallet address of the account owner"),
         positions: z
           .array(
             z.object({
-              strategy_id: z.number().describe("From read.strategy.list tool"),
+              strategy_id: z
+                .number()
+                .describe("From read.strategy.list (or read.strategy.info for full range detail)"),
               tick_lower: z
                 .number()
                 .optional()
@@ -406,17 +410,15 @@ export function registerAddLiquidityTool(
             isError: true,
           };
         }
+        const response = formatBatchedResponse(res, chain_id, "Add liquidity to LP position");
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                formatBatchedResponse(res, chain_id, "Add liquidity to LP position"),
-                null,
-                2,
-              ),
+              text: JSON.stringify(response, null, 2),
             },
           ],
+          structuredContent: response,
         };
       } catch (err) {
         return {

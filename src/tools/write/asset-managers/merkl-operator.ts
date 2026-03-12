@@ -4,6 +4,7 @@ import type { ChainId, ChainConfig } from "../../../config/chains.js";
 import { getStandaloneAmAddress } from "../../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
 import { MERKL_INITIATOR, encodeMerklOperatorCallbackData, disabledIntent } from "./encoding.js";
+import { IntentOutput } from "../../output-schemas.js";
 import { formatResult } from "./shared.js";
 
 export function registerMerklOperatorTool(
@@ -11,7 +12,7 @@ export function registerMerklOperatorTool(
   _chains: Record<ChainId, ChainConfig>,
 ) {
   server.registerTool(
-    "write.asset_managers.merkl_operator",
+    "write.asset_manager.merkl_operator",
     {
       annotations: {
         title: "Encode Merkl Operator Automation",
@@ -21,7 +22,8 @@ export function registerMerklOperatorTool(
         openWorldHint: false,
       },
       description:
-        "Encode args for the Merkl operator automation. Claims external Merkl protocol incentive rewards into the account — additional rewards paid by token teams on top of regular LP fees. Enable when the pool has active Merkl campaigns (check APY breakdown in read.strategy.list). Always combine with rebalancer when both are relevant — no conflict, extra free yield. Returns { description, asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
+        "Encode args for the Merkl operator automation. Claims external Merkl protocol incentive rewards into the account — additional rewards paid by token teams on top of regular LP fees. Enable when the pool has active Merkl campaigns (check APY breakdown in read.strategy.list). Always combine with rebalancer when both are relevant — no conflict, extra free yield. Returns { asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
+      outputSchema: IntentOutput,
       inputSchema: {
         reward_recipient: z.string().describe("Address to receive Merkl rewards"),
         enabled: z.boolean().default(true).describe("True to enable, false to disable"),

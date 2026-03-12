@@ -46,6 +46,46 @@ if (transportMode === "http") {
   const app = express();
   const port = parseInt(process.env.PORT ?? "3000", 10);
 
+  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "https://mcp.arcadia.finance")
+    .split(",")
+    .map((o) => o.trim());
+
+  function validateOrigin(
+    req: import("express").Request,
+    res: import("express").Response,
+  ): boolean {
+    const origin = req.headers.origin;
+    if (!origin) return true; // non-browser clients (curl, SDK) don't send Origin
+    if (!ALLOWED_ORIGINS.includes(origin)) {
+      res.status(403).send("Forbidden: invalid origin");
+      return false;
+    }
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, mcp-session-id");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Expose-Headers", "mcp-session-id");
+    return true;
+  }
+
+  app.options("/mcp", (req, res) => {
+    if (!validateOrigin(req, res)) return;
+    res.status(204).end();
+  });
+
+  const rateLimit = (await import("express-rate-limit")).default;
+  const rpm = parseInt(process.env.RATE_LIMIT_RPM ?? "60", 10);
+  app.use(
+    "/mcp",
+    rateLimit({
+      windowMs: 60_000,
+      max: rpm,
+      keyGenerator: (req: import("express").Request) =>
+        (req.headers["mcp-session-id"] as string) || req.ip || "unknown",
+      standardHeaders: true,
+      legacyHeaders: false,
+    }),
+  );
+
   const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
   const sessions = new Map<
     string,
@@ -108,6 +148,7 @@ if (transportMode === "http") {
   });
 
   app.post("/mcp", async (req, res) => {
+    if (!validateOrigin(req, res)) return;
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     const existing = sessionId ? sessions.get(sessionId) : undefined;
     if (existing) {
@@ -133,6 +174,7 @@ if (transportMode === "http") {
   });
 
   app.get("/mcp", async (req, res) => {
+    if (!validateOrigin(req, res)) return;
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (!sessionId || !sessions.has(sessionId)) {
       res.status(400).send("Invalid or missing session ID");
@@ -143,6 +185,7 @@ if (transportMode === "http") {
   });
 
   app.delete("/mcp", async (req, res) => {
+    if (!validateOrigin(req, res)) return;
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (!sessionId || !sessions.has(sessionId)) {
       res.status(400).send("Invalid or missing session ID");

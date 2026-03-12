@@ -17,6 +17,7 @@ export interface EncodedIntent {
   asset_managers: string[];
   statuses: boolean[];
   datas: `0x${string}`[];
+  strategy_name?: string;
 }
 
 export function disabledIntent(

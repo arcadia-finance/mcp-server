@@ -6,6 +6,7 @@ import { accountAbi, getAccountAbi } from "../../../abis/index.js";
 import { getPublicClient } from "../../../clients/chain.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
+import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 export function registerDepositTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
@@ -18,8 +19,9 @@ export function registerDepositTool(server: McpServer, chains: Record<ChainId, C
         idempotentHint: true,
         openWorldHint: false,
       },
+      outputSchema: SimpleTransactionOutput,
       description:
-        "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before write.account.add_liquidity — that tool deposits from wallet atomically. Ensure the account is approved first (call read.wallet.allowance to check, then write.wallet.approve if needed). Account version is auto-detected on-chain (override with account_version if needed).",
+        "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before write.account.add_liquidity — that tool deposits from wallet atomically. Ensure the account is approved first (call read.wallet.allowances to check, then write.wallet.approve if needed). Account version is auto-detected on-chain (override with account_version if needed).",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         asset_addresses: z.array(z.string()).describe("Token contract addresses to deposit"),
@@ -91,25 +93,23 @@ export function registerDepositTool(server: McpServer, chains: Record<ChainId, C
           }),
         );
 
+        const result = {
+          description: `Deposit assets into Arcadia account (V${version})`,
+          transaction: {
+            to: validAccount,
+            data,
+            value: "0",
+            chainId: validChainId,
+          },
+        };
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                {
-                  description: `Deposit assets into Arcadia account (V${version})`,
-                  transaction: {
-                    to: validAccount,
-                    data,
-                    value: "0",
-                    chainId: validChainId,
-                  },
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(result, null, 2),
             },
           ],
+          structuredContent: result,
         };
       } catch (err) {
         return {
