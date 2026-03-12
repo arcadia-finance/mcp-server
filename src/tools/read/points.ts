@@ -1,57 +1,45 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
+import { PointsLeaderboardOutput } from "../output-schemas.js";
 
 export function registerPointsTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "read.points",
+    "read.point_leaderboard",
     {
       annotations: {
-        title: "Get Points",
+        title: "Get Points Leaderboard",
         readOnlyHint: true,
         destructiveHint: false,
         idempotentHint: true,
         openWorldHint: true,
       },
       description:
-        "Get Arcadia points balance for a wallet, or the points leaderboard (paginated) if no wallet is specified.",
+        "Get the Arcadia points leaderboard (paginated). For a specific wallet's points balance, use read.wallet.points.",
       inputSchema: {
-        wallet_address: z.string().optional().describe("Wallet address for points balance"),
-        limit: z
-          .number()
-          .default(25)
-          .describe(
-            "Max leaderboard entries to return (default 25, ignored when wallet_address is provided)",
-          ),
+        limit: z.number().default(25).describe("Max leaderboard entries to return (default 25)"),
         offset: z.number().default(0).describe("Skip first N leaderboard entries for pagination"),
       },
+      outputSchema: PointsLeaderboardOutput,
     },
-    async ({ wallet_address, limit, offset }) => {
+    async ({ limit, offset }) => {
       try {
-        if (wallet_address) {
-          const result = await api.getPoints(wallet_address);
-          return { content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }] };
-        }
         const all = await api.getPointsLeaderboard();
         const list = Array.isArray(all)
           ? all
           : ((all as Record<string, unknown>).data as unknown[]);
         if (Array.isArray(list)) {
           const page = list.slice(offset, offset + limit);
+          const result = { total: list.length, offset, limit, leaderboard: page };
           return {
-            content: [
-              {
-                type: "text" as const,
-                text: JSON.stringify(
-                  { total: list.length, offset, limit, leaderboard: page },
-                  null,
-                  2,
-                ),
-              },
-            ],
+            content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+            structuredContent: result,
           };
         }
-        return { content: [{ type: "text" as const, text: JSON.stringify(all, null, 2) }] };
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(all, null, 2) }],
+          structuredContent: all as unknown as Record<string, unknown>,
+        };
       } catch (err) {
         return {
           content: [

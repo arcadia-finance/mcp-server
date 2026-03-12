@@ -1,12 +1,16 @@
 import { appendDataSuffix } from "../../../utils/attribution.js";
 
-export function formatBatchedResponse(result: Record<string, unknown>, chainId: number) {
+export function formatBatchedResponse(
+  result: Record<string, unknown>,
+  chainId: number,
+  description?: string,
+) {
   const to = (result.fx_call_to ?? "") as string;
   const data = appendDataSuffix((result.calldata ?? "") as string);
 
-  const response: Record<string, unknown> = {
-    transaction: { to, data, value: "0", chainId },
-  };
+  const response: Record<string, unknown> = {};
+  if (description) response.description = description;
+  response.transaction = { to, data, value: "0", chainId };
 
   if (result.tenderly_sim_url != null) {
     response.tenderly_sim_url = result.tenderly_sim_url;

@@ -6,6 +6,7 @@ import {
   TEST_ADDRESS,
 } from "../../test-utils.js";
 import { registerWalletTools } from "./wallet.js";
+import type { ArcadiaApiClient } from "../../clients/api.js";
 
 const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const WETH = "0x4200000000000000000000000000000000000006";
@@ -28,7 +29,7 @@ vi.mock("../../clients/chain.js", () => ({
 
 function setup() {
   const mock = createMockServer();
-  registerWalletTools(mock.server, createMockChains());
+  registerWalletTools(mock.server, createMockChains(), {} as ArcadiaApiClient);
   return mock.getHandler("read.wallet.balances");
 }
 

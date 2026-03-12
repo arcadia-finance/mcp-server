@@ -6,6 +6,7 @@ import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { poolAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { validateAddress } from "../../../utils/validation.js";
+import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 export function registerBorrowTool(
   server: McpServer,
@@ -22,6 +23,7 @@ export function registerBorrowTool(
         idempotentHint: true,
         openWorldHint: false,
       },
+      outputSchema: SimpleTransactionOutput,
       description:
         "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral. NOT needed for leveraged LP — write.account.add_liquidity handles borrowing internally when leverage > 0. Only works with margin accounts (created with a creditor/lending pool). Spot accounts (no creditor) cannot borrow — the tool will validate this and reject. Before borrowing, verify the account has positive free margin via read.account.info: collateral_value must exceed used_margin.",
       inputSchema: {
@@ -83,25 +85,23 @@ export function registerBorrowTool(
           }),
         );
 
+        const result = {
+          description: "Borrow from Arcadia lending pool",
+          transaction: {
+            to: validPool,
+            data,
+            value: "0",
+            chainId: params.chain_id,
+          },
+        };
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                {
-                  description: "Borrow from Arcadia lending pool",
-                  transaction: {
-                    to: validPool,
-                    data,
-                    value: "0",
-                    chainId: params.chain_id,
-                  },
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(result, null, 2),
             },
           ],
+          structuredContent: result,
         };
       } catch (err) {
         return {

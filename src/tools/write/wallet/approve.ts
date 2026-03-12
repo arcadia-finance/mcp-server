@@ -5,6 +5,7 @@ import type { ChainId, ChainConfig } from "../../../config/chains.js";
 import { erc20Abi, nftmanagerAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { validateAddress } from "../../../utils/validation.js";
+import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 const MAX_UINT256 = 2n ** 256n - 1n;
 
@@ -19,8 +20,9 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
         idempotentHint: true,
         openWorldHint: false,
       },
+      outputSchema: SimpleTransactionOutput,
       description:
-        "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before write.account.deposit or write.account.add_liquidity (when depositing from wallet). Tip: call read.wallet.allowance first to check if approval already exists — skip this if the current allowance is sufficient.",
+        "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before write.account.deposit or write.account.add_liquidity (when depositing from wallet). Tip: call read.wallet.allowances first to check if approval already exists — skip this if the current allowance is sufficient.",
       inputSchema: {
         token_address: z.string().describe("Token contract address to approve"),
         spender_address: z
@@ -68,25 +70,23 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
         }
         data = appendDataSuffix(data) as `0x${string}`;
 
+        const result = {
+          description,
+          transaction: {
+            to: validToken,
+            data,
+            value: "0",
+            chainId: params.chain_id,
+          },
+        };
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                {
-                  description,
-                  transaction: {
-                    to: validToken,
-                    data,
-                    value: "0",
-                    chainId: params.chain_id,
-                  },
-                },
-                null,
-                2,
-              ),
+              text: JSON.stringify(result, null, 2),
             },
           ],
+          structuredContent: result,
         };
       } catch (err) {
         return {

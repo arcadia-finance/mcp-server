@@ -3,7 +3,7 @@
   "name": "io.github.arcadia-finance/mcp-server",
   "title": "Arcadia Finance",
   "description": "Manage Uniswap and Aerodrome liquidity positions with automated rebalancing and leverage.",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "websiteUrl": "https://arcadia.finance",
   "repository": {
     "url": "https://github.com/arcadia-finance/mcp-server",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "@arcadia-finance/mcp-server",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "transport": {
         "type": "stdio"
       },
@@ -35,6 +35,30 @@
           "description": "Private key for dev-only signing (not for production).",
           "isRequired": false,
           "isSecret": true
+        },
+        {
+          "name": "TRANSPORT",
+          "description": "Transport mode: stdio (default) or http.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "PORT",
+          "description": "HTTP listen port (default 3000). Only used when TRANSPORT=http.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "ALLOWED_ORIGINS",
+          "description": "Comma-separated allowed Origin headers for CORS and DNS rebinding protection. Only used when TRANSPORT=http.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_RPM",
+          "description": "Max requests per minute per session (default 60). Only used when TRANSPORT=http.",
+          "isRequired": false,
+          "isSecret": false
         }
       ]
     },

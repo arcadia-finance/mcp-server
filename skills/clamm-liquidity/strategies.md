@@ -4,7 +4,7 @@ These are templates and examples — not the only valid approaches. Adapt parame
 
 ## Key Parameter Notes
 
-- **`write.account.add_liquidity`** capital sources: `deposits` array (wallet tokens), `use_account_assets=true` (existing account collateral), or both. Supports depositing multiple tokens and minting multiple LP positions in one tx. The backend swaps everything to the optimal ratio for the LP. You do NOT need to `write.account.deposit` first — `write.account.add_liquidity` handles the wallet transfer atomically. Check allowances first (`read.wallet.allowance`), then approve if needed (`write.wallet.approve`).
+- **`write.account.add_liquidity`** capital sources: `deposits` array (wallet tokens), `use_account_assets=true` (existing account collateral), or both. Supports depositing multiple tokens and minting multiple LP positions in one tx. The backend swaps everything to the optimal ratio for the LP. You do NOT need to `write.account.deposit` first — `write.account.add_liquidity` handles the wallet transfer atomically. Check allowances first (`read.wallet.allowances`), then approve if needed (`write.wallet.approve`).
 - **V4 spot accounts CAN mint LP** but cannot leverage (set `leverage: 0`). V3 margin accounts (created with a `creditor`) can both mint LP and leverage. If the user wants leveraged LP, create a V3 margin account with a creditor (`account_version: 3`).
 - **`numeraire`** in `write.account.deleverage`: the debt token you're repaying (e.g. WETH when repaying WETH debt). `write.account.add_liquidity` auto-detects numeraire — no param needed.
 - **`leverage`**: `0` = no leverage. `2` = 2x. Do NOT use `1` for no leverage — use `0`. When `leverage > 0`, borrowing is handled internally by `write.account.add_liquidity` — do NOT call `write.account.borrow` separately.
@@ -52,7 +52,7 @@ Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay
 
 ### Step-by-step
 
-> Addresses below are Base mainnet examples. Always verify current addresses via `read.pools` and `read.assets` before executing.
+> Addresses below are Base mainnet examples. Always verify current addresses via `read.pool.list` and `read.asset.list` before executing.
 
 ```
 // 1. FIND A POOL
@@ -61,7 +61,7 @@ read.strategy.list(chain_id: 8453)
 → Note: strategy_id (integer), pool_protocol (Slipstream V1/V2, UniV3, UniV4), fee_APY
 
 // 2. CHECK BORROW COST
-read.pools(chain_id: 8453)
+read.pool.list(chain_id: 8453)
 → Find the WETH lending pool (address: 0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2)
 → If borrow_apy > fee_apy → stop, strategy not profitable
 
@@ -76,7 +76,7 @@ write.account.create(
 → Or call read.account.info(wallet_address: ...) to find the new account address
 
 // 4. CHECK ALLOWANCE + APPROVE (skip approve if already sufficient)
-read.wallet.allowance(
+read.wallet.allowances(
   owner_address: <owner_wallet>,
   spender_address: <account_address>,
   token_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"],  // USDC
@@ -102,25 +102,23 @@ write.account.add_liquidity(
   chain_id: 8453
 )
 
-// 6. ENABLE AND CONFIGURE REBALANCER (match address to LP protocol from step 1)
-write.asset_manager.configure(
-  account_address: <account_address>,
-  asset_manager_address: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",  // Slipstream V2
-  am_type: "rebalancer",
-  trigger_lower_ratio: 0,      // 0 = trigger exactly at boundary. Values scaled by 1e6: 50000 = 5% before boundary
-  trigger_upper_ratio: 0,      // same as above — must be integer
-  compound_leftovers: "all",   // "all" | "none" | "token0" | "token1"
-  min_rebalance_time: 3600,    // minimum seconds between rebalances (3600 = 1 hour)
+// 6. ENCODE AND ENABLE REBALANCER + MERKL (match dex_protocol to LP protocol from step 1)
+// Step 6a: Encode rebalancer intent
+write.asset_manager.rebalancer(
+  dex_protocol: "slipstream_v2",
+  enabled: true,
+  compound_leftovers: "all",
+  trigger_lower_ratio: 0,
+  trigger_upper_ratio: 0,
+  min_rebalance_time: 3600,
   chain_id: 8453
 )
-// → Range width and reposition mode must be configured in the Arcadia platform
+// → Returns { description, asset_managers, statuses, datas } for the rebalancer
 
-// 7. ENABLE MERKL (if pool has Merkl incentives — check fee APY breakdown in step 1)
-write.asset_manager.configure(
-  account_address: <account_address>,
-  asset_manager_address: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
-  am_type: "merkl_operator",
+// 7. ENCODE MERKL (if pool has Merkl incentives — check fee APY breakdown in step 1)
+write.asset_manager.merkl_operator(
   reward_recipient: <owner_wallet>,
+  enabled: true,
   chain_id: 8453
 )
 ```
@@ -147,7 +145,7 @@ instead of ~0.5–0.7. Increase position size for a healthier starting HF.
 read.account.pnl(account_address: <account_address>, chain_id: 8453)
 → If net yield is consistently negative → evaluate exit
 
-read.pools(chain_id: 8453)
+read.pool.list(chain_id: 8453)
 → If borrow_APY risen above fee_APY → exit signal
 ```
 
@@ -156,13 +154,13 @@ read.pools(chain_id: 8453)
 ```
 // Option A: Add collateral (raises health factor, cheapest)
 // Check allowance first — skip approve if already sufficient
-read.wallet.allowance(owner_address: <wallet>, spender_address: <account>, token_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], chain_id: 8453)
+read.wallet.allowances(owner_address: <wallet>, spender_address: <account>, token_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], chain_id: 8453)
 write.wallet.approve(token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender_address: <account>, amount: "max_uint256", chain_id: 8453)
 write.account.deposit(account_address: <account>, asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], asset_amounts: ["<amount>"], chain_id: 8453)
 
 // Option B: Repay some WETH debt (reduces leverage)
 // NOTE: you must approve the WETH pool to spend WETH from your wallet first — check allowance, then approve if needed
-read.wallet.allowance(owner_address: <wallet>, spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", token_addresses: ["0x4200000000000000000000000000000000000006"], chain_id: 8453)
+read.wallet.allowances(owner_address: <wallet>, spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", token_addresses: ["0x4200000000000000000000000000000000000006"], chain_id: 8453)
 write.wallet.approve(token_address: "0x4200000000000000000000000000000000000006", spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", amount: "max_uint256", chain_id: 8453)
 write.account.repay(
   pool_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",  // WETH pool
@@ -191,12 +189,12 @@ write.account.deleverage(
 
 ```
 // 0. Disable automation first (prevents rebalancer from acting during close)
-write.asset_manager.set(
-  account_address: <account>,
-  asset_manager_address: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
+write.asset_manager.rebalancer(
+  dex_protocol: "slipstream_v2",
   enabled: false,
   chain_id: 8453
 )
+// → Merge result into write.account.set_asset_managers(account_address: <account>, ...)
 
 // 1. Get account state — need asset list for the close call
 read.account.info(account_address: <account>, chain_id: 8453)
@@ -283,7 +281,7 @@ The `protocol_owned_liquidity` strategy type uses a dynamic range algorithm (k1/
 // Same tools, different intent — no leverage, wider slippage tolerance
 
 // 1. Check allowance + approve treasury tokens (skip approve if already sufficient)
-read.wallet.allowance(owner_address: <treasury_wallet>, spender_address: <account>, token_addresses: [<token>], chain_id: 8453)
+read.wallet.allowances(owner_address: <treasury_wallet>, spender_address: <account>, token_addresses: [<token>], chain_id: 8453)
 write.wallet.approve(token_address: <token>, spender_address: <account>, amount: "max_uint256", chain_id: 8453)
 
 // 2. Create account (separate from retail positions)
@@ -310,10 +308,9 @@ write.account.add_liquidity(
 )
 
 // 5. Enable rebalancer with POL strategy hook
-write.asset_manager.configure(
-  account_address: <account>,
-  asset_manager_address: <rebalancer matching LP protocol>,
-  am_type: "rebalancer",
+write.asset_manager.rebalancer(
+  dex_protocol: <dex_protocol>,   // e.g. "slipstream_v2", "uniV3"
+  enabled: true,
   strategy_hook: "0x13beD1A58d87c0454872656c5328103aAe5eB86A",  // POL dynamic range algorithm
   trigger_lower_ratio: 0,
   trigger_upper_ratio: 0,
@@ -321,6 +318,7 @@ write.asset_manager.configure(
   min_rebalance_time: 3600,
   chain_id: 8453
 )
+// → Pass result to write.account.set_asset_managers(account_address: <account>, ...)
 // → POL tuning params (base_range, k1, k2, rebalance_threshold) configured in Arcadia platform
 ```
 

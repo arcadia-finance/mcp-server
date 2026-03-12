@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { formatBatchedResponse } from "./format-response.js";
 import { validateAddress } from "../../../utils/validation.js";
+import { BatchedTransactionOutput } from "../../output-schemas.js";
 
 export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
@@ -15,6 +16,7 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
         idempotentHint: true,
         openWorldHint: true,
       },
+      outputSchema: BatchedTransactionOutput,
       description:
         "Flash-action: stake, unstake, or claim rewards for an LP position in one atomic transaction. Use the `action` parameter to select the operation. `asset_address` is the position manager contract — pass the non-staked PM address when staking, or the staked PM address when unstaking. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Tenderly simulation may not be available for this endpoint — verify the position exists with read.account.info before signing.",
       inputSchema: {
@@ -56,13 +58,15 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
             };
           }
 
+          const claimResponse = formatBatchedResponse(claimRes, chain_id, "Claim staking rewards");
           return {
             content: [
               {
                 type: "text" as const,
-                text: JSON.stringify(formatBatchedResponse(claimRes, chain_id), null, 2),
+                text: JSON.stringify(claimResponse, null, 2),
               },
             ],
+            structuredContent: claimResponse,
           };
         }
 
@@ -92,13 +96,15 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
           };
         }
 
+        const response = formatBatchedResponse(res, chain_id, "Stake LP position");
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(formatBatchedResponse(res, chain_id), null, 2),
+              text: JSON.stringify(response, null, 2),
             },
           ],
+          structuredContent: response,
         };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

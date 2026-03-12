@@ -130,25 +130,64 @@ const CHAIN_STANDALONE_AMS: Record<ChainId, ReadonlySet<StandaloneAm>> = {
 
 const CHAIN_NAMES: Record<ChainId, string> = { 8453: "Base", 130: "Unichain" };
 
+// Map LP asset names → dex_protocol values
+const LP_NAME_TO_POOL_PROTOCOL: Record<string, string> = {
+  UniV3: "uniV3",
+  UniV4: "uniV4",
+  slipstream: "slipstream",
+  slipstream_v2: "slipstream_v2",
+  "Staked Slipstream": "staked_slipstream",
+  "Staked Slipstream V2": "staked_slipstream_v2",
+  "Wrapped Staked Slipstream": "staked_slipstream",
+  "Wrapped Staked Slipstream V2": "staked_slipstream_v2",
+  "Wrapped Aerodrome": "slipstream",
+  "Staked Aerodrome": "staked_slipstream",
+};
+
+export function lpNameToPoolProtocol(name: string): string | null {
+  return LP_NAME_TO_POOL_PROTOCOL[name] ?? null;
+}
+
+// Map internal AM keys to user-facing dex_protocol values (used in error messages and account info)
+export const AM_KEY_TO_POOL_PROTOCOL: Record<AmProtocol, string> = {
+  slipstreamV1: "slipstream",
+  slipstreamV2: "slipstream_v2",
+  uniV3: "uniV3",
+  uniV4: "uniV4",
+};
+
 export function getAmProtocolAddress(
   chainId: ChainId,
   category: AmCategory,
   protocol: AmProtocol,
 ): string {
   if (!CHAIN_PROTOCOLS[chainId].has(protocol)) {
-    const available = [...CHAIN_PROTOCOLS[chainId]].join(", ");
+    const available = [...CHAIN_PROTOCOLS[chainId]]
+      .map((k) => AM_KEY_TO_POOL_PROTOCOL[k])
+      .join(", ");
     throw new Error(
-      `${protocol} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available protocols: ${available}.`,
+      `${AM_KEY_TO_POOL_PROTOCOL[protocol]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available protocols: ${available}.`,
     );
   }
   return AM_ADDRESSES[category][protocol];
 }
 
+const STANDALONE_TO_USER_FACING: Record<StandaloneAm, string> = {
+  merklOperator: "merkl_operator",
+  gasRelayer: "gas_relayer",
+  cowSwapper: "cow_swapper",
+};
+
 export function getStandaloneAmAddress(chainId: ChainId, am: StandaloneAm): string {
   if (!CHAIN_STANDALONE_AMS[chainId].has(am)) {
-    const available = [...CHAIN_STANDALONE_AMS[chainId]].join(", ");
+    const supportedChains = (
+      Object.entries(CHAIN_STANDALONE_AMS) as [string, ReadonlySet<StandaloneAm>][]
+    )
+      .filter(([, ams]) => ams.has(am))
+      .map(([id]) => `${CHAIN_NAMES[Number(id) as ChainId]} (${id})`)
+      .join(", ");
     throw new Error(
-      `${am} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available: ${available}.`,
+      `${STANDALONE_TO_USER_FACING[am]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Supported chains: ${supportedChains}.`,
     );
   }
   return AM_ADDRESSES[am];
@@ -205,4 +244,28 @@ export const MINIMAL_STRATEGY_HOOK = "0x13beD1A58d87c0454872656c5328103aAe5eB86A
 export const STATE_VIEWERS: Partial<Record<ChainId, `0x${string}`>> = {
   8453: "0xA3c0c9b65baD0b08107Aa264b0f3dB444b867A71",
   130: "0x86e8631A016F9068C3f085fAF484Ee3F5fDee8f2",
+};
+
+// LP position manager address (lowercase) → dex_protocol value
+// Chain-specific: non-staked LP position manager addresses differ per chain
+export const CHAIN_POSITION_MANAGERS: Partial<Record<ChainId, Record<string, string>>> = {
+  8453: {
+    "0x827922686190790b37229fd06084350e74485b72": "slipstream",
+    "0xa990c6a764b73bf43cee5bb40339c3322fb9d55f": "slipstream_v2",
+    "0x03a520b32c04bf3beef7beb72e919cf822ed34f1": "uniV3",
+    "0x7c5f5a4bbd8fd63184577525326123b519429bdc": "uniV4",
+  },
+  130: {
+    "0x991d5546c4b442b4c5fdc4c8b8b8d131deb24702": "slipstream",
+    "0x943e6e07a7e8e791dafc44083e54041d743c46e9": "uniV3",
+    "0x4529a01c7a0410167c5740c487a8de60232617bf": "uniV4",
+  },
+};
+
+// Universal staked/wrapped-staked position manager addresses (same on all chains)
+export const UNIVERSAL_POSITION_MANAGERS: Record<string, string> = {
+  "0x1dc7a0f5336f52724b650e39174cfcbbedd67bf1": "staked_slipstream", // StakedSlipstreamAM V1
+  "0xbed6c3e35b9b1e044b3bc71465769edfdc0fdd4c": "staked_slipstream_v2", // StakedSlipstreamAM V2
+  "0xd74339e0f10fce96894916b93e5cc7de89c98272": "staked_slipstream", // WrappedStakedSlipstream V1
+  "0x147a2ccbaf4521ad209a2875ae0b3c496f4b25a4": "staked_slipstream_v2", // WrappedStakedSlipstream V2
 };
