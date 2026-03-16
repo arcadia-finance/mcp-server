@@ -2,12 +2,12 @@
 
 [![npm](https://img.shields.io/npm/v/@arcadia-finance/mcp-server)](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
 [![npm downloads](https://img.shields.io/npm/dm/@arcadia-finance/mcp-server)](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
-[![smithery badge](https://smithery.ai/badge/@arcadia-finance/mcp-server)](https://smithery.ai/server/@arcadia-finance/mcp-server)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-2025--11--25-green)](https://modelcontextprotocol.io/)
+[![smithery badge](https://smithery.ai/badge/@arcadia-finance/mcp-server)](https://smithery.ai/servers/arcadia-finance/mcp-server)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
-[![Glama](https://img.shields.io/badge/Glama-listed-blue)](https://glama.ai/mcp/servers/@arcadia-finance/mcp-server)
+[![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server)
 
 MCP server for [Arcadia Finance](https://arcadia.finance), a platform to manage Uniswap and Aerodrome concentrated liquidity positions with built-in leverage, automated rebalancing, and yield optimization. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
@@ -222,11 +222,14 @@ Pull requests for documentation fixes are welcome from agents and humans alike. 
 ## Where to Find Us
 
 - **npm:** [@arcadia-finance/mcp-server](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
-- **Smithery:** [smithery.ai/@arcadia-finance/mcp-server](https://smithery.ai/server/@arcadia-finance/mcp-server)
-- **PulseMCP:** [pulsemcp.com](https://pulsemcp.com)
-- **MCP Market:** [mcpmarket.com](https://mcpmarket.com)
-- **awesome-mcp-servers (punkpeye):** [github.com/punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
-- **awesome-mcp-servers (wong2):** [github.com/wong2/awesome-mcp-servers](https://github.com/wong2/awesome-mcp-servers)
+- **MCP Registry:** [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/?q=arcadia)
+- **Smithery:** [smithery.ai](https://smithery.ai/servers/arcadia-finance/mcp-server)
+- **MCP Servers:** [mcpservers.org](https://mcpservers.org/en/servers/arcadia-finance/mcp-server)
+- **LobeHub:** [lobehub.com](https://lobehub.com/mcp/arcadia-finance-mcp-server)
+- **PulseMCP:** [pulsemcp.com](https://www.pulsemcp.com/servers/arcadia-finance)
+- **MCP Market:** [mcpmarket.com](https://mcpmarket.com/server/arcadia-finance)
+- **Glama:** [glama.ai](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server)
+- **awesome-mcp-servers:** [github.com/TensorBlock/awesome-mcp-servers](https://github.com/TensorBlock/awesome-mcp-servers)
 
 ## Development
 
