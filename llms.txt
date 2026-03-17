@@ -1,16 +1,19 @@
 # Arcadia Finance MCP Server
 
-> MCP server for managing concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base, Optimism, and Unichain.
+> MCP server for Arcadia Finance, a DeFi protocol for managing concentrated liquidity positions (Uniswap v3/v4, Aerodrome/Slipstream) with leverage, automated rebalancing, and yield optimization. Supported chains: Base (8453), Unichain (130).
 
 ## Overview
 
-Arcadia Finance is a DeFi protocol for leveraged yield farming. This MCP server exposes the full protocol as tools for AI agents:
+Arcadia lets users open leveraged LP positions, borrow against collateral, and automate position management (rebalancing, compounding, yield claiming). This MCP server exposes the full protocol as 38 tools:
 
-- **Account management** — health factor, collateral, debt, positions, PnL, history
-- **Lending pools** — TVL, APY, utilization, available liquidity
-- **LP strategies** — concentrated liquidity strategies with APY, rebalancing recommendations
-- **Transaction building** — unsigned calldata for deposits, borrows, swaps, LP minting/closing
-- **Automation** — configure asset managers (rebalancer, compounder) for hands-off management
+- **Account management**: health factor, collateral, debt, positions, PnL, history
+- **Wallet**: ERC20 balances, allowances, owned accounts, points
+- **Lending pools**: TVL, APY, utilization, available liquidity, rate history
+- **LP strategies**: concentrated liquidity strategies with APY per range width, recommendations
+- **Transaction building**: unsigned calldata for deposits, borrows, swaps, LP minting/closing, staking
+- **Automation**: configure asset managers (rebalancer, compounder, yield claimer, CowSwap, Merkl)
+
+All write tools return unsigned transactions (`{ to, data, value, chainId }`). Signing is the client's responsibility.
 
 ## Install
 
@@ -18,16 +21,59 @@ Arcadia Finance is a DeFi protocol for leveraged yield farming. This MCP server 
 npx -y @arcadia-finance/mcp-server
 ```
 
-## Tools
+Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-Read: get_account_info, get_account_history, get_account_pnl, get_assets, get_wallet_balances, get_allowance, get_points, get_lending_pools, get_strategies, get_recommendation, get_guide
+## Tools (38 total)
 
-Write (unsigned tx): build_approve_tx, build_create_account_tx, build_deposit_tx, build_withdraw_tx, build_borrow_tx, build_repay_tx, build_set_asset_manager_tx, build_configure_asset_manager_tx
+### Read (17)
 
-Advanced (unsigned tx, backend-routed): build_add_liquidity_tx, build_remove_liquidity_tx, build_swap_tx, build_repay_with_collateral_tx, build_close_position_tx, build_position_action_tx
+- read.account.info: account overview with health factor, collateral, debt, positions, liquidation price, automation status
+- read.account.history: historical account value over time
+- read.account.pnl: PnL and yield data for an account
+- read.wallet.accounts: list all Arcadia accounts owned by a wallet
+- read.wallet.balances: ERC20 and native ETH balances for a wallet
+- read.wallet.allowances: check ERC20 token allowances for a spender
+- read.wallet.points: Arcadia points balance for a wallet
+- read.asset.list: supported collateral assets with addresses, types, decimals
+- read.asset.prices: USD prices for asset addresses
+- read.pool.list: all lending pools with TVL, APY, utilization, liquidity
+- read.pool.info: single pool detail with APY history
+- read.point_leaderboard: paginated points leaderboard
+- read.strategy.list: LP strategies with APY, underlyings, pool info
+- read.strategy.info: full detail for a specific LP strategy
+- read.strategy.recommendation: rebalancing recommendation for an account
+- read.guides: reference guides for automation, strategies, addresses
+- read.asset_manager.intents: available automation intents with params and supported chains
+
+### Write (20)
+
+- write.wallet.approve: approve ERC20/ERC721 for spending
+- write.account.create: create a new Arcadia account
+- write.account.deposit: deposit assets into an account
+- write.account.withdraw: withdraw assets from an account
+- write.account.borrow: borrow from a lending pool
+- write.account.repay: repay debt from wallet tokens
+- write.account.add_liquidity: flash-action that deposits, swaps, mints LP, and optionally leverages atomically
+- write.account.remove_liquidity: partially decrease LP position liquidity
+- write.account.swap: swap assets within an account
+- write.account.deleverage: repay debt by selling collateral
+- write.account.close: atomic close that burns LP, swaps, and repays in one tx
+- write.account.stake: stake, unstake, or claim LP rewards
+- write.account.set_asset_managers: build setAssetManagers tx from encoded intent args
+- write.asset_manager.rebalancer: encode rebalancer automation args
+- write.asset_manager.compounder: encode standalone compounder args
+- write.asset_manager.compounder_staked: encode compounder + CowSwap for staked positions
+- write.asset_manager.yield_claimer: encode yield claimer args
+- write.asset_manager.yield_claimer_cowswap: encode yield claimer + CowSwap args
+- write.asset_manager.cow_swapper: encode direct CowSwap mode args
+- write.asset_manager.merkl_operator: encode Merkl reward claimer args
+
+### Dev (1)
+
+- dev.send: sign and broadcast using local private key (dev only)
 
 ## Links
 
-- Docs: https://github.com/arcadia-finance/mcp-server
 - Website: https://arcadia.finance
+- Docs: https://docs.arcadia.finance
 - npm: https://www.npmjs.com/package/@arcadia-finance/mcp-server

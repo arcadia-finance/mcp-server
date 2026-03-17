@@ -16,6 +16,7 @@ import { getChainConfigs } from "./config/chains.js";
 import { registerAllTools } from "./tools/index.js";
 import { registerAllResources } from "./resources/index.js";
 import { registerAllPrompts } from "./prompts/index.js";
+import { wrapServerForHttp, convertToolNames } from "./utils/tool-naming.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
@@ -23,16 +24,17 @@ const pkg = require("../package.json") as { version: string };
 const apiClient = new ArcadiaApiClient();
 const chainConfigs = getChainConfigs();
 
-function createServer() {
+function createServer(options?: { httpMode?: boolean }) {
   const server = new McpServer({
     name: "arcadia-finance",
     version: pkg.version,
     description:
       "Arcadia Finance. Manage concentrated liquidity positions with leverage, automated rebalancing, and yield optimization on Base and Unichain.",
   });
-  registerAllTools(server, apiClient, chainConfigs);
-  registerAllResources(server);
-  registerAllPrompts(server);
+  const registrationTarget = options?.httpMode ? wrapServerForHttp(server) : server;
+  registerAllTools(registrationTarget, apiClient, chainConfigs);
+  registerAllResources(registrationTarget);
+  registerAllPrompts(registrationTarget);
   return server;
 }
 
@@ -111,7 +113,7 @@ if (transportMode === "http") {
   }
 
   async function createSession() {
-    const server = createServer();
+    const server = createServer({ httpMode: true });
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
       onsessioninitialized: (sessionId) => {
@@ -145,6 +147,15 @@ if (transportMode === "http") {
 
   app.get("/health", (_req, res) => {
     res.send("ok");
+  });
+
+  app.get("/.well-known/llms.txt", async (_req, res) => {
+    const { readFile } = await import("fs/promises");
+    const { fileURLToPath } = await import("url");
+    const { dirname, join } = await import("path");
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const content = await readFile(join(dir, "..", "llms.txt"), "utf-8");
+    res.type("text/plain").send(convertToolNames(content));
   });
 
   app.post("/mcp", async (req, res) => {
