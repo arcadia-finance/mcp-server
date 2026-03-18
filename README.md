@@ -83,8 +83,18 @@ All write tools return **unsigned transactions** as `{ to, data, value, chainId 
 
 ### Options
 
-**Wallet infrastructure (recommended for production):**
-Use your existing wallet setup — MPC wallets (Fireblocks, Dfns, Turnkey), smart accounts (Safe, Biconomy), or embedded wallets (Privy, Dynamic). Pass the unsigned tx object to your provider's signing method.
+**Wallet MCP servers (recommended for production):**
+Pair this server with a wallet MCP server that handles signing:
+
+| Wallet MCP                                                        | Provider  | Model                                                     |
+| ----------------------------------------------------------------- | --------- | --------------------------------------------------------- |
+| [MCP Wallet Signer](https://github.com/nikicat/mcp-wallet-signer) | Community | Non-custodial, routes to browser wallet (MetaMask, Rabby) |
+| [Coinbase AgentKit](https://github.com/coinbase/agentkit)         | Coinbase  | Wallet-agnostic, supports multiple providers              |
+| [Phantom MCP](https://www.npmjs.com/package/@phantom/mcp-server)  | Phantom   | Embedded wallet                                           |
+| [Privy MCP](https://github.com/incentivai-io/privy-mcp-server)    | Privy     | Wallet infrastructure                                     |
+| [Safe MCP](https://github.com/safer-sh/safer)                     | Community | Multi-sig via Safe                                        |
+
+Or use your existing wallet setup (Fireblocks, Dfns, Turnkey, Biconomy, Dynamic) and pass the unsigned tx object to your provider's signing method.
 
 **viem/ethers in your agent:**
 
