@@ -1,6 +1,13 @@
 ---
 name: arcadia-finance
 description: "Deploy and manage concentrated liquidity positions on Uniswap and Aerodrome with automated rebalancing, compounding, and yield optimization on Base and Unichain. Use when: users ask about LP management, DeFi lending, yield strategies, or automation on Base or Unichain."
+metadata:
+  openclaw:
+    homepage: https://arcadia.finance
+    install:
+      - kind: node
+        package: "@modelcontextprotocol/sdk"
+        bins: []
 ---
 
 # Arcadia Finance
@@ -14,7 +21,7 @@ node arcadia.mjs <tool_name> '<json_args>'
 node arcadia.mjs --list
 ```
 
-Requires `@modelcontextprotocol/sdk`: run `npm install @modelcontextprotocol/sdk` once.
+The `@modelcontextprotocol/sdk` dependency is installed automatically via the skill's install spec.
 
 ## Read Operations
 
