@@ -61,11 +61,16 @@ node arcadia.mjs write_asset_manager_rebalancer '{"dex_protocol":"slipstream"}'
 node arcadia.mjs write_account_set_asset_managers '{"account_address":"0x...","asset_managers":[...],"statuses":[...],"datas":[...]}'
 ```
 
+## Configuration
+
+The CLI connects to `https://mcp.arcadia.finance/mcp` by default. Set `ARCADIA_MCP_URL` to override (e.g. for local development).
+
 ## Safety
 
 - Write tools return unsigned transactions only. Never auto-sign.
 - Always confirm transaction details with the user before signing.
 - Check account health factor with `read_account_info` before risky operations.
+- Do not pass private keys or secrets as tool arguments. Only public addresses and amounts are needed.
 
 ## References
 
