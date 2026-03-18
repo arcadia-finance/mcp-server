@@ -149,12 +149,21 @@ if (transportMode === "http") {
     res.send("ok");
   });
 
-  app.get("/.well-known/llms.txt", async (_req, res) => {
+  app.get("/llms.txt", async (_req, res) => {
     const { readFile } = await import("fs/promises");
     const { fileURLToPath } = await import("url");
     const { dirname, join } = await import("path");
     const dir = dirname(fileURLToPath(import.meta.url));
     const content = await readFile(join(dir, "..", "llms.txt"), "utf-8");
+    res.type("text/plain").send(convertToolNames(content));
+  });
+
+  app.get("/llms-full.txt", async (_req, res) => {
+    const { readFile } = await import("fs/promises");
+    const { fileURLToPath } = await import("url");
+    const { dirname, join } = await import("path");
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const content = await readFile(join(dir, "..", "llms-full.txt"), "utf-8");
     res.type("text/plain").send(convertToolNames(content));
   });
 
