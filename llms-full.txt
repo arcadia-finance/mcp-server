@@ -1,0 +1,429 @@
+# Arcadia Finance MCP Server
+
+> MCP server for Arcadia Finance, a DeFi protocol for managing concentrated liquidity positions (Uniswap v3/v4, Aerodrome/Slipstream) with leverage, automated rebalancing, and yield optimization. Supported chains: Base (8453), Unichain (130).
+
+## Overview
+
+Arcadia lets users open leveraged LP positions, borrow against collateral, and automate position management (rebalancing, compounding, yield claiming). This MCP server exposes the full protocol as 38 tools:
+
+- **Account management**: health factor, collateral, debt, positions, PnL, history
+- **Wallet**: ERC20 balances, allowances, owned accounts, points
+- **Lending pools**: TVL, APY, utilization, available liquidity, rate history
+- **LP strategies**: concentrated liquidity strategies with APY per range width, recommendations
+- **Transaction building**: unsigned calldata for deposits, borrows, swaps, LP minting/closing, staking
+- **Automation**: configure asset managers (rebalancer, compounder, yield claimer, CowSwap, Merkl)
+
+All write tools return unsigned transactions (`{ to, data, value, chainId }`). Signing is the client's responsibility.
+
+## Install
+
+```
+npx -y @arcadia-finance/mcp-server
+```
+
+Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
+
+## Read Tools (17)
+
+### read.account.info
+
+Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.account.history
+
+Get historical collateral and debt values for an Arcadia account over time.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `days` (number, default: 14): Number of days of history
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.account.pnl
+
+Get PnL (cost basis) and yield earned for an Arcadia account.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.wallet.balances
+
+Get native ETH and ERC20 token balances for a wallet address.
+
+Parameters:
+- `wallet_address` (string, required): Wallet address to check balances for
+- `token_addresses` (string[], required): ERC20 token contract addresses to check
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.wallet.allowances
+
+Check ERC20 token allowances for a spender address.
+
+Parameters:
+- `owner_address` (string, required): Token owner address (the wallet granting approval)
+- `spender_address` (string, required): Spender address to check allowance for
+- `token_addresses` (string[], required): ERC20 token contract addresses to check
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.wallet.accounts
+
+List all Arcadia accounts owned by a wallet address.
+
+Parameters:
+- `wallet_address` (string, required): Wallet address to list accounts for
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.wallet.points
+
+Get Arcadia points balance for a specific wallet address.
+
+Parameters:
+- `wallet_address` (string, required): Wallet address to get points for
+
+### read.asset.list
+
+List supported collateral assets on Arcadia.
+
+Parameters:
+- `search` (string, optional): Filter assets by symbol (case-insensitive substring match)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.asset.prices
+
+Get USD prices for one or more asset addresses.
+
+Parameters:
+- `asset_addresses` (string, required): Single address or comma-separated addresses
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.pool.list
+
+List all Arcadia lending pools: TVL, utilization, available liquidity.
+
+Parameters:
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.pool.info
+
+Get detailed info for a single lending pool including APY history over time.
+
+Parameters:
+- `pool_address` (string, required): Pool address
+- `days` (number, default: 14): Number of days of APY history
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.point_leaderboard
+
+Get the Arcadia points leaderboard (paginated).
+
+Parameters:
+- `limit` (number, default: 25): Max entries to return
+- `offset` (number, default: 0): Skip first N entries for pagination
+
+### read.strategy.list
+
+Get Arcadia LP strategies with 7d avg APY for each strategy's default range.
+
+Parameters:
+- `featured_only` (boolean, default: false): Return only featured/curated strategies
+- `limit` (number, default: 25): Max strategies to return
+- `offset` (number, default: 0): Skip first N strategies for pagination
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.strategy.info
+
+Get full detail for a specific LP strategy by ID.
+
+Parameters:
+- `strategy_id` (number, required): Strategy ID
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.strategy.recommendation
+
+Get a rebalancing recommendation for an Arcadia account.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### read.asset_manager.intents
+
+List all available automation intents with their tool names, required parameters, and supported chains.
+
+Parameters:
+- `chain_id` (number, optional): Filter to automations available on this chain
+
+### read.guides
+
+Get Arcadia workflow guides and reference documentation.
+
+Parameters:
+- `topic` (enum, optional): overview | automation | strategies | selection
+
+## Write Tools (20)
+
+All write tools return unsigned transactions as `{ to, data, value, chainId }`.
+
+### write.wallet.approve
+
+Build an unsigned approval transaction for ERC20 tokens or ERC721/ERC1155 NFTs.
+
+Parameters:
+- `token_address` (string, required): Token contract address to approve
+- `spender_address` (string, required): Address being approved
+- `asset_type` (enum, default: "erc20"): erc20 | erc721 | erc1155
+- `amount` (string, default: "max_uint256"): ERC20 only: amount in raw units
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.create
+
+Build an unsigned transaction to create a new Arcadia account via the Factory contract.
+
+Parameters:
+- `salt` (number, required): Unique salt (uint32) for deterministic account address
+- `wallet_address` (string, required): Wallet address that will send the transaction
+- `account_version` (number, default: 0): 0 = latest (V4 spot), 3 = margin (can borrow)
+- `creditor` (string, optional): Lending pool address for V3 margin account
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.deposit
+
+Build an unsigned transaction to deposit assets into an Arcadia account as collateral.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `asset_addresses` (string[], required): Token contract addresses to deposit
+- `asset_amounts` (string[], required): Amounts in raw units/wei, one per asset
+- `asset_ids` (number[], optional): Token IDs: 0 for ERC20, NFT token ID for ERC721
+- `asset_types` (number[], optional): V4 only. 1=ERC20, 2=ERC721, 3=ERC1155
+- `account_version` (number, optional): Override account version (auto-detected if omitted)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.withdraw
+
+Build an unsigned transaction to withdraw assets from an Arcadia account.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `asset_addresses` (string[], required): Token contract addresses to withdraw
+- `asset_amounts` (string[], required): Amounts in raw units/wei, one per asset
+- `asset_ids` (number[], optional): Token IDs: 0 for ERC20, NFT token ID for ERC721
+- `asset_types` (number[], optional): V4 only. 1=ERC20, 2=ERC721, 3=ERC1155
+- `account_version` (number, optional): Override account version (auto-detected if omitted)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.borrow
+
+Build an unsigned transaction to borrow from an Arcadia lending pool.
+
+Parameters:
+- `pool_address` (string, required): Lending pool address
+- `account_address` (string, required): Arcadia account address used as collateral
+- `amount` (string, required): Amount in raw units
+- `to` (string, required): Address to receive borrowed tokens
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.repay
+
+Repay debt to an Arcadia lending pool using tokens from the wallet.
+
+Parameters:
+- `pool_address` (string, required): Lending pool address
+- `account_address` (string, required): Arcadia account address with debt
+- `amount` (string, required): Amount in raw units, or "max_uint256" to repay all
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.add_liquidity
+
+Flash-action: atomically deposits from wallet + uses account collateral + swaps to optimal ratio + mints LP + borrows if leveraged, in one transaction.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `wallet_address` (string, required): Wallet address of the account owner
+- `positions` (object[], required): LP positions to mint. Each object:
+  - `strategy_id` (number, required): From read.strategy.list
+  - `tick_lower` (number, optional): Lower tick. Omit for full range.
+  - `tick_upper` (number, optional): Upper tick. Omit for full range.
+- `deposits` (object[], optional): Wallet tokens to deposit. Each object:
+  - `asset` (string, required): Token address
+  - `amount` (string, required): Amount in raw units
+  - `decimals` (number, default: 18): Token decimals (6 for USDC, 18 for WETH)
+- `use_account_assets` (boolean, default: false): Use all existing account collateral
+- `leverage` (number, default: 0): 0 = no borrow, 2 = 2x leverage
+- `slippage` (number, default: 100): Basis points, 100 = 1%
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.remove_liquidity
+
+Flash-action: partially decreases liquidity from an LP position.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `asset_address` (string, required): Position manager contract
+- `asset_id` (number, required): NFT token ID
+- `adjustment` (string, required): Liquidity amount to remove (raw uint128)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.swap
+
+Flash-action: swaps assets within an Arcadia account atomically.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `asset_from` (string, required): Token address to swap from
+- `asset_to` (string, required): Token address to swap to
+- `amount_in` (string, required): Raw units
+- `slippage` (number, default: 100): Basis points, 100 = 1%
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.deleverage
+
+Flash-action: sells account collateral to the debt token and repays atomically.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `amount_in` (string, required): Collateral amount to sell (raw units)
+- `asset_from` (string, required): Collateral token to sell
+- `numeraire` (string, required): Debt token address
+- `creditor` (string, required): Lending pool address
+- `slippage` (number, default: 100): Basis points, 100 = 1%
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.stake
+
+Flash-action: stake, unstake, or claim rewards for an LP position.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `action` (enum, required): stake | unstake | claim
+- `asset_address` (string, required): Position manager contract address
+- `asset_id` (number, required): NFT token ID
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.close
+
+Atomic flash-action that closes an Arcadia account position in one transaction.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `assets` (object[], required): Assets to close/sell. Each object:
+  - `asset_address` (string, required): Token or position manager address
+  - `asset_id` (number, required): NFT token ID (0 for ERC20)
+  - `amount` (string, required): Amount to sell ("1" for NFTs)
+  - `decimals` (number, required): Token decimals (1 for NFTs)
+- `receive_assets` (object[], optional): Target assets to receive. Each object:
+  - `asset_address` (string, required): Target token address
+  - `decimals` (number, required): Token decimals
+  - `distribution` (number, optional): Fraction of proceeds (0-1)
+- `close_lp_only` (boolean, default: false): true = only burn LP, false = full close
+- `slippage` (number, default: 100): Basis points, 100 = 1%
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.account.set_asset_managers
+
+Build an unsigned setAssetManagers transaction from encoded intent args.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `asset_managers` (string[], required): Asset manager addresses from intent tools
+- `statuses` (boolean[], required): Enable/disable flags from intent tools
+- `datas` (string[], required): Encoded callback data from intent tools (hex)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.asset_manager.rebalancer
+
+Encode args for the rebalancer automation.
+
+Parameters:
+- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
+- `enabled` (boolean, default: true): Enable or disable
+- `compound_leftovers` (enum, default: "all"): all | none | token0 | token1
+- `optimal_token0_ratio` (number, default: 500000): Target token0 ratio scaled by 1e6 (500000 = 50%)
+- `trigger_lower_ratio` (number, default: 0): Offset from tick_lower, fraction of tick range, scaled by 1e6
+- `trigger_upper_ratio` (number, default: 0): Offset from tick_upper, fraction of tick range, scaled by 1e6
+- `min_rebalance_time` (number, default: 3600): Min seconds between rebalances
+- `max_rebalance_time` (number, default: 1e12): Max seconds before forced rebalance
+- `strategy_hook` (string, optional): Custom strategy hook address
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.asset_manager.compounder
+
+Encode args for the standalone compounder automation.
+
+Parameters:
+- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
+- `enabled` (boolean, default: true): Enable or disable
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.asset_manager.compounder_staked
+
+Encode args for compounder + CowSwap for staked LP positions.
+
+Parameters:
+- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
+- `sell_tokens` (string[], required): Token addresses to sell via CowSwap
+- `buy_token` (string, required): Token address to buy (USDC, WETH, cbBTC)
+- `enabled` (boolean, default: true): Enable or disable
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.asset_manager.yield_claimer
+
+Encode args for the standalone yield claimer automation.
+
+Parameters:
+- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
+- `fee_recipient` (string, required): Address to receive claimed fees
+- `enabled` (boolean, default: true): Enable or disable
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.asset_manager.yield_claimer_cowswap
+
+Encode args for yield claimer + CowSwap.
+
+Parameters:
+- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
+- `sell_tokens` (string[], required): Token addresses to sell
+- `buy_token` (string, required): Token address to receive after swap
+- `fee_recipient` (string, required): Address to receive claimed fees
+- `enabled` (boolean, default: true): Enable or disable
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+### write.asset_manager.cow_swapper
+
+Encode args for standalone direct CowSwap mode (Base only).
+
+Parameters:
+- `enabled` (boolean, default: true): Enable or disable
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base)
+
+### write.asset_manager.merkl_operator
+
+Encode args for the Merkl operator automation.
+
+Parameters:
+- `reward_recipient` (string, required): Address to receive Merkl rewards
+- `enabled` (boolean, default: true): Enable or disable
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+## Dev Tools (1)
+
+### dev.send
+
+Sign and broadcast an unsigned transaction using a local private key (PK env var). Dev only.
+
+Parameters:
+- `to` (string, required): Target contract address
+- `data` (string, required): Encoded calldata (hex)
+- `value` (string, default: "0"): Value in wei
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base) or 130 (Unichain)
+
+## Links
+
+- Website: https://arcadia.finance
+- Docs: https://docs.arcadia.finance
+- npm: https://www.npmjs.com/package/@arcadia-finance/mcp-server
+- GitHub: https://github.com/arcadia-finance/mcp-server

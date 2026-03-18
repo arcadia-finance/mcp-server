@@ -37,6 +37,7 @@
     "skills",
     "server.json",
     "llms.txt",
+    "llms-full.txt",
     "README.md",
     "LICENSE.md"
   ],
