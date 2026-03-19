@@ -1,6 +1,6 @@
 ---
 name: arcadia-finance
-description: "Deploy and manage concentrated liquidity positions on Uniswap and Aerodrome with automated rebalancing, compounding, and yield optimization on Base and Unichain. Use when: users ask about LP management, DeFi lending, yield strategies, or automation on Base or Unichain."
+description: "DeFi liquidity management on Uniswap and Aerodrome, live on Base and Unichain. Deploy LP positions with automated rebalancing, compounding, leverage, and yield optimization via Arcadia Finance."
 metadata:
   openclaw:
     homepage: https://arcadia.finance
