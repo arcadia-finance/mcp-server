@@ -1,10 +1,10 @@
 # Arcadia Finance MCP Server
 
-> MCP server for Arcadia Finance, a DeFi protocol for managing concentrated liquidity positions (Uniswap v3/v4, Aerodrome/Slipstream) with leverage, automated rebalancing, and yield optimization. Supported chains: Base (8453), Unichain (130).
+> MCP server for Arcadia Finance, a DeFi protocol for managing concentrated liquidity positions (Uniswap v3/v4, Aerodrome/Slipstream) with automated rebalancing, compounding, yield optimization, and leverage. Supported chains: Base (8453), Unichain (130).
 
 ## Overview
 
-Arcadia lets users open leveraged LP positions, borrow against collateral, and automate position management (rebalancing, compounding, yield claiming). This MCP server exposes the full protocol as 38 tools:
+Arcadia lets users deploy and manage concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage. This MCP server exposes the full protocol as 38 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points

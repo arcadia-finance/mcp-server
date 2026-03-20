@@ -6,7 +6,7 @@ user-invocable: true
 
 # Arcadia Finance — clAMM Agent Guide
 
-Arcadia is a platform for managing concentrated liquidity positions — with built-in leverage, automated rebalancing, compounding, and yield optimization. Positions live in Arcadia accounts, which can also borrow against their collateral. This skill covers everything needed to manage clAMM positions as an agent.
+Arcadia is a platform for managing concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage. Positions live in Arcadia accounts, which can also borrow against their collateral. This skill covers everything needed to manage clAMM positions as an agent.
 
 ## Key Constraints
 

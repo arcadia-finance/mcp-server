@@ -9,7 +9,7 @@
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 [![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server)
 
-MCP server for [Arcadia Finance](https://arcadia.finance), a platform to manage Uniswap and Aerodrome concentrated liquidity positions with built-in leverage, automated rebalancing, and yield optimization. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
+MCP server for [Arcadia Finance](https://arcadia.finance), a platform to manage concentrated liquidity positions on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
 Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 
