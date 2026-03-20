@@ -1,6 +1,6 @@
 # Arcadia Finance MCP Server
 
-MCP server exposing Arcadia's DeFi protocol (concentrated liquidity, leverage, automated rebalancing) as tools for AI agents. Published as `@arcadia-finance/mcp-server` on npm. Supported chains: Base (8453), Unichain (130).
+MCP server exposing Arcadia's DeFi protocol (concentrated liquidity management, automated rebalancing, compounding, yield optimization, leverage) as tools for AI agents. Published as `@arcadia-finance/mcp-server` on npm. Supported chains: Base (8453), Unichain (130).
 
 ## Development
 

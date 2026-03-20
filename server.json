@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.arcadia-finance/mcp-server",
   "title": "Arcadia Finance",
-  "description": "Manage Uniswap and Aerodrome liquidity positions with automated rebalancing and leverage.",
+  "description": "Manage concentrated liquidity positions on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage.",
   "version": "0.3.3",
   "websiteUrl": "https://arcadia.finance",
   "repository": {
