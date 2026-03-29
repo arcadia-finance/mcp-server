@@ -21,10 +21,24 @@ export function formatBatchedResponse(
     response.tenderly_sim_status = "unavailable";
   }
   if (result.expected_value_change != null) {
-    response.expected_value_change = result.expected_value_change;
+    response.expected_value_change = String(result.expected_value_change);
   }
-  if (result.before != null) response.before = result.before;
-  if (result.after != null) response.after = result.after;
+  if (result.before != null) {
+    const b = result.before as Record<string, unknown>;
+    response.before = {
+      ...b,
+      total_account_value: String(b.total_account_value),
+      used_margin: String(b.used_margin),
+    };
+  }
+  if (result.after != null) {
+    const a = result.after as Record<string, unknown>;
+    response.after = {
+      ...a,
+      total_account_value: String(a.total_account_value),
+      used_margin: String(a.used_margin),
+    };
+  }
 
   return response;
 }
