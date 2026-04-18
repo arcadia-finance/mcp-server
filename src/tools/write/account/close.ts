@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { getPublicClient } from "../../../clients/chain.js";
 import { readAccountMetadata } from "./metadata.js";
 import { formatBatchedResponse } from "./format-response.js";
@@ -72,7 +72,7 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
             "true = only burn LP positions, leave underlying tokens in account. false = full close (burn + swap + repay).",
           ),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async ({ account_address, assets, receive_assets, close_lp_only, slippage, chain_id }) => {

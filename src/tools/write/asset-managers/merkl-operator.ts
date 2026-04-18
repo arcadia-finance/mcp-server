@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { getStandaloneAmAddress } from "../../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
 import { MERKL_INITIATOR, encodeMerklOperatorCallbackData, disabledIntent } from "./encoding.js";
@@ -27,7 +27,7 @@ export function registerMerklOperatorTool(
       inputSchema: {
         reward_recipient: z.string().describe("Address to receive Merkl rewards"),
         enabled: z.boolean().default(true).describe("True to enable, false to disable"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {

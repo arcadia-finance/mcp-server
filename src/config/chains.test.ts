@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { resolveChainId, getChainConfigs } from "./chains.js";
 
 describe("resolveChainId", () => {
-  it.each([8453, 130])("accepts numeric chain ID %d", (id) => {
+  it.each([8453, 130, 10])("accepts numeric chain ID %d", (id) => {
     expect(resolveChainId(id)).toBe(id);
   });
 
@@ -23,6 +23,7 @@ describe("getChainConfigs", () => {
   const saved = {
     RPC_URL_BASE: process.env.RPC_URL_BASE,
     RPC_URL_UNICHAIN: process.env.RPC_URL_UNICHAIN,
+    RPC_URL_OPTIMISM: process.env.RPC_URL_OPTIMISM,
   };
 
   afterEach(() => {
@@ -38,9 +39,11 @@ describe("getChainConfigs", () => {
   it("uses public RPCs when no env vars set", () => {
     delete process.env.RPC_URL_BASE;
     delete process.env.RPC_URL_UNICHAIN;
+    delete process.env.RPC_URL_OPTIMISM;
     const configs = getChainConfigs();
     expect(configs[8453].rpcUrl).toBe("https://mainnet.base.org");
     expect(configs[130].rpcUrl).toBe("https://mainnet.unichain.org");
+    expect(configs[10].rpcUrl).toBe("https://mainnet.optimism.io");
   });
 
   it("uses RPC_URL_BASE when set", () => {
@@ -53,5 +56,11 @@ describe("getChainConfigs", () => {
     process.env.RPC_URL_UNICHAIN = "https://custom-uni-rpc.example.com";
     const configs = getChainConfigs();
     expect(configs[130].rpcUrl).toBe("https://custom-uni-rpc.example.com");
+  });
+
+  it("uses RPC_URL_OPTIMISM when set", () => {
+    process.env.RPC_URL_OPTIMISM = "https://custom-op-rpc.example.com";
+    const configs = getChainConfigs();
+    expect(configs[10].rpcUrl).toBe("https://custom-op-rpc.example.com");
   });
 });

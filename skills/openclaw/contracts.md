@@ -1,6 +1,6 @@
 # Arcadia Contract Addresses
 
-Supported chains: Base (8453), Unichain (130).
+Supported chains: Base (8453), Unichain (130), Optimism (10).
 
 ## Protocol (same on all chains)
 
@@ -18,6 +18,13 @@ Supported chains: Base (8453), Unichain (130).
 | LP_USDC  | 0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1 |
 | LP_CBBTC | 0xa37E9b4369dc20940009030BfbC2088F09645e3B |
 
+## Lending Pools (Optimism)
+
+| Pool    | Address                                    |
+| ------- | ------------------------------------------ |
+| LP_WETH | 0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2 |
+| LP_USDC | 0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1 |
+
 ## Key Tokens (Base)
 
 | Token | Address                                    | Decimals |
@@ -27,6 +34,17 @@ Supported chains: Base (8453), Unichain (130).
 | cbBTC | 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf | 8        |
 | AERO  | 0x940181a94A35A4569E4529A3CDfB74e38FD98631 | 18       |
 
+## Key Tokens (Optimism)
+
+| Token  | Address                                    | Decimals |
+| ------ | ------------------------------------------ | -------- |
+| WETH   | 0x4200000000000000000000000000000000000006 | 18       |
+| USDC   | 0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85 | 6        |
+| OP     | 0x4200000000000000000000000000000000000042 | 18       |
+| VELO   | 0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db | 18       |
+| WBTC   | 0x68f180fcCe6836688e9084f035309E29Bf0A2095 | 8        |
+| wstETH | 0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb | 18       |
+
 ## Asset Managers
 
-Rebalancers, compounders, and yield claimers are deployed per DEX protocol. Use `read_asset_manager_intents` to discover available automations and their addresses.
+Rebalancers, compounders, and yield claimers are deployed per DEX protocol. Slipstream V3 is Base-only. Optimism supports Slipstream V1 (Velodrome), Uniswap V3, and Uniswap V4. No CoW Swap on Optimism. Use `read_asset_manager_intents` to discover available automations and their addresses per chain.

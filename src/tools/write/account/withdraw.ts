@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { accountAbi, getAccountAbi } from "../../../abis/index.js";
 import { getPublicClient } from "../../../clients/chain.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
@@ -40,7 +40,7 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
           .number()
           .optional()
           .describe("Override account version (3 or 4). Auto-detected on-chain if omitted."),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
+import { CHAIN_ID_DESCRIPTION } from "../../../config/chains.js";
 import { formatBatchedResponse } from "./format-response.js";
 import { validateAddress } from "../../../utils/validation.js";
 import { BatchedTransactionOutput } from "../../output-schemas.js";
@@ -24,7 +25,7 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
         action: z.enum(["stake", "unstake", "claim"]).describe("Action to perform"),
         asset_address: z.string().describe("Position manager contract address"),
         asset_id: z.number().describe("NFT token ID of the LP position"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async ({ account_address, action, asset_address, asset_id, chain_id }) => {

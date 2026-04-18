@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { formatUnits } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../config/chains.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { erc20Abi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
@@ -35,7 +35,7 @@ export function registerWalletTools(
       inputSchema: {
         wallet_address: z.string().describe("Wallet address to check balances for"),
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: WalletBalancesOutput,
     },
@@ -126,7 +126,7 @@ export function registerWalletTools(
           .string()
           .describe("Spender address to check allowance for (e.g. Arcadia account address)"),
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: WalletAllowanceOutput,
     },
@@ -204,7 +204,7 @@ export function registerWalletTools(
         "List all Arcadia accounts owned by a wallet address. Returns a summary of each account (address, name). Call read.account.info with a specific account_address for full details like health factor, collateral, and debt.",
       inputSchema: {
         wallet_address: z.string().describe("Wallet address to list accounts for"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: AccountListOutput,
     },

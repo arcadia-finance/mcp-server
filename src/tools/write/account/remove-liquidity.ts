@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
+import { CHAIN_ID_DESCRIPTION } from "../../../config/chains.js";
 import { formatBatchedResponse } from "./format-response.js";
 import { validateAddress } from "../../../utils/validation.js";
 import { BatchedTransactionOutput } from "../../output-schemas.js";
@@ -31,7 +32,7 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           .describe(
             "Liquidity amount to remove (raw uint128 value as string). Must be less than total liquidity — for full removal use write.account.close.",
           ),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async ({ account_address, asset_address, asset_id, adjustment, chain_id }) => {

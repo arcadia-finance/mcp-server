@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
+import { CHAIN_ID_DESCRIPTION } from "../../config/chains.js";
 import { AssetListOutput, AssetPricesOutput } from "../output-schemas.js";
 
 export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
@@ -21,7 +22,7 @@ export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
           .string()
           .optional()
           .describe("Filter assets by symbol (case-insensitive substring match)"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: AssetListOutput,
     },
@@ -78,7 +79,7 @@ export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
         asset_addresses: z
           .string()
           .describe("Single address or comma-separated addresses for price lookup"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: AssetPricesOutput,
     },

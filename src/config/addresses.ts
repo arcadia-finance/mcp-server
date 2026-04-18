@@ -13,10 +13,13 @@ export const PROTOCOL = {
   uniswapV4AM: "0xb808971ea73341b0d7286B3D67F08De321f80465",
   slipstreamAM: "0xd3A7055bBcDA4F8F49e5c5dE7E83B09a33633F44",
   slipstreamV2AM: "0x3aDE1F1FdC666B1bFAd376345EA878D1c11EB73B",
+  slipstreamV3AM: "0xcaf4167dE878Cfb23D9912b1ff5869F2b3527189",
   wrappedAeroAM: "0x17B5826382e3a5257b829cF0546A08Bd77409270",
   stakedAeroAM: "0x9f42361B7602Df1A8Ae28Bf63E6cb1883CD44C27",
   stakedSlipstreamAM: "0x1Dc7A0f5336F52724B650E39174cfcbbEdD67bF1",
   stakedSlipstreamV2AM: "0xBed6C3E35B9B1e044b3Bc71465769EdFDC0FDD4c",
+  stakedSlipstreamV3AM: "0xE0F20BE5886F11CbcD2cb5bA9987Bcbbf1d8ca7b",
+  wrappedStakedSlipstreamV3: "0x9189BC25f8faC157B4D87b0b3c14F56bA1477d53",
   alienBaseAM: "0x79dD8b8d4abB5dEEA986DB1BF0a02E4CA42ae416",
   gaugeHelper: "0x2feb44C740eB4e64aDE33E0D44Ef30049Fb06CC5",
   clHelper: "0x1496Bd3502DE0Dd5b1D44E16623cCc5118771117",
@@ -27,53 +30,33 @@ interface TokenInfo {
   decimals: number;
 }
 
-export const POOLS: Partial<
-  Record<
-    ChainId,
-    {
-      LP_WETH: string;
-      LP_USDC: string;
-      LP_CBBTC: string;
-    }
-  >
-> = {
+type PoolMap = { LP_WETH: string; LP_USDC: string; LP_CBBTC?: string };
+export const POOLS: Partial<Record<ChainId, PoolMap>> = {
   8453: {
     LP_WETH: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",
     LP_USDC: "0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1",
     LP_CBBTC: "0xa37E9b4369dc20940009030BfbC2088F09645e3B",
   },
+  10: {
+    LP_WETH: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",
+    LP_USDC: "0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1",
+  },
 };
 
-export const TRANCHES: Partial<
-  Record<
-    ChainId,
-    {
-      sr_WETH: string;
-      sr_USDC: string;
-      sr_CBBTC: string;
-    }
-  >
-> = {
+type TrancheMap = { sr_WETH: string; sr_USDC: string; sr_CBBTC?: string };
+export const TRANCHES: Partial<Record<ChainId, TrancheMap>> = {
   8453: {
     sr_WETH: "0x393893caeB06B5C16728bb1E354b6c36942b1382",
     sr_USDC: "0xEFE32813dBA3A783059d50e5358b9e3661218daD",
     sr_CBBTC: "0x9c63A4c499B323a25D389Da759c2ac1e385eEc92",
   },
+  10: {
+    sr_WETH: "0x393893caeB06B5C16728bb1E354b6c36942b1382",
+    sr_USDC: "0xEFE32813dBA3A783059d50e5358b9e3661218daD",
+  },
 };
 
-export const TOKENS: Partial<
-  Record<
-    ChainId,
-    {
-      WETH: TokenInfo;
-      USDC: TokenInfo;
-      cbBTC: TokenInfo;
-      AERO: TokenInfo;
-      AAA: TokenInfo;
-      stAAA: TokenInfo;
-    }
-  >
-> = {
+export const TOKENS: Partial<Record<ChainId, Record<string, TokenInfo>>> = {
   8453: {
     WETH: { address: "0x4200000000000000000000000000000000000006", decimals: 18 },
     USDC: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6 },
@@ -82,10 +65,18 @@ export const TOKENS: Partial<
     AAA: { address: "0xaaa843fb2916c0B57454270418E121C626402AAa", decimals: 18 },
     stAAA: { address: "0xDeA1531d8a1505785eb517C7A28526443df223F3", decimals: 18 },
   },
+  10: {
+    WETH: { address: "0x4200000000000000000000000000000000000006", decimals: 18 },
+    USDC: { address: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", decimals: 6 },
+    OP: { address: "0x4200000000000000000000000000000000000042", decimals: 18 },
+    VELO: { address: "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db", decimals: 18 },
+    WBTC: { address: "0x68f180fcCe6836688e9084f035309E29Bf0A2095", decimals: 8 },
+    WSTETH: { address: "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb", decimals: 18 },
+  },
 };
 
 // Asset manager protocol keys (protocol-specific AMs: rebalancer, compounder, yield claimer)
-export type AmProtocol = "slipstreamV1" | "slipstreamV2" | "uniV3" | "uniV4";
+export type AmProtocol = "slipstreamV1" | "slipstreamV2" | "slipstreamV3" | "uniV3" | "uniV4";
 
 // Standalone AM keys (protocol-agnostic)
 export type StandaloneAm = "merklOperator" | "gasRelayer" | "cowSwapper";
@@ -97,18 +88,21 @@ const AM_ADDRESSES = {
   rebalancers: {
     slipstreamV1: "0x5802454749cc0c4A6F28D5001B4cD84432e2b79F",
     slipstreamV2: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
+    slipstreamV3: "0x37c6258aEe125d520B6f03fc2cb490955050D557",
     uniV3: "0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd",
     uniV4: "0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0",
   },
   compounders: {
     slipstreamV1: "0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7",
     slipstreamV2: "0x35e59448C7145482E56212510cC689612AB4F61f",
+    slipstreamV3: "0xd42A3Ac56456bD5422835B36C35Cacb6448ddCd9",
     uniV3: "0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3",
     uniV4: "0xAA95c9c402b195D8690eCaea2341a76e3266B189",
   },
   yieldClaimers: {
     slipstreamV1: "0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba",
     slipstreamV2: "0xc8bF4B2c740FF665864E9494832520f18822871C",
+    slipstreamV3: "0x8c1Fbf38118fD5A704b6E7babcB7AF1a9A291980",
     uniV3: "0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16",
     uniV4: "0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4",
   },
@@ -117,18 +111,21 @@ const AM_ADDRESSES = {
   cowSwapper: "0xc928013A219EC9F18dE7B2dee6A50Ba626811854",
 } as const;
 
-// Per-chain availability — update these when deploying to new chains
+// Per-chain availability — update these when deploying to new chains.
+// Slipstream V3 position manager is only live on Base; Unichain and Optimism have V1 only.
 const CHAIN_PROTOCOLS: Record<ChainId, ReadonlySet<AmProtocol>> = {
-  8453: new Set(["slipstreamV1", "slipstreamV2", "uniV3", "uniV4"]),
+  8453: new Set(["slipstreamV1", "slipstreamV2", "slipstreamV3", "uniV3", "uniV4"]),
   130: new Set(["slipstreamV1", "uniV3", "uniV4"]),
+  10: new Set(["slipstreamV1", "uniV3", "uniV4"]),
 };
 
 const CHAIN_STANDALONE_AMS: Record<ChainId, ReadonlySet<StandaloneAm>> = {
   8453: new Set(["merklOperator", "gasRelayer", "cowSwapper"]),
   130: new Set(["merklOperator", "gasRelayer"]),
+  10: new Set(["merklOperator", "gasRelayer"]),
 };
 
-const CHAIN_NAMES: Record<ChainId, string> = { 8453: "Base", 130: "Unichain" };
+const CHAIN_NAMES: Record<ChainId, string> = { 8453: "Base", 130: "Unichain", 10: "Optimism" };
 
 // Map LP asset names → dex_protocol values
 const LP_NAME_TO_POOL_PROTOCOL: Record<string, string> = {
@@ -136,10 +133,13 @@ const LP_NAME_TO_POOL_PROTOCOL: Record<string, string> = {
   UniV4: "uniV4",
   slipstream: "slipstream",
   slipstream_v2: "slipstream_v2",
+  slipstream_v3: "slipstream_v3",
   "Staked Slipstream": "staked_slipstream",
   "Staked Slipstream V2": "staked_slipstream_v2",
+  "Staked Slipstream V3": "staked_slipstream_v3",
   "Wrapped Staked Slipstream": "staked_slipstream",
   "Wrapped Staked Slipstream V2": "staked_slipstream_v2",
+  "Wrapped Staked Slipstream V3": "staked_slipstream_v3",
   "Wrapped Aerodrome": "slipstream",
   "Staked Aerodrome": "staked_slipstream",
 };
@@ -152,9 +152,25 @@ export function lpNameToPoolProtocol(name: string): string | null {
 export const AM_KEY_TO_POOL_PROTOCOL: Record<AmProtocol, string> = {
   slipstreamV1: "slipstream",
   slipstreamV2: "slipstream_v2",
+  slipstreamV3: "slipstream_v3",
   uniV3: "uniV3",
   uniV4: "uniV4",
 };
+
+// User-facing dex_protocol values available on a chain. Slipstream AMs are
+// shared between plain and staked pools, so each slipstreamV* on a chain
+// contributes both `slipstream_vN` and `staked_slipstream_vN`.
+export function getChainDexProtocols(chainId: ChainId): string[] {
+  const values: string[] = [];
+  for (const protocol of CHAIN_PROTOCOLS[chainId]) {
+    const base = AM_KEY_TO_POOL_PROTOCOL[protocol];
+    values.push(base);
+    if (protocol.startsWith("slipstream")) {
+      values.push(base.replace(/^slipstream/, "staked_slipstream"));
+    }
+  }
+  return values;
+}
 
 export function getAmProtocolAddress(
   chainId: ChainId,
@@ -244,6 +260,7 @@ export const MINIMAL_STRATEGY_HOOK = "0x13beD1A58d87c0454872656c5328103aAe5eB86A
 export const STATE_VIEWERS: Partial<Record<ChainId, `0x${string}`>> = {
   8453: "0xA3c0c9b65baD0b08107Aa264b0f3dB444b867A71",
   130: "0x86e8631A016F9068C3f085fAF484Ee3F5fDee8f2",
+  10: "0xc18a3169788F4f75A170290584ecA6395C75Ecdb",
 };
 
 // LP position manager address (lowercase) → dex_protocol value
@@ -252,6 +269,7 @@ export const CHAIN_POSITION_MANAGERS: Partial<Record<ChainId, Record<string, str
   8453: {
     "0x827922686190790b37229fd06084350e74485b72": "slipstream",
     "0xa990c6a764b73bf43cee5bb40339c3322fb9d55f": "slipstream_v2",
+    "0xe1f8cd9ac4e4a65f54f38a5cdafca44f6dd68b53": "slipstream_v3",
     "0x03a520b32c04bf3beef7beb72e919cf822ed34f1": "uniV3",
     "0x7c5f5a4bbd8fd63184577525326123b519429bdc": "uniV4",
   },
@@ -260,12 +278,19 @@ export const CHAIN_POSITION_MANAGERS: Partial<Record<ChainId, Record<string, str
     "0x943e6e07a7e8e791dafc44083e54041d743c46e9": "uniV3",
     "0x4529a01c7a0410167c5740c487a8de60232617bf": "uniV4",
   },
+  10: {
+    "0x416b433906b1b72fa758e166e239c43d68dc6f29": "slipstream", // Velodrome Slipstream V1
+    "0xc36442b4a4522e871399cd717abdd847ab11fe88": "uniV3",
+    "0x3c3ea4b57a46241e54610e5f022e5c45859a1017": "uniV4",
+  },
 };
 
 // Universal staked/wrapped-staked position manager addresses (same on all chains)
 export const UNIVERSAL_POSITION_MANAGERS: Record<string, string> = {
   "0x1dc7a0f5336f52724b650e39174cfcbbedd67bf1": "staked_slipstream", // StakedSlipstreamAM V1
   "0xbed6c3e35b9b1e044b3bc71465769edfdc0fdd4c": "staked_slipstream_v2", // StakedSlipstreamAM V2
+  "0xe0f20be5886f11cbcd2cb5ba9987bcbbf1d8ca7b": "staked_slipstream_v3", // StakedSlipstreamAM V3
   "0xd74339e0f10fce96894916b93e5cc7de89c98272": "staked_slipstream", // WrappedStakedSlipstream V1
   "0x147a2ccbaf4521ad209a2875ae0b3c496f4b25a4": "staked_slipstream_v2", // WrappedStakedSlipstream V2
+  "0x9189bc25f8fac157b4d87b0b3c14f56ba1477d53": "staked_slipstream_v3", // WrappedStakedSlipstream V3
 };

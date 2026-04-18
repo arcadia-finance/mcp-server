@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { accountAbi } from "../../../abis/index.js";
 import { SimpleTransactionOutput } from "../../output-schemas.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
@@ -31,7 +31,7 @@ export function registerSetAssetManagersTool(
         datas: z
           .array(z.string())
           .describe("Encoded callback data from intent tools (hex strings)"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {

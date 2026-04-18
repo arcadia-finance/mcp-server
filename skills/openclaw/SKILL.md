@@ -12,7 +12,7 @@ metadata:
 
 > **Agent note:** `{baseDir}` refers to the directory containing this SKILL.md file. Resolve all `{baseDir}` paths relative to it.
 
-Arcadia helps users deploy and manage concentrated liquidity positions on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and optional leverage. Supported chains: Base (8453), Unichain (130).
+Arcadia helps users deploy and manage concentrated liquidity positions on Uniswap, Aerodrome, and Velodrome with automated rebalancing, compounding, yield optimization, and optional leverage. Supported chains: Base (8453), Unichain (130), Optimism (10).
 
 ## CLI Usage
 

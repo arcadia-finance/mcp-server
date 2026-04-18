@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { erc20Abi, nftmanagerAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { validateAddress } from "../../../utils/validation.js";
@@ -40,7 +40,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
           .describe(
             "ERC20 only: amount in raw units, or 'max_uint256' for unlimited. Ignored for NFTs.",
           ),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {
