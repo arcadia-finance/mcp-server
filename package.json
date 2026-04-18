@@ -1,7 +1,7 @@
 {
   "name": "@arcadia-finance/mcp-server",
   "mcpName": "io.github.arcadia-finance/mcp-server",
-  "version": "0.4.0",
+  "version": "0.3.5",
   "description": "MCP server for Arcadia Finance. Manage concentrated liquidity positions on Uniswap, Aerodrome, and Velodrome with automated rebalancing, compounding, yield optimization, and leverage. Base, Unichain, and Optimism.",
   "type": "module",
   "license": "AGPL-3.0",
