@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { poolAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { validateAddress } from "../../../utils/validation.js";
@@ -31,7 +31,7 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
         amount: z
           .string()
           .describe("Amount in raw units, or 'max_uint256' to repay all debt in full"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {

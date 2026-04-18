@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
+import { CHAIN_ID_DESCRIPTION } from "../../../config/chains.js";
 import { formatBatchedResponse } from "./format-response.js";
 import { validateAddress } from "../../../utils/validation.js";
 import { BatchedTransactionOutput } from "../../output-schemas.js";
@@ -25,7 +26,7 @@ export function registerSwapTool(server: McpServer, api: ArcadiaApiClient) {
         asset_to: z.string().describe("Token address to swap to"),
         amount_in: z.string().describe("Raw units"),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async ({ account_address, asset_from, asset_to, amount_in, slippage, chain_id }) => {

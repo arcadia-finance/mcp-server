@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
+import { CHAIN_ID_DESCRIPTION } from "../../config/chains.js";
 import {
   StrategyListOutput,
   StrategyDetailOutput,
@@ -27,7 +28,7 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
           .describe("Return only featured/curated strategies (recommended)"),
         limit: z.number().default(25).describe("Max strategies to return (default 25)"),
         offset: z.number().default(0).describe("Skip first N strategies for pagination"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: StrategyListOutput,
     },
@@ -38,9 +39,28 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
 
         if (featured_only) {
           const raw = await api.getFeatured(chain_id);
-          strategies = Array.isArray(raw) ? (raw as Record<string, unknown>[]) : [];
+          const all = Array.isArray(raw) ? (raw as Record<string, unknown>[]) : [];
+          // The /featured endpoint currently returns curated Base strategies regardless of
+          // chain_id. Filter by the chain baked into each strategy's url (`/farm/<chainId>/…`)
+          // so we never hand back strategies that belong to a different chain.
+          const urlChainRe = /\/farm\/(\d+)\//;
+          strategies = all.filter((s) => {
+            const url = s.url as string | undefined;
+            if (!url) return true;
+            const match = url.match(urlChainRe);
+            if (!match) return true;
+            return Number(match[1]) === chain_id;
+          });
           total = strategies.length;
-          const result = { total, offset: 0, limit: total, strategies };
+          const result: Record<string, unknown> = {
+            total,
+            offset: 0,
+            limit: total,
+            strategies,
+          };
+          if (total === 0 && all.length > 0) {
+            result.context_note = `Featured strategies are not curated for chain ${chain_id} yet. Backend returned ${all.length} Base strategies; filtered out. Use featured_only=false to list all strategies on this chain.`;
+          }
           return {
             content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
             structuredContent: result,
@@ -112,7 +132,7 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
         "Get full detail for a specific LP strategy by ID — includes APY per range width (narrower range = higher APY but more rebalancing cost/risk), pool info, and configuration. Use read.strategy.list to discover strategy IDs. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%).",
       inputSchema: {
         strategy_id: z.number().describe("Strategy ID"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: StrategyDetailOutput,
     },
@@ -151,7 +171,7 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
         "Get a rebalancing recommendation for an Arcadia account — suggests asset changes to optimize yield. Uses 1d APY (not 7d like read.strategy.list), so recommended strategies may differ from the list ranking. APY values are decimal fractions (0.05 = 5%). weekly_earning_difference is in USD.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: StrategyRecommendationOutput,
     },

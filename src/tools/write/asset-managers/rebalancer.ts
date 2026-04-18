@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { MINIMAL_STRATEGY_HOOK, getAmProtocolAddress } from "../../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
 import {
@@ -71,7 +71,7 @@ export function registerRebalancerTool(server: McpServer, _chains: Record<ChainI
           .describe(
             "Strategy hook address. Defaults to minimal hook. Only override for custom hooks.",
           ),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { poolAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
@@ -35,7 +35,7 @@ export function registerBorrowTool(
         account_address: z.string().describe("Arcadia account address used as collateral"),
         amount: z.string().describe("Amount in raw units"),
         to: z.string().describe("Address to receive borrowed tokens"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { getAmProtocolAddress, getStandaloneAmAddress } from "../../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
 import {
@@ -31,7 +31,7 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
       inputSchema: {
         dex_protocol: DEX_PROTOCOL_SCHEMA,
         enabled: z.boolean().default(true).describe("True to enable, false to disable"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {
@@ -91,7 +91,7 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
             "Token address to buy — should be a major token in the pair (USDC, WETH, cbBTC)",
           ),
         enabled: z.boolean().default(true).describe("True to enable, false to disable"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {
@@ -101,10 +101,9 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         let cowSwapperAddress: string;
         try {
           cowSwapperAddress = getStandaloneAmAddress(validChainId, "cowSwapper");
-        } catch {
-          throw new Error(
-            `compounder_staked is not available on chain ${validChainId} because it requires cow_swapper, which is Base-only (8453).`,
-          );
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : String(err);
+          throw new Error(`compounder_staked requires cow_swapper. ${reason}`);
         }
         const compounderAddress = getAmProtocolAddress(validChainId, "compounders", amKey);
 

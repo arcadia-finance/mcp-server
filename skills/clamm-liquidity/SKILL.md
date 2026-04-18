@@ -20,7 +20,7 @@ Arcadia is a platform for managing concentrated liquidity positions with automat
 Write tools (`write.*`) return unsigned transaction calldata. This server does NOT sign or broadcast. After receiving a transaction object, you must:
 
 1. **Sign** the transaction with the account owner's private key or wallet
-2. **Broadcast** it to the appropriate chain (Base 8453 or Unichain 130)
+2. **Broadcast** it to the appropriate chain (Base 8453, Unichain 130, or Optimism 10)
 3. **Wait** for the transaction receipt to confirm success
 
 How you sign depends on your setup:
@@ -140,21 +140,48 @@ Addresses are auto-resolved by `write.asset_manager.*` intent tools based on `de
 | -------------- | ------------- | -------------------------------------------- |
 | Rebalancer     | Slipstream V1 | `0x5802454749cc0c4A6F28D5001B4cD84432e2b79F` |
 | Rebalancer     | Slipstream V2 | `0x953Ff365d0b562ceC658dc46B394E9282338d9Ea` |
+| Rebalancer     | Slipstream V3 | `0x37c6258aEe125d520B6f03fc2cb490955050D557` |
 | Rebalancer     | Uniswap V3    | `0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd` |
 | Rebalancer     | Uniswap V4    | `0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0` |
 | Compounder     | Slipstream V1 | `0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7` |
 | Compounder     | Slipstream V2 | `0x35e59448C7145482E56212510cC689612AB4F61f` |
+| Compounder     | Slipstream V3 | `0xd42A3Ac56456bD5422835B36C35Cacb6448ddCd9` |
 | Compounder     | Uniswap V3    | `0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3` |
 | Compounder     | Uniswap V4    | `0xAA95c9c402b195D8690eCaea2341a76e3266B189` |
 | Yield Claimer  | Slipstream V1 | `0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba` |
 | Yield Claimer  | Slipstream V2 | `0xc8bF4B2c740FF665864E9494832520f18822871C` |
+| Yield Claimer  | Slipstream V3 | `0x8c1Fbf38118fD5A704b6E7babcB7AF1a9A291980` |
 | Yield Claimer  | Uniswap V3    | `0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16` |
 | Yield Claimer  | Uniswap V4    | `0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4` |
 | Merkl Operator | All           | `0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6` |
-| CoW Swapper    | All           | `0xc928013A219EC9F18dE7B2dee6A50Ba626811854` |
+| CoW Swapper    | Base only     | `0xc928013A219EC9F18dE7B2dee6A50Ba626811854` |
 | Gas Relayer    | All           | `0xD938C8d04cF91094fecAF0A2018EAac483a40137` |
 
-**Slipstream V1 vs V2:** The pool determines the version — some pools are V1, some are V2. `read.account.info` now returns a `dex_protocol` field on LP positions (derived from the position manager address), so you can read the protocol directly from the account overview. Pass this value as `dex_protocol` to `write.asset_manager.*` intent tools to auto-resolve the correct AM address.
+Slipstream V3 addresses above are Base-only. Unichain and Optimism have Slipstream V1 only (no V2/V3 position manager deployed).
+
+**Slipstream V1 vs V2 vs V3:** The pool determines the version — each pool is bound to a specific Slipstream version. `read.account.info` returns a `dex_protocol` field on LP positions (derived from the position manager address), so you can read the protocol directly from the account overview. Pass this value (`slipstream`, `slipstream_v2`, `slipstream_v3`, or their `staked_*` variants) as `dex_protocol` to `write.asset_manager.*` intent tools to auto-resolve the correct AM address.
+
+## Token, Contract, and Lending Pool Addresses (Optimism 10)
+
+On Optimism, only Slipstream V1 (Velodrome), Uniswap V3, and Uniswap V4 are supported. No cbBTC pool, no CoW Swap.
+
+| Token  | Address                                      | Decimals |
+| ------ | -------------------------------------------- | -------- |
+| WETH   | `0x4200000000000000000000000000000000000006` | 18       |
+| USDC   | `0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85` | 6        |
+| OP     | `0x4200000000000000000000000000000000000042` | 18       |
+| VELO   | `0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db` | 18       |
+| WBTC   | `0x68f180fcCe6836688e9084f035309E29Bf0A2095` | 8        |
+| wstETH | `0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb` | 18       |
+
+Lending pools (same CREATE2 addresses as Base):
+
+| Asset | Pool Address                                 |
+| ----- | -------------------------------------------- |
+| WETH  | `0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2` |
+| USDC  | `0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1` |
+
+Available automations on Optimism: rebalancer, compounder, yield_claimer, merkl_operator. `cow_swapper`, `compounder_staked`, and `yield_claimer_cowswap` are Base-only (CoW Swap is not deployed on Optimism).
 
 ## Account Versions
 

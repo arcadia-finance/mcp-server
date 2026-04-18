@@ -4,16 +4,20 @@ import type { AmProtocol } from "../../../config/addresses.js";
 export type DexProtocol =
   | "slipstream"
   | "slipstream_v2"
+  | "slipstream_v3"
   | "staked_slipstream"
   | "staked_slipstream_v2"
+  | "staked_slipstream_v3"
   | "uniV3"
   | "uniV4";
 
 const PROTOCOL_TO_AM_KEY: Record<DexProtocol, AmProtocol> = {
   slipstream: "slipstreamV1",
   slipstream_v2: "slipstreamV2",
+  slipstream_v3: "slipstreamV3",
   staked_slipstream: "slipstreamV1",
   staked_slipstream_v2: "slipstreamV2",
+  staked_slipstream_v3: "slipstreamV3",
   uniV3: "uniV3",
   uniV4: "uniV4",
 };
@@ -26,8 +30,10 @@ export const DEX_PROTOCOL_SCHEMA = z
   .enum([
     "slipstream",
     "slipstream_v2",
+    "slipstream_v3",
     "staked_slipstream",
     "staked_slipstream_v2",
+    "staked_slipstream_v3",
     "uniV3",
     "uniV4",
   ])

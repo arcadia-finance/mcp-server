@@ -51,7 +51,7 @@ describe("validateAddress", () => {
 });
 
 describe("validateChainId", () => {
-  it.each([8453, 130])("accepts supported chain ID %d", (id) => {
+  it.each([8453, 130, 10])("accepts supported chain ID %d", (id) => {
     expect(validateChainId(id)).toBe(id);
   });
 
@@ -60,6 +60,16 @@ describe("validateChainId", () => {
   });
 
   it("error message lists supported chains", () => {
-    expect(() => validateChainId(999)).toThrow("Base (8453)");
+    const err = (() => {
+      try {
+        validateChainId(999);
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      }
+      return "";
+    })();
+    expect(err).toContain("Base (8453)");
+    expect(err).toContain("Unichain (130)");
+    expect(err).toContain("Optimism (10)");
   });
 });

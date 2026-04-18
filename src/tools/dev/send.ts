@@ -1,15 +1,16 @@
 import { z } from "zod";
 import { createWalletClient, createPublicClient, http, type Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { base, unichain } from "viem/chains";
+import { base, optimism, unichain } from "viem/chains";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../config/chains.js";
 import { DevSendOutput } from "../output-schemas.js";
 import { validateAddress } from "../../utils/validation.js";
 
 const VIEM_CHAINS: Record<number, Chain> = {
   8453: base,
   130: unichain,
+  10: optimism,
 };
 
 export function registerSendTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
@@ -30,7 +31,7 @@ export function registerSendTool(server: McpServer, chains: Record<ChainId, Chai
         to: z.string().describe("Target contract address"),
         data: z.string().describe("Encoded calldata (hex)"),
         value: z.string().default("0").describe("Value in wei (default '0')"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {

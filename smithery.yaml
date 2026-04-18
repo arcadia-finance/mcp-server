@@ -15,12 +15,18 @@ configSchema:
       title: Unichain RPC URL
       description: RPC URL for Unichain (130). Falls back to public RPC if not set.
       default: ""
+    rpcUrlOptimism:
+      type: string
+      title: Optimism RPC URL
+      description: RPC URL for Optimism (10). Falls back to public RPC if not set.
+      default: ""
 commandFunction: |-
   (config) => ({
     command: 'npx',
     args: ['-y', '@arcadia-finance/mcp-server'],
     env: {
       ...(config.rpcUrlBase ? { RPC_URL_BASE: config.rpcUrlBase } : {}),
-      ...(config.rpcUrlUnichain ? { RPC_URL_UNICHAIN: config.rpcUrlUnichain } : {})
+      ...(config.rpcUrlUnichain ? { RPC_URL_UNICHAIN: config.rpcUrlUnichain } : {}),
+      ...(config.rpcUrlOptimism ? { RPC_URL_OPTIMISM: config.rpcUrlOptimism } : {})
     }
   })

@@ -3,12 +3,15 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { validateChainId } from "../../utils/validation.js";
 import { IntentsListOutput } from "../output-schemas.js";
 import type { ChainId } from "../../config/chains.js";
+import { getChainDexProtocols } from "../../config/addresses.js";
 
 const POOL_PROTOCOLS = [
   "slipstream",
   "slipstream_v2",
+  "slipstream_v3",
   "staked_slipstream",
   "staked_slipstream_v2",
+  "staked_slipstream_v3",
   "uniV3",
   "uniV4",
 ] as const;
@@ -37,7 +40,7 @@ const DEX_PROTOCOL_PARAM: RequiredParam = {
   hint: "LP DEX protocol of the position",
 };
 
-const ALL_CHAINS: ChainId[] = [8453, 130];
+const ALL_CHAINS: ChainId[] = [8453, 130, 10];
 const BASE_ONLY: ChainId[] = [8453];
 
 const INTENTS: AutomationIntent[] = [
@@ -160,7 +163,13 @@ export function registerAssetManagerTools(server: McpServer) {
         let filtered = INTENTS;
         if (params.chain_id !== undefined) {
           const validChainId = validateChainId(params.chain_id);
-          filtered = INTENTS.filter((i) => i.chains.includes(validChainId));
+          const chainDexProtocols = getChainDexProtocols(validChainId);
+          filtered = INTENTS.filter((i) => i.chains.includes(validChainId)).map((intent) => ({
+            ...intent,
+            required_params: intent.required_params.map((p) =>
+              p.name === "dex_protocol" ? { ...p, values: chainDexProtocols } : p,
+            ),
+          }));
         }
 
         const result = {

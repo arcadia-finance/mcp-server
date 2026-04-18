@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
+import { CHAIN_ID_DESCRIPTION } from "../../config/chains.js";
 import { PoolListOutput, PoolDetailOutput } from "../output-schemas.js";
 
 export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
@@ -17,7 +18,7 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
       description:
         "List all Arcadia lending pools: TVL, utilization, available liquidity. Key fields: interest_rate = current borrow cost, lending_apy = lender yield. All rates are decimal fractions (1.0 = 100%, 0.06 = 6%). For APY history on a specific pool, use read.pool.info.",
       inputSchema: {
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: PoolListOutput,
     },
@@ -68,7 +69,7 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
       inputSchema: {
         pool_address: z.string().describe("Pool address"),
         days: z.number().default(14).describe("Number of days of APY history"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: PoolDetailOutput,
     },

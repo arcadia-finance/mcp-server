@@ -138,13 +138,14 @@ yarn build
 | ------------------ | -------- | ----------------------------- | --------- | -------------------------------------------------------------- |
 | `RPC_URL_BASE`     | No       | Public RPC                    | Both      | RPC URL for Base (8453).                                       |
 | `RPC_URL_UNICHAIN` | No       | Public RPC                    | Both      | RPC URL for Unichain (130).                                    |
+| `RPC_URL_OPTIMISM` | No       | Public RPC                    | Both      | RPC URL for Optimism (10).                                     |
 | `PK`               | No       | —                             | Both      | Private key (hex) for dev-only `dev.send` tool.                |
 | `TRANSPORT`        | No       | `stdio`                       | —         | Transport mode: `stdio` or `http`.                             |
 | `PORT`             | No       | `3000`                        | HTTP      | Listen port for HTTP transport.                                |
 | `ALLOWED_ORIGINS`  | No       | `https://mcp.arcadia.finance` | HTTP      | Comma-separated allowed Origin headers (CORS / DNS rebinding). |
 | `RATE_LIMIT_RPM`   | No       | `60`                          | HTTP      | Max requests per minute per session.                           |
 
-**Supported chains:** Base (8453), Unichain (130)
+**Supported chains:** Base (8453), Unichain (130), Optimism (10)
 
 ## MCP Client Configuration
 

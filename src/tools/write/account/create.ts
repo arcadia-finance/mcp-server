@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { encodeFunctionData, keccak256, concat, pad, toBytes, getAddress, slice } from "viem";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { factoryAbi } from "../../../abis/index.js";
 import { PROTOCOL } from "../../../config/addresses.js";
 import { getPublicClient } from "../../../clients/chain.js";
@@ -73,7 +73,7 @@ export function registerCreateTool(server: McpServer, chains: Record<ChainId, Ch
           .describe(
             "Lending pool address for V3 margin account. Ignored for V4 spot accounts (version 0 or 4).",
           ),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {

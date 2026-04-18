@@ -103,6 +103,65 @@ describe("write.asset_manager.rebalancer", () => {
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("not available");
   });
+
+  it("resolves slipstream_v3 rebalancer address on Base", async () => {
+    const mock = setupAll();
+    const handler = mock.getHandler("write.asset_manager.rebalancer");
+    const result = await handler({
+      dex_protocol: "slipstream_v3",
+      enabled: true,
+      compound_leftovers: "all",
+      optimal_token0_ratio: 500000,
+      trigger_lower_ratio: 0,
+      trigger_upper_ratio: 0,
+      min_rebalance_time: 3600,
+      max_rebalance_time: 1e12,
+      chain_id: 8453,
+    });
+
+    const parsed = parseToolResponse(result);
+    expect(parsed.asset_managers).toEqual(["0x37c6258aEe125d520B6f03fc2cb490955050D557"]);
+    expect(parsed.statuses).toEqual([true]);
+  });
+
+  it("returns error for slipstream_v3 on Optimism", async () => {
+    const mock = setupAll();
+    const handler = mock.getHandler("write.asset_manager.rebalancer");
+    const result = await handler({
+      dex_protocol: "slipstream_v3",
+      enabled: true,
+      compound_leftovers: "all",
+      optimal_token0_ratio: 500000,
+      trigger_lower_ratio: 0,
+      trigger_upper_ratio: 0,
+      min_rebalance_time: 3600,
+      max_rebalance_time: 1e12,
+      chain_id: 10,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("not available on Optimism");
+  });
+
+  it("resolves slipstream V1 rebalancer on Optimism", async () => {
+    const mock = setupAll();
+    const handler = mock.getHandler("write.asset_manager.rebalancer");
+    const result = await handler({
+      dex_protocol: "slipstream",
+      enabled: true,
+      compound_leftovers: "all",
+      optimal_token0_ratio: 500000,
+      trigger_lower_ratio: 0,
+      trigger_upper_ratio: 0,
+      min_rebalance_time: 3600,
+      max_rebalance_time: 1e12,
+      chain_id: 10,
+    });
+
+    const parsed = parseToolResponse(result);
+    expect(parsed.asset_managers).toEqual(["0x5802454749cc0c4A6F28D5001B4cD84432e2b79F"]);
+    expect(parsed.statuses).toEqual([true]);
+  });
 });
 
 describe("write.asset_manager.compounder", () => {
@@ -124,6 +183,19 @@ describe("write.asset_manager.compounder", () => {
       parsed.datas[0] as `0x${string}`,
     );
     expect((initiator as string).toLowerCase()).toBe(COMPOUNDER_INITIATOR.toLowerCase());
+  });
+
+  it("resolves slipstream_v3 compounder address on Base", async () => {
+    const mock = setupAll();
+    const handler = mock.getHandler("write.asset_manager.compounder");
+    const result = await handler({
+      dex_protocol: "slipstream_v3",
+      enabled: true,
+      chain_id: 8453,
+    });
+
+    const parsed = parseToolResponse(result);
+    expect(parsed.asset_managers).toEqual(["0xd42A3Ac56456bD5422835B36C35Cacb6448ddCd9"]);
   });
 });
 
@@ -230,6 +302,18 @@ describe("write.asset_manager.cow_swapper", () => {
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("not available");
+  });
+
+  it("returns error on Optimism", async () => {
+    const mock = setupAll();
+    const handler = mock.getHandler("write.asset_manager.cow_swapper");
+    const result = await handler({
+      enabled: true,
+      chain_id: 10,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("not available on Optimism");
   });
 });
 
@@ -358,6 +442,55 @@ describe("read.asset_manager.intents", () => {
     expect(ids).not.toContain("cow_swapper");
     expect(ids).toContain("rebalancer");
     expect(ids).toContain("merkl_operator");
+  });
+
+  it("filters by chain_id — Optimism excludes cowswapper intents", async () => {
+    const mock = setupAll();
+    const handler = mock.getHandler("read.asset_manager.intents");
+    const result = await handler({ chain_id: 10 });
+
+    const parsed = parseToolResponse(result);
+    const ids = parsed.automations.map((a: { id: string }) => a.id);
+    expect(ids).not.toContain("compounder_staked");
+    expect(ids).not.toContain("yield_claimer_cowswap");
+    expect(ids).not.toContain("cow_swapper");
+    expect(ids).toContain("rebalancer");
+    expect(ids).toContain("compounder");
+    expect(ids).toContain("yield_claimer");
+    expect(ids).toContain("merkl_operator");
+  });
+
+  it("dex_protocol enum includes slipstream_v3 on Base", async () => {
+    const mock = setupAll();
+    const handler = mock.getHandler("read.asset_manager.intents");
+    const result = await handler({ chain_id: 8453 });
+
+    const parsed = parseToolResponse(result);
+    const rebalancer = parsed.automations.find((a: { id: string }) => a.id === "rebalancer");
+    const dexProtocolParam = rebalancer.required_params.find(
+      (p: { name: string }) => p.name === "dex_protocol",
+    );
+    expect(dexProtocolParam.values).toContain("slipstream_v3");
+    expect(dexProtocolParam.values).toContain("staked_slipstream_v3");
+  });
+
+  it("dex_protocol enum excludes V2/V3 on Optimism", async () => {
+    const mock = setupAll();
+    const handler = mock.getHandler("read.asset_manager.intents");
+    const result = await handler({ chain_id: 10 });
+
+    const parsed = parseToolResponse(result);
+    const rebalancer = parsed.automations.find((a: { id: string }) => a.id === "rebalancer");
+    const dexProtocolParam = rebalancer.required_params.find(
+      (p: { name: string }) => p.name === "dex_protocol",
+    );
+    expect(dexProtocolParam.values).toContain("slipstream");
+    expect(dexProtocolParam.values).toContain("staked_slipstream");
+    expect(dexProtocolParam.values).toContain("uniV3");
+    expect(dexProtocolParam.values).toContain("uniV4");
+    expect(dexProtocolParam.values).not.toContain("slipstream_v2");
+    expect(dexProtocolParam.values).not.toContain("slipstream_v3");
+    expect(dexProtocolParam.values).not.toContain("staked_slipstream_v3");
   });
 
   it("each automation has required fields", async () => {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
-import type { ChainId, ChainConfig } from "../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../config/chains.js";
 import { accountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
 import {
@@ -84,10 +84,10 @@ export function registerAccountTools(
         openWorldHint: true,
       },
       description:
-        "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. On Base, also returns which asset managers are enabled (rebalancer, compounder, yield_claimer, merkl_operator, cow_swapper). LP positions in assets[] include a dex_protocol field (slipstream, slipstream_v2, staked_slipstream, staked_slipstream_v2, uniV3, uniV4) — use this as the dex_protocol param for write.asset_manager.* tools. The automation object uses internal AM key names (slipstreamV1, slipstreamV2, uniV3, uniV4): map slipstreamV1 → 'slipstream'/'staked_slipstream', slipstreamV2 → 'slipstream_v2'/'staked_slipstream_v2', uniV3 → 'uniV3', uniV4 → 'uniV4'. Numeric fields without a _usd suffix are in the account's numeraire token raw units (divide by 10^decimals: 6 for USDC, 18 for WETH, 8 for cbBTC). Fields ending in _usd are in USD with 18 decimals (divide by 1e18). health_factor is unitless. Asset amounts are raw token units. To list all accounts for a wallet, use read.wallet.accounts.",
+        "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. On Base, also returns which asset managers are enabled (rebalancer, compounder, yield_claimer, merkl_operator, cow_swapper). LP positions in assets[] include a dex_protocol field (slipstream, slipstream_v2, slipstream_v3, staked_slipstream, staked_slipstream_v2, staked_slipstream_v3, uniV3, uniV4) — use this as the dex_protocol param for write.asset_manager.* tools. Slipstream V3 pools are Base-only; Unichain and Optimism support Slipstream V1 (Velodrome), uniV3, uniV4 only. The automation object uses internal AM key names (slipstreamV1, slipstreamV2, slipstreamV3, uniV3, uniV4): map slipstreamV1 → 'slipstream'/'staked_slipstream', slipstreamV2 → 'slipstream_v2'/'staked_slipstream_v2', slipstreamV3 → 'slipstream_v3'/'staked_slipstream_v3', uniV3 → 'uniV3', uniV4 → 'uniV4'. Numeric fields without a _usd suffix are in the account's numeraire token raw units (divide by 10^decimals: 6 for USDC, 18 for WETH, 8 for cbBTC). Fields ending in _usd are in USD with 18 decimals (divide by 1e18). health_factor is unitless. Asset amounts are raw token units. To list all accounts for a wallet, use read.wallet.accounts.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: AccountInfoOutput,
     },
@@ -233,7 +233,7 @@ export function registerAccountTools(
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         days: z.number().default(14).describe("Number of days of history (default 14)"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: AccountHistoryOutput,
     },
@@ -280,7 +280,7 @@ export function registerAccountTools(
         "Get PnL (cost basis) and yield earned for an Arcadia account. Returns lifetime totals: cost basis vs current value (negative cost_basis = net profit withdrawn), net transfers per token, total yield earned in USD and per token. cost_basis, current_value, cost_diff are in USD (human-readable). Per-token fields (net_transfers, summed_yields_earned) are in raw token units.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 130 (Unichain)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
       outputSchema: AccountPnlOutput,
     },
