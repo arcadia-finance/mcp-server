@@ -94,5 +94,5 @@ jobs:
             echo "CLAWHUB_TOKEN not set, skipping ClawHub publish."
             exit 0
           fi
-          npx -y @openclaw/clawhub login --token "$CLAWHUB_TOKEN" --no-input
-          npx -y @openclaw/clawhub skill publish skills/openclaw/ --no-input
+          npx -y clawhub login --token "$CLAWHUB_TOKEN" --no-input
+          npx -y clawhub publish skills/openclaw/ --no-input
