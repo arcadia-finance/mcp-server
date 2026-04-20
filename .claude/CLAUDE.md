@@ -33,6 +33,7 @@ Tools in `src/tools/`, organized by category and entity:
   - `points.ts` (1 tool: `read.point_leaderboard`)
   - `guides.ts` (1 tool: `read.guides`)
 - **write/account/** — Account transaction builders (11 tools). Simple tools encode via viem; batched tools (add-liquidity, close, swap, deleverage, remove-liquidity, stake) proxy through backend API. `format-response.ts` and `metadata.ts` are shared helpers.
+- **write/pool/**: Lending-tranche transaction builders (2 tools: `deposit.ts` and `redeem.ts`). ERC-4626 deposit / redeem for lenders earning yield on USDC / WETH / cbBTC pools.
 - **write/wallet/** — Wallet transaction builders. `approve.ts` (1 tool)
 - **write/asset-managers/** — Asset manager transaction builders (9 tools). `rebalancer.ts`, `compounder.ts` (2 tools: `write.asset_manager.compounder` + `write.asset_manager.compounder_staked`), `yield-claimer.ts` (2 tools: `write.asset_manager.yield_claimer` + `write.asset_manager.yield_claimer_cowswap`), `cow-swapper.ts`, `merkl-operator.ts`, `set-asset-managers.ts`. `shared.ts` and `encoding.ts` are helpers.
 - **dev/** — Dev-only tools. `send.ts` (1 tool)
@@ -51,7 +52,7 @@ Supporting code:
 ## Conventions
 
 - All `write.*` tools return **unsigned** transaction objects — signing is the client's responsibility
-- Tool names use dot-notation hierarchy: `{namespace}.{singular-entity}.{action}`. Total: 38 tools (17 read, 20 write, 1 dev).
+- Tool names use dot-notation hierarchy: `{namespace}.{singular-entity}.{action}`. Total: 40 tools (17 read, 22 write, 1 dev).
 - Batched write tool responses go through `formatBatchedResponse()` which appends the ERC-8021 suffix to calldata
 - Tests: unit tests use mock fetch, integration tests (`*.integration.test.ts`) hit live APIs — exclude from CI
 - `dev.send` is always registered but checks `PK` env var at runtime — returns error if not set

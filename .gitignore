@@ -6,6 +6,7 @@ dist/
 *.tsbuildinfo
 .mcpregistry_*
 scripts/
+research/
 .vscode/
 .claude/settings.json
 
