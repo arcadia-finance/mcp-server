@@ -94,5 +94,14 @@ jobs:
             echo "CLAWHUB_TOKEN not set, skipping ClawHub publish."
             exit 0
           fi
+          SKILL_VERSION=$(awk '/^version:/ { print $2; exit }' skills/openclaw/SKILL.md)
+          if [ -z "$SKILL_VERSION" ]; then
+            echo "Could not read version from skills/openclaw/SKILL.md frontmatter."
+            exit 1
+          fi
           npx -y clawhub login --token "$CLAWHUB_TOKEN" --no-input
-          npx -y clawhub publish skills/openclaw/ --no-input
+          npx -y clawhub publish "$PWD/skills/openclaw" \
+            --slug arcadia-finance \
+            --name "Arcadia Finance" \
+            --version "$SKILL_VERSION" \
+            --no-input
