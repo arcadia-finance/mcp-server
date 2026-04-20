@@ -1,14 +1,15 @@
 # Arcadia Finance MCP Server
 
-> MCP server for Arcadia Finance, a DeFi protocol for managing concentrated liquidity positions (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage. Supported chains: Base (8453), Unichain (130), Optimism (10).
+> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10).
 
 ## Overview
 
-Arcadia lets users deploy and manage concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage. This MCP server exposes the full protocol as 38 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 40 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
 - **Lending pools**: TVL, APY, utilization, available liquidity, rate history
+- **Single-sided liquidity**: deposit a single asset into a lending pool (ERC-4626 tranche) to earn borrower interest
 - **LP strategies**: concentrated liquidity strategies with APY per range width, recommendations
 - **Transaction building**: unsigned calldata for deposits, borrows, swaps, LP minting/closing, staking
 - **Automation**: configure asset managers (rebalancer, compounder, yield claimer, CowSwap, Merkl)
@@ -23,7 +24,7 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Tools (38 total)
+## Tools (40 total)
 
 ### Read (17)
 
@@ -45,9 +46,11 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - read.guides: reference guides for automation, strategies, addresses
 - read.asset_manager.intents: available automation intents with params and supported chains
 
-### Write (20)
+### Write (22)
 
 - write.wallet.approve: approve ERC20/ERC721 for spending
+- write.pool.deposit: deposit the pool's underlying asset into an ERC-4626 tranche to earn lender yield
+- write.pool.redeem: burn tranche shares and redeem the underlying asset (lender exit)
 - write.account.create: create a new Arcadia account
 - write.account.deposit: deposit assets into an account
 - write.account.withdraw: withdraw assets from an account

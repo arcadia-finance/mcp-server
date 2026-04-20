@@ -2,7 +2,9 @@ name: Release and publish
 on:
   push:
     branches: [main]
-    paths: [package.json]
+    paths:
+      - package.json
+      - server.json
 
 concurrency:
   group: release
@@ -10,6 +12,7 @@ concurrency:
 
 permissions:
   contents: write
+  id-token: write # required for MCP Registry OIDC authentication
 
 jobs:
   release:
@@ -54,3 +57,42 @@ jobs:
           npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # ─── Downstream registry publishes ───
+      # Fire only after npm publish succeeds and only on real version bumps.
+
+      - name: Install mcp-publisher
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Authenticate to MCP Registry (OIDC)
+        if: steps.check.outputs.skip == 'false'
+        run: ./mcp-publisher login github-oidc
+      - name: Publish to MCP Registry
+        if: steps.check.outputs.skip == 'false'
+        run: ./mcp-publisher publish
+
+      - name: Publish to Smithery
+        if: steps.check.outputs.skip == 'false'
+        env:
+          SMITHERY_TOKEN: ${{ secrets.SMITHERY_TOKEN }}
+        run: |
+          if [ -z "$SMITHERY_TOKEN" ]; then
+            echo "SMITHERY_TOKEN not set, skipping Smithery publish."
+            exit 0
+          fi
+          npx -y @smithery/cli mcp publish \
+            https://mcp.arcadia.finance/mcp \
+            -n @arcadia-finance/mcp-server
+
+      - name: Publish ClawHub skill
+        if: steps.check.outputs.skip == 'false'
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+        run: |
+          if [ -z "$CLAWHUB_TOKEN" ]; then
+            echo "CLAWHUB_TOKEN not set, skipping ClawHub publish."
+            exit 0
+          fi
+          npx -y @openclaw/clawhub login --token "$CLAWHUB_TOKEN" --no-input
+          npx -y @openclaw/clawhub skill publish skills/openclaw/ --no-input

@@ -9,7 +9,7 @@
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 [![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server)
 
-MCP server for [Arcadia Finance](https://arcadia.finance), a platform to manage concentrated liquidity positions on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
+MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
 Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 
@@ -49,6 +49,8 @@ All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 | Tool                                        | Description                                                                                                                                        |
 | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `write.wallet.approve`                      | Approve an ERC20 token for spending. Required before depositing into an account. Call `read.wallet.allowances` first to check if already approved. |
+| `write.pool.deposit`                        | Lend the pool's underlying asset into an ERC-4626 tranche to earn interest. Mints tranche shares to the receiver.                                  |
+| `write.pool.redeem`                         | Redeem tranche shares back into the underlying asset (lender exit).                                                                                |
 | `write.account.create`                      | Create a new Arcadia account via Factory.                                                                                                          |
 | `write.account.deposit`                     | Deposit ERC20 tokens into an account.                                                                                                              |
 | `write.account.withdraw`                    | Withdraw assets from an account.                                                                                                                   |

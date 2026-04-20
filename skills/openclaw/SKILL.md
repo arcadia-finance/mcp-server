@@ -1,6 +1,7 @@
 ---
 name: arcadia-finance
-description: "DeFi liquidity management on Uniswap and Aerodrome, live on Base and Unichain. Deploy LP positions with automated rebalancing, compounding, yield optimization, and leverage via Arcadia Finance."
+version: 1.1.0
+description: "DeFi liquidity management on Uniswap and Aerodrome, live on Base, Unichain, and Optimism. Deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools."
 metadata:
   openclaw:
     homepage: https://arcadia.finance
@@ -12,7 +13,7 @@ metadata:
 
 > **Agent note:** `{baseDir}` refers to the directory containing this SKILL.md file. Resolve all `{baseDir}` paths relative to it.
 
-Arcadia helps users deploy and manage concentrated liquidity positions on Uniswap, Aerodrome, and Velodrome with automated rebalancing, compounding, yield optimization, and optional leverage. Supported chains: Base (8453), Unichain (130), Optimism (10).
+Arcadia helps users deploy concentrated liquidity positions on Uniswap, Aerodrome, and Velodrome with automated rebalancing, compounding, yield optimization, and optional leverage, or provide single-sided liquidity to lending pools to earn borrower interest. Supported chains: Base (8453), Unichain (130), Optimism (10).
 
 ## CLI Usage
 
@@ -47,6 +48,20 @@ Requires: `curl`, `jq`. No other dependencies.
 # Available automations (rebalancer, compounder, yield claimer)
 {baseDir}/arcadia.sh read_asset_manager_intents '{}'
 ```
+
+## Single-Sided Liquidity (Lending)
+
+Provide single-sided liquidity by depositing the pool's underlying asset into an Arcadia lending tranche (ERC-4626), earning interest from borrowers. Use `read_pool_list` to find `tranches[0].address` for each pool. Approve the tranche first (`write_wallet_approve`).
+
+```bash
+# Lender deposit: lend 10 USDC into the USDC tranche, receive shares to your wallet
+{baseDir}/arcadia.sh write_pool_deposit '{"tranche_address":"0x...","assets":"10000000","receiver":"0x...","chain_id":8453}'
+
+# Lender exit: redeem shares back to the underlying asset
+{baseDir}/arcadia.sh write_pool_redeem '{"tranche_address":"0x...","shares":"10000000","receiver":"0x...","owner":"0x...","chain_id":8453}'
+```
+
+`write_pool_deposit` is for lenders earning yield. For depositing collateral into an Arcadia account, use `write_account_deposit` instead.
 
 ## Write Operations
 

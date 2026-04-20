@@ -1,14 +1,15 @@
 # Arcadia Finance MCP Server
 
-> MCP server for Arcadia Finance, a DeFi protocol for managing concentrated liquidity positions (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage. Supported chains: Base (8453), Unichain (130), Optimism (10).
+> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10).
 
 ## Overview
 
-Arcadia lets users deploy and manage concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage. This MCP server exposes the full protocol as 38 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 40 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
 - **Lending pools**: TVL, APY, utilization, available liquidity, rate history
+- **Single-sided liquidity**: deposit a single asset into a lending pool (ERC-4626 tranche) to earn borrower interest
 - **LP strategies**: concentrated liquidity strategies with APY per range width, recommendations
 - **Transaction building**: unsigned calldata for deposits, borrows, swaps, LP minting/closing, staking
 - **Automation**: configure asset managers (rebalancer, compounder, yield claimer, CowSwap, Merkl)
@@ -164,7 +165,7 @@ Get Arcadia workflow guides and reference documentation.
 Parameters:
 - `topic` (enum, optional): overview | automation | strategies | selection
 
-## Write Tools (20)
+## Write Tools (22)
 
 All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
@@ -177,6 +178,27 @@ Parameters:
 - `spender_address` (string, required): Address being approved
 - `asset_type` (enum, default: "erc20"): erc20 | erc721 | erc1155
 - `amount` (string, default: "max_uint256"): ERC20 only: amount in raw units
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+
+### write.pool.deposit
+
+Build an unsigned deposit transaction into an Arcadia lending tranche (ERC-4626). Lenders deposit the pool's underlying asset (USDC / WETH / cbBTC) and receive tranche shares that accrue interest from borrowers. Requires prior ERC-20 approval to the tranche via `write.wallet.approve`.
+
+Parameters:
+- `tranche_address` (string, required): Tranche contract address (get from `read.pool.list`, each pool's `tranches[0].address`)
+- `assets` (string, required): Amount of underlying asset to deposit in raw units
+- `receiver` (string, required): Address that receives the minted tranche shares
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+
+### write.pool.redeem
+
+Build an unsigned redeem transaction to withdraw from an Arcadia lending tranche (ERC-4626). Burns tranche shares and returns the corresponding amount of underlying asset, including accrued interest. The owner must be the shares holder; receiver is where the underlying is sent.
+
+Parameters:
+- `tranche_address` (string, required): Tranche contract address
+- `shares` (string, required): Amount of tranche shares to burn in raw units
+- `receiver` (string, required): Address that receives the underlying asset
+- `owner` (string, required): Address that owns the tranche shares being burned
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
 
 ### write.account.create
