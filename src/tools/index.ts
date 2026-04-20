@@ -15,6 +15,8 @@ import { registerWithdrawTool } from "./write/account/withdraw.js";
 import { registerBorrowTool } from "./write/account/borrow.js";
 import { registerRepayTool } from "./write/account/repay.js";
 import { registerApproveTool } from "./write/wallet/approve.js";
+import { registerPoolDepositTool } from "./write/pool/deposit.js";
+import { registerPoolRedeemTool } from "./write/pool/redeem.js";
 import { registerRebalancerTool } from "./write/asset-managers/rebalancer.js";
 import { registerCompounderTools } from "./write/asset-managers/compounder.js";
 import { registerYieldClaimerTools } from "./write/asset-managers/yield-claimer.js";
@@ -59,6 +61,10 @@ export function registerAllTools(
 
   // Write tools — wallet
   registerApproveTool(server, chains);
+
+  // Write tools — pool (lending tranches, ERC-4626)
+  registerPoolDepositTool(server, chains);
+  registerPoolRedeemTool(server, chains);
 
   // Write tools — asset managers
   registerRebalancerTool(server, chains);
