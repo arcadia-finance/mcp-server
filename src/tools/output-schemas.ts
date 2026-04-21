@@ -117,6 +117,7 @@ export const AssetPricesOutput = z.object({
 
 export const PoolListOutput = z.object({
   pools: z.array(z.record(z.unknown())),
+  context_notes: z.array(z.string()).optional(),
 });
 
 export const PoolDetailOutput = z.object({
@@ -124,7 +125,7 @@ export const PoolDetailOutput = z.object({
   apy_history: z.array(z.record(z.unknown())),
 });
 
-export const PointsWalletOutput = z.record(z.unknown());
+export const PointsWalletOutput = z.object({}).passthrough();
 
 export const PointsLeaderboardOutput = z.object({
   total: z.number(),
@@ -138,11 +139,12 @@ export const StrategyListOutput = z.object({
   offset: z.number(),
   limit: z.number(),
   strategies: z.array(z.record(z.unknown())),
+  context_notes: z.array(z.string()).optional(),
 });
 
-export const StrategyDetailOutput = z.record(z.unknown());
+export const StrategyDetailOutput = z.object({}).passthrough();
 
-export const StrategyRecommendationOutput = z.record(z.unknown());
+export const StrategyRecommendationOutput = z.object({}).passthrough();
 
 export const GuideOutput = z.object({
   topic: z.string(),

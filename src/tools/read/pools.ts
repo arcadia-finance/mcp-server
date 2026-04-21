@@ -28,7 +28,7 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
         if (Array.isArray(result) && result.length === 0) {
           const empty = {
             pools: [] as unknown[],
-            note: `No lending pools found on chain ${chain_id}.`,
+            context_notes: [`No lending pools found on chain ${chain_id}.`],
           };
           return {
             content: [{ type: "text" as const, text: JSON.stringify(empty, null, 2) }],
