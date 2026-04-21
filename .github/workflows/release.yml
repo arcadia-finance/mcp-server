@@ -85,8 +85,25 @@ jobs:
             https://mcp.arcadia.finance/mcp \
             -n @arcadia-finance/mcp-server
 
-      - name: Publish ClawHub skill
+      - name: Check openclaw skill version
         if: steps.check.outputs.skip == 'false'
+        id: skill
+        run: |
+          CURR=$(awk '/^version:/ { print $2; exit }' skills/openclaw/SKILL.md)
+          if [ -z "$CURR" ]; then
+            echo "Could not read version from skills/openclaw/SKILL.md frontmatter."
+            exit 1
+          fi
+          PREV=$(git show HEAD~1:skills/openclaw/SKILL.md 2>/dev/null | awk '/^version:/ { print $2; exit }' || echo "")
+          if [ "$CURR" = "$PREV" ]; then
+            echo "Skill version unchanged ($CURR); skipping ClawHub publish."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "version=$CURR" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish ClawHub skill
+        if: steps.check.outputs.skip == 'false' && steps.skill.outputs.changed == 'true'
         env:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
         run: |
@@ -94,14 +111,9 @@ jobs:
             echo "CLAWHUB_TOKEN not set, skipping ClawHub publish."
             exit 0
           fi
-          SKILL_VERSION=$(awk '/^version:/ { print $2; exit }' skills/openclaw/SKILL.md)
-          if [ -z "$SKILL_VERSION" ]; then
-            echo "Could not read version from skills/openclaw/SKILL.md frontmatter."
-            exit 1
-          fi
           npx -y clawhub login --token "$CLAWHUB_TOKEN" --no-input
           npx -y clawhub publish "$PWD/skills/openclaw" \
             --slug arcadia-finance \
             --name "Arcadia Finance" \
-            --version "$SKILL_VERSION" \
+            --version "${{ steps.skill.outputs.version }}" \
             --no-input
