@@ -17,7 +17,7 @@ export const BatchedTransactionOutput = z.object({
   description: z.string().optional(),
   transaction: Transaction,
   tenderly_sim_url: z.string().optional(),
-  tenderly_sim_status: z.enum(["true", "false", "unavailable"]).optional(),
+  tenderly_sim_status: z.enum(["success", "failure", "unavailable"]).optional(),
   expected_value_change: z.string().optional(),
   before: z
     .object({ total_account_value: z.string(), used_margin: z.string() })

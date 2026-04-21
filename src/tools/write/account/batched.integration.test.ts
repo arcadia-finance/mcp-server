@@ -133,7 +133,14 @@ describe("Batched write tools — live API (Base 8453)", { timeout: 30_000 }, ()
       slippage: 100,
       chain_id: 8453,
     });
-    expect(result.isError).toBeFalsy();
+    // Discovered account may or may not hold WETH. Both paths exercise the
+    // tool end-to-end: on success we get calldata; on sim failure we must get
+    // the explicit "simulation FAILED — do NOT broadcast" guard (regression
+    // test for the tenderly_sim_status boolean/string mismatch).
+    if (result.isError) {
+      expect(result.content[0].text).toContain("simulation FAILED");
+      return;
+    }
     const data = parseToolResponse(result);
     expect(data.transaction.data).toMatch(/^0x[0-9a-fA-F]+$/);
     expect(data.transaction.to).toMatch(/^0x[0-9a-fA-F]{40}$/);

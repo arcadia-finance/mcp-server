@@ -369,4 +369,25 @@ describe("QA: every tool via real MCP SDK", { timeout: 60_000 }, () => {
       }
     });
   }
+
+  // Regression test for tenderly_sim_status boolean/string mismatch: a swap on
+  // an account that definitely holds no WETH must produce the explicit
+  // "simulation FAILED — do NOT broadcast" guard, not a passthrough success or
+  // an MCP output-validation error.
+  it("write.account.swap: sim-failure surfaces the do-not-broadcast guard", async () => {
+    const resp = await client.callTool({
+      name: "write.account.swap",
+      arguments: {
+        account_address: ctx.account.accountAddress,
+        asset_from: WETH,
+        asset_to: USDC,
+        amount_in: "1000000000000000000000", // 1000 WETH, no account holds this
+        chain_id: CHAIN_ID,
+      },
+    });
+    const text = (resp.content as Array<{ text?: string }> | undefined)?.[0]?.text ?? "";
+    expect(text).not.toMatch(/_zod/);
+    expect(resp.isError).toBe(true);
+    expect(text).toContain("simulation FAILED");
+  });
 });

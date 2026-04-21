@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION } from "../../../config/chains.js";
-import { formatBatchedResponse } from "./format-response.js";
+import { formatBatchedResponse, isSimulationFailed } from "./format-response.js";
 import { validateAddress } from "../../../utils/validation.js";
 import { BatchedTransactionOutput } from "../../output-schemas.js";
 
@@ -41,7 +41,7 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
           });
 
           const claimRes = result as Record<string, unknown>;
-          if (claimRes.tenderly_sim_status === "false") {
+          if (isSimulationFailed(claimRes.tenderly_sim_status)) {
             const simUrl = claimRes.tenderly_sim_url
               ? `\nTenderly simulation: ${claimRes.tenderly_sim_url}`
               : "";
@@ -79,7 +79,7 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
         });
 
         const res = result as Record<string, unknown>;
-        if (res.tenderly_sim_status === "false") {
+        if (isSimulationFailed(res.tenderly_sim_status)) {
           const simUrl = res.tenderly_sim_url
             ? `\nTenderly simulation: ${res.tenderly_sim_url}`
             : "";

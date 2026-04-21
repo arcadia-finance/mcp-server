@@ -62,7 +62,7 @@ export interface BundleCalldataResponse {
   expected_value_change?: number;
   expected_change_status?: boolean;
   tenderly_sim_url?: string;
-  tenderly_sim_status?: string;
+  tenderly_sim_status?: boolean;
   tenderly_sim_error?: string;
   debt_to_take?: number;
   before?: { total_account_value: number; used_margin: number };
