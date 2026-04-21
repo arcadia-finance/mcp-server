@@ -1,5 +1,18 @@
 import { appendDataSuffix } from "../../../utils/attribution.js";
 
+// Backend emits `tenderly_sim_status` as a JSON boolean (Python bool). We normalize
+// to a 3-state string enum for clearer tool output. Historically the TS types
+// claimed `string`, so legacy "true"/"false" strings are also tolerated here.
+export function isSimulationFailed(status: unknown): boolean {
+  return status === false || status === "false";
+}
+
+function normalizeSimStatus(status: unknown): "success" | "failure" | "unavailable" {
+  if (status === true || status === "true") return "success";
+  if (status === false || status === "false") return "failure";
+  return "unavailable";
+}
+
 export function formatBatchedResponse(
   result: Record<string, unknown>,
   chainId: number,
@@ -15,11 +28,7 @@ export function formatBatchedResponse(
   if (result.tenderly_sim_url != null) {
     response.tenderly_sim_url = result.tenderly_sim_url;
   }
-  if (result.tenderly_sim_status != null) {
-    response.tenderly_sim_status = result.tenderly_sim_status;
-  } else {
-    response.tenderly_sim_status = "unavailable";
-  }
+  response.tenderly_sim_status = normalizeSimStatus(result.tenderly_sim_status);
   if (result.expected_value_change != null) {
     response.expected_value_change = String(result.expected_value_change);
   }

@@ -4,7 +4,7 @@ import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { getPublicClient } from "../../../clients/chain.js";
 import { readAccountMetadata } from "./metadata.js";
-import { formatBatchedResponse } from "./format-response.js";
+import { formatBatchedResponse, isSimulationFailed } from "./format-response.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
 import { BatchedTransactionOutput } from "../../output-schemas.js";
 
@@ -224,7 +224,7 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
         const result = await api.getBundleCalldata(body);
         const res = result as unknown as Record<string, unknown>;
 
-        if (res.tenderly_sim_status === "false") {
+        if (isSimulationFailed(res.tenderly_sim_status)) {
           const simUrl = res.tenderly_sim_url
             ? `\nTenderly simulation: ${res.tenderly_sim_url}`
             : "";

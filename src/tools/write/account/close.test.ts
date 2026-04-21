@@ -36,7 +36,7 @@ function mockApi(overrides?: Record<string, unknown>) {
       calldata: "0xabcdef1234567890",
       fx_call_to: TEST_ADDRESS,
       fx_call: "flashAction",
-      tenderly_sim_status: "true",
+      tenderly_sim_status: true,
       tenderly_sim_url: "https://dashboard.tenderly.co/sim/123",
     })),
   };
@@ -113,7 +113,7 @@ describe("write.account.close", () => {
     api.getBundleCalldata.mockResolvedValue({
       calldata: "0xdead",
       fx_call_to: TEST_ADDRESS,
-      tenderly_sim_status: "false",
+      tenderly_sim_status: false,
       tenderly_sim_url: "https://dashboard.tenderly.co/sim/fail",
       tenderly_sim_error: "execution reverted",
     });
