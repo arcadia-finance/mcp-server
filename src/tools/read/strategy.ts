@@ -59,7 +59,9 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
             strategies,
           };
           if (total === 0 && all.length > 0) {
-            result.context_note = `Featured strategies are not curated for chain ${chain_id} yet. Backend returned ${all.length} Base strategies; filtered out. Use featured_only=false to list all strategies on this chain.`;
+            result.context_notes = [
+              `Featured strategies are not curated for chain ${chain_id} yet. Backend returned ${all.length} Base strategies; filtered out. Use featured_only=false to list all strategies on this chain.`,
+            ];
           }
           return {
             content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
@@ -187,8 +189,9 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
           Number(rec.current_apy ?? 0) === 0 &&
           Number(rec.proposed_apy ?? 0) === 0
         ) {
-          rec.context_note =
-            "Account has no active positions — no rebalancing recommendations available.";
+          rec.context_notes = [
+            "Account has no active positions — no rebalancing recommendations available.",
+          ];
         }
         return {
           content: [{ type: "text" as const, text: JSON.stringify(rec, null, 2) }],
