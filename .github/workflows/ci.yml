@@ -22,7 +22,7 @@ jobs:
       - run: yarn install --immutable
       - run: yarn build
       - run: yarn lint
-      - run: yarn test --exclude '**/integration.test.ts'
+      - run: yarn test --exclude '**/*integration.test.ts'
       - name: Verify version sync
         run: |
           VERSION=$(node -p "require('./package.json').version")
