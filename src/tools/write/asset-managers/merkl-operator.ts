@@ -22,7 +22,7 @@ export function registerMerklOperatorTool(
         openWorldHint: false,
       },
       description:
-        "Encode args for the Merkl operator automation. Claims external Merkl protocol incentive rewards into the account — additional rewards paid by token teams on top of regular LP fees. Enable when the pool has active Merkl campaigns (check APY breakdown in read.strategy.list). Always combine with rebalancer when both are relevant — no conflict, extra free yield. Returns { asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
+        "Encode args for the Merkl operator automation. Claims external Merkl protocol incentive rewards into the account — additional rewards paid by token teams on top of regular LP fees. Enable when the pool has active Merkl campaigns (check APY breakdown in read.strategy.list). Always combine with rebalancer when both are relevant — no conflict, extra free yield. Available on all supported chains. Returns { asset_managers, statuses, datas } — pass to write.account.set_asset_managers. Combinable with other intent tools.",
       outputSchema: IntentOutput,
       inputSchema: {
         reward_recipient: z.string().describe("Address to receive Merkl rewards"),

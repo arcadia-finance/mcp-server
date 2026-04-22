@@ -78,7 +78,7 @@ export function registerCompounderTools(server: McpServer, _chains: Record<Chain
         openWorldHint: false,
       },
       description:
-        "Encode args for compounder coupled with CowSwap for staked LP positions (e.g. staked Slipstream/Aerodrome). Staked positions earn staking emission rewards (e.g. AERO, OP, or any configured emission token) — not LP fees. Claims these staking rewards, swaps them to a target token via CowSwap batch auctions (MEV-protected), then compounds back into the LP position. Sets metadata on BOTH the CowSwapper and the Compounder in a single call. sell_tokens is the list of reward token addresses (e.g. [AERO_address]). buy_token should be a major token in the pair (USDC, WETH, cbBTC). Returns { asset_managers, statuses, datas } with 2 entries (cowswapper + compounder). Base only. Combinable with other intent tools.",
+        "Encode args for compounder coupled with CowSwap for staked LP positions (e.g. staked Slipstream/Aerodrome). Staked positions earn staking emission rewards (e.g. AERO on Aerodrome) — not LP fees. Claims these staking rewards, swaps them to a target token via CowSwap batch auctions (MEV-protected), then compounds back into the LP position. Sets metadata on BOTH the CowSwapper and the Compounder in a single call. sell_tokens is the list of reward token addresses (e.g. [AERO_address]). buy_token should be a major token in the pair (USDC, WETH, cbBTC). Returns { asset_managers, statuses, datas } with 2 entries (cowswapper + compounder). Base only. Combinable with other intent tools.",
       outputSchema: IntentOutput,
       inputSchema: {
         dex_protocol: DEX_PROTOCOL_SCHEMA,

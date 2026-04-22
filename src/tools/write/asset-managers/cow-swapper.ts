@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ChainId, ChainConfig } from "../../../config/chains.js";
+import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { getStandaloneAmAddress } from "../../../config/addresses.js";
 import { validateChainId } from "../../../utils/validation.js";
 import { encodeOuterMetadata, disabledIntent } from "./encoding.js";
@@ -23,7 +23,7 @@ export function registerCowSwapperTool(server: McpServer, _chains: Record<ChainI
       outputSchema: IntentOutput,
       inputSchema: {
         enabled: z.boolean().default(true).describe("True to enable, false to disable"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base)"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       },
     },
     async (params) => {

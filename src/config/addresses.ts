@@ -83,33 +83,89 @@ export type StandaloneAm = "merklOperator" | "gasRelayer" | "cowSwapper";
 
 export type AmCategory = "rebalancers" | "compounders" | "yieldClaimers";
 
-// Single source of truth — all addresses, no chain dimension
-const AM_ADDRESSES = {
-  rebalancers: {
-    slipstreamV1: "0x5802454749cc0c4A6F28D5001B4cD84432e2b79F",
-    slipstreamV2: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
-    slipstreamV3: "0x37c6258aEe125d520B6f03fc2cb490955050D557",
-    uniV3: "0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd",
-    uniV4: "0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0",
+// AM address book by version. Older versions are still active on some chains
+// for users who registered before newer versions shipped. Address for a given
+// (version, protocol) may be missing (slipstreamV3 did not exist before V2.1.1).
+type AmVersionMap = Readonly<Partial<Record<AmProtocol, string>>>;
+
+// Rebalancers — V2.1.1 (current, unified rebalancer + profit taker), V2.1.0
+// (split architecture, still active on Base + Unichain), V2.0.1 (legacy, Base).
+const REBALANCERS_V2_1_1: AmVersionMap = {
+  slipstreamV1: "0x5802454749cc0c4A6F28D5001B4cD84432e2b79F",
+  slipstreamV2: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
+  slipstreamV3: "0x37c6258aEe125d520B6f03fc2cb490955050D557",
+  uniV3: "0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd",
+  uniV4: "0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0",
+};
+
+const REBALANCERS_V2_1_0: AmVersionMap = {
+  slipstreamV1: "0xE07A9383AF8E0B1320419dFeF205bb9bA75f3Ef2",
+  slipstreamV2: "0xc0dBb5443689E40E4b58b627F82f468Ef1Ad7561",
+  uniV3: "0xbb22cdbfFF5a263E85917803692db3630bF860c4",
+  uniV4: "0x9E466179c46eB098B564cbE319bA4b3EAd6476C1",
+};
+
+const REBALANCERS_V2_0_1: AmVersionMap = {
+  slipstreamV1: "0xEfe600366e9847D405f2238cF9196E33780B3A42",
+  uniV3: "0xD8285fC23eFF687B8b618b78d85052f1eD17236E",
+  uniV4: "0xa8676C8c197E12a71AE82a08B02DD9e666312cF1",
+};
+
+const COMPOUNDERS_V2_1_1: AmVersionMap = {
+  slipstreamV1: "0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7",
+  slipstreamV2: "0x35e59448C7145482E56212510cC689612AB4F61f",
+  slipstreamV3: "0xd42A3Ac56456bD5422835B36C35Cacb6448ddCd9",
+  uniV3: "0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3",
+  uniV4: "0xAA95c9c402b195D8690eCaea2341a76e3266B189",
+};
+
+const COMPOUNDERS_V2_0_1: AmVersionMap = {
+  slipstreamV1: "0x4694c34d153EE777CC07d01AC433bcC010A20EBd",
+  uniV3: "0x80D3548bc54710d46201D554712E8638fD51326D",
+  uniV4: "0xCfF15E24a453aFAd454533E6D10889A84e2A68e1",
+};
+
+const YIELD_CLAIMERS_V2_1_1: AmVersionMap = {
+  slipstreamV1: "0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba",
+  slipstreamV2: "0xc8bF4B2c740FF665864E9494832520f18822871C",
+  slipstreamV3: "0x8c1Fbf38118fD5A704b6E7babcB7AF1a9A291980",
+  uniV3: "0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16",
+  uniV4: "0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4",
+};
+
+const YIELD_CLAIMERS_V2_0_1: AmVersionMap = {
+  slipstreamV1: "0x1f75aBF8a24782053B351D9b4EA6d1236ED59105",
+  uniV3: "0x40462e71Effd9974Fee04B6b327B701D663f753e",
+  uniV4: "0x3BC2B398eEEE9807ff76fdb4E11526dE0Ee80cEa",
+};
+
+// Deployed versions per chain, newest first. The first entry is treated as
+// the "current" version (used for new registrations). Older entries are
+// probed in read.account.info so users registered on older versions are
+// reported as active. See multichain-deploy-scripts Arcadia.sol for source.
+const CHAIN_AM_VERSIONS: Record<ChainId, Record<AmCategory, ReadonlyArray<AmVersionMap>>> = {
+  8453: {
+    rebalancers: [REBALANCERS_V2_1_1, REBALANCERS_V2_1_0, REBALANCERS_V2_0_1],
+    compounders: [COMPOUNDERS_V2_1_1, COMPOUNDERS_V2_0_1],
+    yieldClaimers: [YIELD_CLAIMERS_V2_1_1, YIELD_CLAIMERS_V2_0_1],
   },
-  compounders: {
-    slipstreamV1: "0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7",
-    slipstreamV2: "0x35e59448C7145482E56212510cC689612AB4F61f",
-    slipstreamV3: "0xd42A3Ac56456bD5422835B36C35Cacb6448ddCd9",
-    uniV3: "0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3",
-    uniV4: "0xAA95c9c402b195D8690eCaea2341a76e3266B189",
+  130: {
+    rebalancers: [REBALANCERS_V2_1_1, REBALANCERS_V2_1_0],
+    compounders: [COMPOUNDERS_V2_1_1],
+    yieldClaimers: [YIELD_CLAIMERS_V2_1_1],
   },
-  yieldClaimers: {
-    slipstreamV1: "0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba",
-    slipstreamV2: "0xc8bF4B2c740FF665864E9494832520f18822871C",
-    slipstreamV3: "0x8c1Fbf38118fD5A704b6E7babcB7AF1a9A291980",
-    uniV3: "0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16",
-    uniV4: "0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4",
+  10: {
+    rebalancers: [REBALANCERS_V2_1_1],
+    compounders: [COMPOUNDERS_V2_1_1],
+    yieldClaimers: [YIELD_CLAIMERS_V2_1_1],
   },
+};
+
+const STANDALONE_AM_ADDRESSES: Record<StandaloneAm, string> = {
   merklOperator: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
   gasRelayer: "0xD938C8d04cF91094fecAF0A2018EAac483a40137",
   cowSwapper: "0xc928013A219EC9F18dE7B2dee6A50Ba626811854",
-} as const;
+};
 
 // Per-chain availability — update these when deploying to new chains.
 // Slipstream V3 position manager is only live on Base; Unichain and Optimism have V1 only.
@@ -185,7 +241,14 @@ export function getAmProtocolAddress(
       `${AM_KEY_TO_POOL_PROTOCOL[protocol]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available protocols: ${available}.`,
     );
   }
-  return AM_ADDRESSES[category][protocol];
+  // Write tools always target the current (newest) version for that chain.
+  const current = CHAIN_AM_VERSIONS[chainId][category][0][protocol];
+  if (!current) {
+    throw new Error(
+      `No ${category} address for ${AM_KEY_TO_POOL_PROTOCOL[protocol]} on ${CHAIN_NAMES[chainId]} (${chainId}).`,
+    );
+  }
+  return current;
 }
 
 const STANDALONE_TO_USER_FACING: Record<StandaloneAm, string> = {
@@ -206,7 +269,7 @@ export function getStandaloneAmAddress(chainId: ChainId, am: StandaloneAm): stri
       `${STANDALONE_TO_USER_FACING[am]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Supported chains: ${supportedChains}.`,
     );
   }
-  return AM_ADDRESSES[am];
+  return STANDALONE_AM_ADDRESSES[am];
 }
 
 export interface AmCheck {
@@ -232,13 +295,15 @@ export function getChainAmChecks(chainId: ChainId): AmCheck[] {
   const standalone = CHAIN_STANDALONE_AMS[chainId];
   const checks: AmCheck[] = [];
 
+  // Fan out across every deployed version so users registered on an older
+  // version (e.g. V2.1.0 on Base) are still reported as active.
   for (const category of ["rebalancers", "compounders", "yieldClaimers"] as const) {
-    for (const protocol of protocols) {
-      checks.push({
-        group: CATEGORY_TO_GROUP[category],
-        protocol,
-        address: AM_ADDRESSES[category][protocol],
-      });
+    for (const versionMap of CHAIN_AM_VERSIONS[chainId][category]) {
+      for (const protocol of protocols) {
+        const address = versionMap[protocol];
+        if (!address) continue;
+        checks.push({ group: CATEGORY_TO_GROUP[category], protocol, address });
+      }
     }
   }
 
@@ -246,7 +311,7 @@ export function getChainAmChecks(chainId: ChainId): AmCheck[] {
     checks.push({
       group: STANDALONE_TO_GROUP[am],
       protocol: null,
-      address: AM_ADDRESSES[am],
+      address: STANDALONE_AM_ADDRESSES[am],
     });
   }
 
