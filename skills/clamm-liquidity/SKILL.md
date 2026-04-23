@@ -156,7 +156,7 @@ Addresses are auto-resolved by `write.asset_manager.*` intent tools based on `de
 | Yield Claimer  | Uniswap V3    | `0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16` |
 | Yield Claimer  | Uniswap V4    | `0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4` |
 | Merkl Operator | All           | `0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6` |
-| CoW Swapper    | Base only     | `0xc928013A219EC9F18dE7B2dee6A50Ba626811854` |
+| CoW Swapper    | Base only     | `0xFfC742E68D41389BE9Ef1aFD518F036064DA2Bb6` |
 | Gas Relayer    | All           | `0xD938C8d04cF91094fecAF0A2018EAac483a40137` |
 
 The addresses above are deployed deterministically and apply to every chain where the protocol exists. Slipstream V2 and V3 are not deployed on Unichain or Optimism, so only the Slipstream V1, Uniswap V3, and Uniswap V4 rows apply there. CoW Swapper is Base-only as noted in the table.
