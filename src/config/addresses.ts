@@ -164,7 +164,7 @@ const CHAIN_AM_VERSIONS: Record<ChainId, Record<AmCategory, ReadonlyArray<AmVers
 const STANDALONE_AM_ADDRESSES: Record<StandaloneAm, string> = {
   merklOperator: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
   gasRelayer: "0xD938C8d04cF91094fecAF0A2018EAac483a40137",
-  cowSwapper: "0xc928013A219EC9F18dE7B2dee6A50Ba626811854",
+  cowSwapper: "0xFfC742E68D41389BE9Ef1aFD518F036064DA2Bb6",
 };
 
 // Per-chain availability — update these when deploying to new chains.

@@ -14,6 +14,11 @@ const REBALANCER_V2_1_0_SLIPSTREAM_V1 = "0xE07A9383AF8E0B1320419dFeF205bb9bA75f3
 // V2.1.1 slipstreamV1 rebalancer (current on all chains).
 const REBALANCER_V2_1_1_SLIPSTREAM_V1 = "0x5802454749cc0c4A6F28D5001B4cD84432e2b79F";
 
+// Current CowSwapper V1 address on Base (see Arcadia.sol COW_SWAPPERS).
+const COW_SWAPPER_CURRENT = "0xFfC742E68D41389BE9Ef1aFD518F036064DA2Bb6";
+// Deprecated CowSwapper V1.0 address on Base — ~1 holdout account still registered here.
+const COW_SWAPPER_OLD = "0xc928013A219EC9F18dE7B2dee6A50Ba626811854";
+
 type McArgs = { contracts: Array<{ args: [string, string] }> };
 
 const multicallMock = vi.fn();
@@ -68,6 +73,38 @@ describe("read.account.info automation", () => {
     expect(result.isError).toBeUndefined();
     const data = parseToolResponse(result);
     expect(data.automation.rebalancer).toBe("slipstream");
+  });
+
+  it("reports cow_swapper=true on Base when registered on the current CowSwapper", async () => {
+    multicallMock.mockImplementationOnce(async ({ contracts }: McArgs) =>
+      contracts.map((c) => ({
+        status: "success",
+        result: c.args[1].toLowerCase() === COW_SWAPPER_CURRENT.toLowerCase(),
+      })),
+    );
+
+    const handler = setup();
+    const result = await handler({ account_address: BASE_ACCOUNT, chain_id: 8453 });
+
+    expect(result.isError).toBeUndefined();
+    const data = parseToolResponse(result);
+    expect(data.automation.cow_swapper).toBe(true);
+  });
+
+  it("reports cow_swapper=false on Base when registered only on the deprecated CowSwapper V1.0", async () => {
+    multicallMock.mockImplementationOnce(async ({ contracts }: McArgs) =>
+      contracts.map((c) => ({
+        status: "success",
+        result: c.args[1].toLowerCase() === COW_SWAPPER_OLD.toLowerCase(),
+      })),
+    );
+
+    const handler = setup();
+    const result = await handler({ account_address: BASE_ACCOUNT, chain_id: 8453 });
+
+    expect(result.isError).toBeUndefined();
+    const data = parseToolResponse(result);
+    expect(data.automation.cow_swapper).toBe(false);
   });
 
   it("returns false for every automation slot when no AM is registered", async () => {
