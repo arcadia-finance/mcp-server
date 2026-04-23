@@ -134,9 +134,9 @@ Use as `pool_address` in `write.account.borrow` / `write.account.repay`, as `cre
 | USDC  | `0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1` |
 | cbBTC | `0xa37E9b4369dc20940009030BfbC2088F09645e3B` |
 
-## Asset Manager Addresses (Base 8453)
+## Asset Manager Addresses
 
-Addresses are auto-resolved by `write.asset_manager.*` intent tools based on `dex_protocol`. Listed here for reference. All require V3/V4 accounts.
+Addresses are auto-resolved by `write.asset_manager.*` intent tools based on `dex_protocol`, targeting the latest deployed version on the selected chain. Listed here for reference. All require V3/V4 accounts. Older asset-manager versions remain on-chain for users who registered before the latest version shipped; `read.account.info` detects active registrations across every deployed version and reports the dex_protocol with no version suffix.
 
 | Type           | Protocol      | Address                                      |
 | -------------- | ------------- | -------------------------------------------- |
@@ -159,7 +159,7 @@ Addresses are auto-resolved by `write.asset_manager.*` intent tools based on `de
 | CoW Swapper    | Base only     | `0xc928013A219EC9F18dE7B2dee6A50Ba626811854` |
 | Gas Relayer    | All           | `0xD938C8d04cF91094fecAF0A2018EAac483a40137` |
 
-Slipstream V3 addresses above are Base-only. Unichain and Optimism have Slipstream V1 only (no V2/V3 position manager deployed).
+The addresses above are deployed deterministically and apply to every chain where the protocol exists. Slipstream V2 and V3 are not deployed on Unichain or Optimism, so only the Slipstream V1, Uniswap V3, and Uniswap V4 rows apply there. CoW Swapper is Base-only as noted in the table.
 
 **Slipstream V1 vs V2 vs V3:** The pool determines the version — each pool is bound to a specific Slipstream version. `read.account.info` returns a `dex_protocol` field on LP positions (derived from the position manager address), so you can read the protocol directly from the account overview. Pass this value (`slipstream`, `slipstream_v2`, `slipstream_v3`, or their `staked_*` variants) as `dex_protocol` to `write.asset_manager.*` intent tools to auto-resolve the correct AM address.
 

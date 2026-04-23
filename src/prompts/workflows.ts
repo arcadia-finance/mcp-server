@@ -100,7 +100,7 @@ export function registerWorkflowPrompts(server: McpServer) {
               "",
               "Steps:",
               "1. Call read.account.info to check current positions and which asset managers are already enabled",
-              "2. Identify the LP protocol (Slipstream V1/V2, Uniswap V3/V4) from the position",
+              "2. Identify the LP protocol (Slipstream V1/V2/V3 or Uniswap V3/V4) from the position",
               "3. Call read.asset_manager.intents to see available automations",
               "4. For each automation to enable, call the matching write.asset_manager.* tool:",
               "   - Rebalancer: write.asset_manager.rebalancer (set dex_protocol, trigger ratios, compound_leftovers)",

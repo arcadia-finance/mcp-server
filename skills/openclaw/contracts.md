@@ -47,4 +47,4 @@ Supported chains: Base (8453), Unichain (130), Optimism (10).
 
 ## Asset Managers
 
-Rebalancers, compounders, and yield claimers are deployed per DEX protocol. Slipstream V3 is Base-only. Optimism supports Slipstream V1 (Velodrome), Uniswap V3, and Uniswap V4. No CoW Swap on Optimism. Use `read_asset_manager_intents` to discover available automations and their addresses per chain.
+Rebalancers, compounders, and yield claimers are deployed per DEX protocol and share the same address on every chain where the protocol exists. Slipstream V2 and V3 are Base-only; Unichain and Optimism support Slipstream V1, Uniswap V3, and Uniswap V4. CoW Swap is Base-only. Use `read.asset_manager.intents` to discover available automations and their addresses per chain.
