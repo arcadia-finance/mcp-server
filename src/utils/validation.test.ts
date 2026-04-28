@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { isValidAddress, validateAddress, validateChainId } from "./validation.js";
+import {
+  isValidAddress,
+  validateAddress,
+  validateChainId,
+  validateHexCalldata,
+  parseWeiDecimalString,
+} from "./validation.js";
 
 describe("isValidAddress", () => {
   it("returns true for valid lowercase address", () => {
@@ -71,5 +77,26 @@ describe("validateChainId", () => {
     expect(err).toContain("Base (8453)");
     expect(err).toContain("Unichain (130)");
     expect(err).toContain("Optimism (10)");
+  });
+});
+
+describe("validateHexCalldata", () => {
+  it("accepts empty and full calldata", () => {
+    expect(validateHexCalldata("0x")).toBe("0x");
+    expect(validateHexCalldata("0x12ab")).toBe("0x12ab");
+  });
+  it("rejects odd-length hex", () => {
+    expect(() => validateHexCalldata("0xa")).toThrow(/Invalid data/);
+  });
+});
+
+describe("parseWeiDecimalString", () => {
+  it("parses decimal wei", () => {
+    expect(parseWeiDecimalString("0")).toBe(0n);
+    expect(parseWeiDecimalString("42")).toBe(42n);
+  });
+  it("rejects hex and partial input", () => {
+    expect(() => parseWeiDecimalString("0x10")).toThrow(/Invalid value/);
+    expect(() => parseWeiDecimalString("1a")).toThrow(/Invalid value/);
   });
 });

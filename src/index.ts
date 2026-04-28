@@ -17,6 +17,11 @@ import { registerAllTools } from "./tools/index.js";
 import { registerAllResources } from "./resources/index.js";
 import { registerAllPrompts } from "./prompts/index.js";
 import { wrapServerForHttp, convertToolNames } from "./utils/tool-naming.js";
+import {
+  applyTrustProxyFromEnv,
+  parseListenPort,
+  parseRateLimitRpm,
+} from "./utils/http-config.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
@@ -46,7 +51,8 @@ if (transportMode === "http") {
   const express = (await import("express")).default;
 
   const app = express();
-  const port = parseInt(process.env.PORT ?? "3000", 10);
+  applyTrustProxyFromEnv(app, process.env.TRUST_PROXY);
+  const port = parseListenPort(process.env.PORT);
 
   const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "https://mcp.arcadia.finance")
     .split(",")
@@ -75,7 +81,7 @@ if (transportMode === "http") {
   });
 
   const { default: rateLimit, ipKeyGenerator } = await import("express-rate-limit");
-  const rpm = parseInt(process.env.RATE_LIMIT_RPM ?? "60", 10);
+  const rpm = parseRateLimitRpm(process.env.RATE_LIMIT_RPM);
   app.use(
     "/mcp",
     rateLimit({

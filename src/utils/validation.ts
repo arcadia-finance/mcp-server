@@ -19,3 +19,25 @@ export function validateChainId(chainId: number): ChainId {
   }
   return chainId as ChainId;
 }
+
+/** ABI-encoded calldata: 0x plus pairs of hex digits (empty calldata is 0x). */
+export function validateHexCalldata(data: string, label = "data"): `0x${string}` {
+  const d = data.trim();
+  if (!/^0x(?:[0-9a-fA-F]{2})*$/.test(d)) {
+    throw new Error(
+      `Invalid ${label}: expected hex calldata starting with 0x and an even number of hex digits after the prefix.`,
+    );
+  }
+  return d as `0x${string}`;
+}
+
+/** Wei amount as a decimal string (avoids ambiguous BigInt() on partial hex). */
+export function parseWeiDecimalString(s: string, label = "value"): bigint {
+  const t = s.trim();
+  if (!/^\d+$/.test(t)) {
+    throw new Error(
+      `Invalid ${label}: expected a non-negative decimal wei string (digits only), e.g. "0" or "1000000000000000000".`,
+    );
+  }
+  return BigInt(t);
+}
