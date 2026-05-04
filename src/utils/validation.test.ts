@@ -81,22 +81,33 @@ describe("validateChainId", () => {
 });
 
 describe("validateHexCalldata", () => {
-  it("accepts empty and full calldata", () => {
+  it("accepts empty calldata", () => {
     expect(validateHexCalldata("0x")).toBe("0x");
+  });
+
+  it("accepts valid even-length calldata", () => {
     expect(validateHexCalldata("0x12ab")).toBe("0x12ab");
   });
+
   it("rejects odd-length hex", () => {
     expect(() => validateHexCalldata("0xa")).toThrow(/Invalid data/);
   });
 });
 
 describe("parseWeiDecimalString", () => {
-  it("parses decimal wei", () => {
+  it("parses zero", () => {
     expect(parseWeiDecimalString("0")).toBe(0n);
+  });
+
+  it("parses positive decimal", () => {
     expect(parseWeiDecimalString("42")).toBe(42n);
   });
-  it("rejects hex and partial input", () => {
+
+  it("rejects hex string", () => {
     expect(() => parseWeiDecimalString("0x10")).toThrow(/Invalid value/);
+  });
+
+  it("rejects mixed alphanumeric", () => {
     expect(() => parseWeiDecimalString("1a")).toThrow(/Invalid value/);
   });
 });

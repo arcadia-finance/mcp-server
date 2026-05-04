@@ -1,8 +1,6 @@
 import type { Express } from "express";
 
-/**
- * Listen port from PORT env. Throws at startup so a bad PORT does not silently break binding.
- */
+/** Listen port from PORT env. Throws at startup so a bad PORT does not silently break binding. */
 export function parseListenPort(raw: string | undefined): number {
   const n = parseInt(raw ?? "3000", 10);
   if (!Number.isFinite(n) || n < 1 || n > 65535) {
@@ -11,9 +9,7 @@ export function parseListenPort(raw: string | undefined): number {
   return n;
 }
 
-/**
- * Max requests per minute from RATE_LIMIT_RPM. Misconfiguration must not collapse to NaN/max 0/max Infinity.
- */
+/** Max requests per minute from RATE_LIMIT_RPM. Warns and falls back to 60 on invalid input. */
 export function parseRateLimitRpm(raw: string | undefined): number {
   const n = parseInt(raw ?? "60", 10);
   if (!Number.isFinite(n) || n < 1) {
@@ -23,10 +19,7 @@ export function parseRateLimitRpm(raw: string | undefined): number {
   return Math.min(n, 1_000_000);
 }
 
-/**
- * Enables Express req.ip when behind proxies (Ingress, CDN). See https://expressjs.com/guide/behind-proxies.html
- * TRUST_PROXY: "1", "true", or a hop count ("2").
- */
+/** Enables Express req.ip when behind proxies. TRUST_PROXY: "1", "true", or a hop count ("2"). */
 export function applyTrustProxyFromEnv(app: Express, raw: string | undefined): void {
   const hops = parseTrustProxyHopCount(raw);
   if (hops === undefined) return;
