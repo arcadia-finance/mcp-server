@@ -139,6 +139,22 @@ const YIELD_CLAIMERS_V2_0_1: AmVersionMap = {
   uniV4: "0x3BC2B398eEEE9807ff76fdb4E11526dE0Ee80cEa",
 };
 
+// Optimism-specific V2.1.1 overrides: slipstreamV3 was deployed at different addresses on Optimism.
+const REBALANCERS_V2_1_1_OPTIMISM: AmVersionMap = {
+  ...REBALANCERS_V2_1_1,
+  slipstreamV3: "0x33442fC10a20Aad0ddD73F6ae24500F5B370DC51",
+};
+
+const COMPOUNDERS_V2_1_1_OPTIMISM: AmVersionMap = {
+  ...COMPOUNDERS_V2_1_1,
+  slipstreamV3: "0x3e7b6997399eC402491c4A049e4CD727d3aA1738",
+};
+
+const YIELD_CLAIMERS_V2_1_1_OPTIMISM: AmVersionMap = {
+  ...YIELD_CLAIMERS_V2_1_1,
+  slipstreamV3: "0x3630bDb1Ac7cF8A435411391db75450350814F42",
+};
+
 // Deployed versions per chain, newest first. The first entry is treated as
 // the "current" version (used for new registrations). Older entries are
 // probed in read.account.info so users registered on older versions are
@@ -155,9 +171,9 @@ const CHAIN_AM_VERSIONS: Record<ChainId, Record<AmCategory, ReadonlyArray<AmVers
     yieldClaimers: [YIELD_CLAIMERS_V2_1_1],
   },
   10: {
-    rebalancers: [REBALANCERS_V2_1_1],
-    compounders: [COMPOUNDERS_V2_1_1],
-    yieldClaimers: [YIELD_CLAIMERS_V2_1_1],
+    rebalancers: [REBALANCERS_V2_1_1_OPTIMISM],
+    compounders: [COMPOUNDERS_V2_1_1_OPTIMISM],
+    yieldClaimers: [YIELD_CLAIMERS_V2_1_1_OPTIMISM],
   },
 };
 
@@ -168,11 +184,11 @@ const STANDALONE_AM_ADDRESSES: Record<StandaloneAm, string> = {
 };
 
 // Per-chain availability — update these when deploying to new chains.
-// Slipstream V3 position manager is only live on Base; Unichain and Optimism have V1 only.
+// Slipstream V2 is Base-only. V3 is live on Base and Optimism. Unichain has V1 only.
 const CHAIN_PROTOCOLS: Record<ChainId, ReadonlySet<AmProtocol>> = {
   8453: new Set(["slipstreamV1", "slipstreamV2", "slipstreamV3", "uniV3", "uniV4"]),
   130: new Set(["slipstreamV1", "uniV3", "uniV4"]),
-  10: new Set(["slipstreamV1", "uniV3", "uniV4"]),
+  10: new Set(["slipstreamV1", "slipstreamV3", "uniV3", "uniV4"]),
 };
 
 const CHAIN_STANDALONE_AMS: Record<ChainId, ReadonlySet<StandaloneAm>> = {
