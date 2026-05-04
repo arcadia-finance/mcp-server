@@ -5,7 +5,11 @@ import { base, optimism, unichain } from "viem/chains";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../config/chains.js";
 import { DevSendOutput } from "../output-schemas.js";
-import { validateAddress, validateHexCalldata, parseWeiDecimalString } from "../../utils/validation.js";
+import {
+  validateAddress,
+  validateHexCalldata,
+  parseWeiDecimalString,
+} from "../../utils/validation.js";
 
 const VIEM_CHAINS: Record<number, Chain> = {
   8453: base,

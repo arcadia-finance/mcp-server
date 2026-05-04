@@ -17,11 +17,7 @@ import { registerAllTools } from "./tools/index.js";
 import { registerAllResources } from "./resources/index.js";
 import { registerAllPrompts } from "./prompts/index.js";
 import { wrapServerForHttp, convertToolNames } from "./utils/tool-naming.js";
-import {
-  applyTrustProxyFromEnv,
-  parseListenPort,
-  parseRateLimitRpm,
-} from "./utils/http-config.js";
+import { applyTrustProxyFromEnv, parseListenPort, parseRateLimitRpm } from "./utils/http-config.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { version: string };
