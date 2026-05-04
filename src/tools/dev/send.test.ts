@@ -54,4 +54,38 @@ describe("dev.send", () => {
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("Unsupported chain ID");
   });
+
+  it("returns error for malformed calldata (odd-length hex)", async () => {
+    process.env.PK = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    const mock = createMockServer();
+    registerSendTool(mock.server, createMockChains());
+    const handler = mock.getHandler("dev.send");
+
+    const result = await handler({
+      to: "0x1234567890abcdef1234567890abcdef12345678",
+      data: "0xabcde",
+      value: "0",
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Invalid data");
+  });
+
+  it("returns error for non-decimal wei value string", async () => {
+    process.env.PK = "0x0000000000000000000000000000000000000000000000000000000000000001";
+    const mock = createMockServer();
+    registerSendTool(mock.server, createMockChains());
+    const handler = mock.getHandler("dev.send");
+
+    const result = await handler({
+      to: "0x1234567890abcdef1234567890abcdef12345678",
+      data: "0xabcd",
+      value: "0x100",
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Invalid value");
+  });
 });
