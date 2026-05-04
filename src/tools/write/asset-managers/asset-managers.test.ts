@@ -124,7 +124,7 @@ describe("write.asset_manager.rebalancer", () => {
     expect(parsed.statuses).toEqual([true]);
   });
 
-  it("returns error for slipstream_v3 on Optimism", async () => {
+  it("resolves slipstream_v3 rebalancer address on Optimism", async () => {
     const mock = setupAll();
     const handler = mock.getHandler("write.asset_manager.rebalancer");
     const result = await handler({
@@ -139,8 +139,9 @@ describe("write.asset_manager.rebalancer", () => {
       chain_id: 10,
     });
 
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("not available on Optimism");
+    const parsed = parseToolResponse(result);
+    expect(parsed.asset_managers).toEqual(["0x33442fC10a20Aad0ddD73F6ae24500F5B370DC51"]);
+    expect(parsed.statuses).toEqual([true]);
   });
 
   it("resolves slipstream V1 rebalancer on Optimism", async () => {
@@ -474,7 +475,7 @@ describe("read.asset_manager.intents", () => {
     expect(dexProtocolParam.values).toContain("staked_slipstream_v3");
   });
 
-  it("dex_protocol enum excludes V2/V3 on Optimism", async () => {
+  it("dex_protocol enum excludes V2 but includes V3 on Optimism", async () => {
     const mock = setupAll();
     const handler = mock.getHandler("read.asset_manager.intents");
     const result = await handler({ chain_id: 10 });
@@ -486,11 +487,12 @@ describe("read.asset_manager.intents", () => {
     );
     expect(dexProtocolParam.values).toContain("slipstream");
     expect(dexProtocolParam.values).toContain("staked_slipstream");
+    expect(dexProtocolParam.values).toContain("slipstream_v3");
+    expect(dexProtocolParam.values).toContain("staked_slipstream_v3");
     expect(dexProtocolParam.values).toContain("uniV3");
     expect(dexProtocolParam.values).toContain("uniV4");
     expect(dexProtocolParam.values).not.toContain("slipstream_v2");
-    expect(dexProtocolParam.values).not.toContain("slipstream_v3");
-    expect(dexProtocolParam.values).not.toContain("staked_slipstream_v3");
+    expect(dexProtocolParam.values).not.toContain("staked_slipstream_v2");
   });
 
   it("each automation has required fields", async () => {
