@@ -38,17 +38,19 @@ function planResult(
   resp: AutomationsPlanResponse,
   account: string,
   chainId: number,
+  previewOnly = false,
 ) {
-  // simulation_success is false both when the tx would revert and when the sim
-  // could not run at all (the proxy returns (url=None, success=False) when no
-  // `owner` was supplied). Only a sim that actually ran can condemn the tx, so
-  // the presence of a URL is what separates "failure" from "unavailable".
-  const simRan = Boolean(resp.simulation_url);
-  const simStatus: "success" | "failure" | "unavailable" = !simRan
+  // Only an explicit `true` counts as a passing simulation. The proxy returns
+  // (url=None, success=False) when it could not run the sim at all (no `owner`),
+  // and an absent success field is ambiguous, so neither may read as a green
+  // light. An explicit `false` alongside a URL is a real predicted revert.
+  const simStatus: "success" | "failure" | "unavailable" = !resp.simulation_url
     ? "unavailable"
-    : resp.simulation_success === false
-      ? "failure"
-      : "success";
+    : resp.simulation_success === true
+      ? "success"
+      : resp.simulation_success === false
+        ? "failure"
+        : "unavailable";
 
   const base = {
     description,
@@ -76,6 +78,20 @@ function planResult(
       ],
       isError: true as const,
     };
+  }
+
+  // Preview does not read chain state, so its calldata only enables the resolved
+  // plan: it carries no disable entries for managers the account already has.
+  // Broadcasting it would partially apply the requested state while leaving
+  // unlisted automations running, and neither the empty-diff guard (no diff on
+  // preview) nor the simulation guard (not enriched on preview) would catch it.
+  // So preview returns the plan for inspection and no signable transaction.
+  if (previewOnly) {
+    return formatResult({
+      ...base,
+      preview_only: true,
+      description: `${description}: preview only, no transaction. Preview does not diff against on-chain state, so its calldata would not disable automations you left out. Re-run with mode "save" to get a transaction.`,
+    });
   }
 
   // An empty diff means the account already matches the request. The backend
@@ -144,26 +160,30 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
       description:
         "Configure an account's automations from a list of intents and return the unsigned setAssetManagers transaction. " +
         "The backend resolves which asset managers each intent needs, validates that the combination is compatible, encodes the metadata and builds the calldata, so you describe the desired outcome rather than the contracts.\n\n" +
-        "The intents array is the complete desired state: any automation you leave out is disabled. Use mode 'save' (default) to diff against what is currently enabled and emit the minimal call, or 'preview' to encode the intents without reading chain state. To toggle one automation without restating the rest, use write.account.automations_delta.\n\n" +
+        "With mode 'save' (the default) the intents array is the complete desired state: the backend diffs it against what is currently enabled, so any automation you leave out is DISABLED by the returned transaction. Pass a single intent with enabled: false to turn everything off.\n\n" +
+        "Mode 'preview' validates and resolves the intents WITHOUT reading chain state and returns no transaction, because its calldata carries no disable entries and would only partially apply the state. Use it to check a combination is legal or to show a plan; use 'save' to get something signable. To toggle one automation without restating the rest, use write.account.automations_delta.\n\n" +
         INTENT_REFERENCE +
         "\n\n" +
         CONTEXT_NOTE +
         "\n\n" +
         RULES_NOTE +
         "\n\nReturns { valid, errors, warnings, human_summary, plan, diff, transaction }. When a compatibility rule fires the call returns an error and no transaction: read errors[].reason, adjust the intents and retry. " +
-        "When the account already matches the request there is no transaction and no_changes_needed is true. Call read.asset_manager.intents first to see which intents this account can enable.",
+        "There is deliberately no transaction when the account already matches the request (no_changes_needed), when the Tenderly simulation predicts a revert (an error), or in preview mode (preview_only). " +
+        "Call read.asset_manager.intents first to see which intents this account can enable.",
       outputSchema: AutomationsPlanOutput,
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         intents: z
           .array(AUTOMATION_INTENT)
           .min(1)
-          .describe("Complete desired automation state. Omitted automations are disabled."),
+          .describe(
+            "Complete desired automation state. In save mode anything omitted is disabled, so include every automation to keep. A single intent with enabled: false disables all automations.",
+          ),
         mode: z
           .enum(["save", "preview"])
           .default("save")
           .describe(
-            "save diffs against on-chain state for a minimal call; preview encodes the intents as given.",
+            "save diffs against on-chain state and returns a signable transaction that also disables anything omitted. preview resolves and validates only, returning a plan and no transaction.",
           ),
         ...POSITION_CONTEXT_SCHEMA,
         chain_id: CHAIN_ID_SCHEMA,
@@ -181,7 +201,13 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
             : await api.saveAutomations(account, chainId, body);
 
         const kinds = params.intents.map((i) => i.kind).join(", ");
-        return planResult(`Configure automations on ${account} (${kinds})`, resp, account, chainId);
+        return planResult(
+          `Configure automations on ${account} (${kinds})`,
+          resp,
+          account,
+          chainId,
+          params.mode === "preview",
+        );
       } catch (err) {
         return errorResult(err);
       }

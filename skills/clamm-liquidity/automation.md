@@ -29,7 +29,11 @@ Every intent takes `enabled` (default true) and an optional `position_id`.
 
 ## Full desired state vs delta
 
-`write.account.automations` takes the **complete desired state**. Any automation not in the `intents` array gets disabled, so include everything the user wants kept, not just what is new. `mode: "save"` (the default) diffs against on-chain state and emits the minimal call; `mode: "preview"` encodes the intents without reading chain state.
+`write.account.automations` takes the **complete desired state**. Any automation not in the `intents` array gets disabled, so include everything the user wants kept, not just what is new. To turn everything off, pass a single intent with `enabled: false`.
+
+`mode: "save"` (the default) diffs the desired state against what is on-chain and returns a signable transaction that both enables what you asked for and disables what you left out.
+
+`mode: "preview"` resolves and validates the intents **without** reading chain state, and deliberately returns **no transaction** (`preview_only: true`). Because it does not diff, its calldata contains no disable entries: broadcasting it would enable the new managers while leaving omitted automations running. Use preview to check that a combination is legal or to show a plan, then re-run with `save` to get something signable.
 
 `write.account.automations_delta` is the **change-only** variant: `enable` switches intents on, `disable` takes asset-manager addresses (from `read.asset_manager.current`) to switch off, and anything unmentioned is left alone. Use it to flip one automation without restating the rest.
 
@@ -105,11 +109,21 @@ Read `errors[].reason`, adjust the intents, retry. `read.asset_manager.intents` 
 
 `mode: "save"` and the delta tool simulate the resulting `setAssetManagers` call on Tenderly when an `owner` is supplied, and return `tenderly_sim_status`:
 
-- `success`: the call simulated cleanly.
-- `failure`: the call would revert. The tool returns an error and **no** transaction, with the Tenderly link so you can read the revert reason. Do not broadcast.
-- `unavailable`: no simulation ran (typically because `owner` was not supplied). The transaction is returned and is not condemned by this.
+- `success`: the simulation ran and passed.
+- `failure`: the simulation ran and the call would revert. The tool returns an error and **no** transaction, with the Tenderly link so you can read the revert reason. Do not broadcast.
+- `unavailable`: no simulation ran, or the result was inconclusive. Typically `owner` was not supplied. The transaction is returned; this status neither endorses nor condemns it.
 
-When the account already matches the request, there is no transaction at all and `no_changes_needed` is true.
+`preview` is never simulated, so it always reports `unavailable`, which is one reason it returns no transaction.
+
+## When there is no transaction
+
+Three success-path cases return no `transaction`, and an agent must not treat any of them as "nothing to do but broadcast anyway":
+
+| Field | Meaning |
+| ----- | ------- |
+| `preview_only: true` | Preview mode. Re-run with `save`. |
+| `no_changes_needed: true` | The account already matches the request. Nothing to send. |
+| (error) `tenderly_sim_status: "failure"` | The call would revert. Fix the cause, do not broadcast. |
 
 ## Superseded managers
 

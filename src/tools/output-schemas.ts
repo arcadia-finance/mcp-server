@@ -61,6 +61,7 @@ export const AutomationsPlanOutput = z.object({
   simulation_url: z.string().optional(),
   tenderly_sim_status: z.enum(["success", "failure", "unavailable"]).optional(),
   no_changes_needed: z.boolean().optional(),
+  preview_only: z.boolean().optional(),
 });
 
 export const AutomationsStateOutput = z.object({
@@ -190,6 +191,7 @@ export const GuideOutput = z.object({
 
 export const IntentsListOutput = z.object({
   automations: z.array(z.record(z.unknown())),
+  availability_error: z.string().optional(),
   shared_params: z.array(z.string()),
   usage: z.string(),
 });

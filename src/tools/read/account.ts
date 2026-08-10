@@ -96,7 +96,9 @@ export function registerAccountTools(
         const validChainId = validateChainId(chain_id);
         const validAccount = validateAddress(account_address, "account_address");
         const client = getPublicClient(validChainId, chains);
-        const [overview, liquidation_price, accountVersion] = await Promise.all([
+        // The automations read is issued alongside the others rather than after, so
+        // sourcing automation state from the backend costs no extra round-trip.
+        const [overview, liquidation_price, accountVersion, automationState] = await Promise.all([
           api.getAccountOverview(validChainId, account_address).catch(() => null),
           api.getLiquidationPrice(validChainId, account_address).catch(() => null),
           client
@@ -107,6 +109,10 @@ export function registerAccountTools(
             })
             .then((v: bigint) => Number(v))
             .catch(() => null),
+          api
+            .getCurrentAutomations(validAccount, validChainId)
+            .then((s) => ({ ok: true as const, state: s }))
+            .catch((e: unknown) => ({ ok: false as const, error: e })),
         ]);
 
         if (!overview && !liquidation_price && !accountVersion) {
@@ -152,8 +158,13 @@ export function registerAccountTools(
         // the asset-manager address book (including superseded deployments) and
         // decodes each manager's on-chain config.
         let automation: Record<string, unknown> | null = null;
-        try {
-          const state = await api.getCurrentAutomations(validAccount, validChainId);
+        if (!automationState.ok) {
+          const e = automationState.error;
+          notes.push(
+            `Automation state unavailable: ${e instanceof Error ? e.message : String(e)}. Other account data is unaffected.`,
+          );
+        } else {
+          const state = automationState.state;
           const managers = state.enabled ?? [];
           const out: Record<string, unknown> = {};
           for (const group of AUTOMATION_GROUPS) out[group] = false;
@@ -161,9 +172,22 @@ export function registerAccountTools(
           let activeProtocol: string | null = null;
           for (const m of managers) {
             if (m.deprecated) continue;
-            const dexProtocol = m.protocol ? backendProtocolToDexProtocol(m.protocol) : null;
-            out[m.manager] = dexProtocol ?? true;
-            if (dexProtocol && !activeProtocol) activeProtocol = dexProtocol;
+            if (!m.protocol) {
+              out[m.manager] = true; // account-level manager, no protocol to report
+              continue;
+            }
+            const dexProtocol = backendProtocolToDexProtocol(m.protocol);
+            if (!dexProtocol) {
+              // A protocol this server does not know yet. Report it verbatim rather
+              // than as `true`, which would misreport it as account-level.
+              out[m.manager] = m.protocol;
+              notes.push(
+                `Automation state: unrecognised protocol "${m.protocol}" on the ${m.manager}, reported verbatim. This MCP server may be out of date.`,
+              );
+              continue;
+            }
+            out[m.manager] = dexProtocol;
+            if (!activeProtocol) activeProtocol = dexProtocol;
           }
           if (activeProtocol) out.dex_protocol = activeProtocol;
 
@@ -203,10 +227,6 @@ export function registerAccountTools(
           }
           for (const w of state.warnings ?? []) notes.push(`Automation state: ${w}`);
           automation = out;
-        } catch (amErr) {
-          notes.push(
-            `Automation state unavailable: ${amErr instanceof Error ? amErr.message : String(amErr)}. Other account data is unaffected.`,
-          );
         }
 
         const result: Record<string, unknown> = {

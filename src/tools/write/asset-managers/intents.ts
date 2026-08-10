@@ -229,14 +229,19 @@ const DEX_PROTOCOL_TO_CONTEXT: Record<string, { protocol: string; is_staked: boo
   uniV4: { protocol: "uniswap_v4", is_staked: false },
 };
 
+// The canonical names plus the dex_protocol spellings, deduped: slipstream_v2 and
+// slipstream_v3 are spelled the same in both vocabularies and must not appear twice
+// in the published schema enum.
 const PROTOCOL_VALUES = [
-  "slipstream_v1",
-  "slipstream_v2",
-  "slipstream_v3",
-  "uniswap_v3",
-  "uniswap_v4",
-  ...Object.keys(DEX_PROTOCOL_TO_CONTEXT),
-] as const;
+  ...new Set([
+    "slipstream_v1",
+    "slipstream_v2",
+    "slipstream_v3",
+    "uniswap_v3",
+    "uniswap_v4",
+    ...Object.keys(DEX_PROTOCOL_TO_CONTEXT),
+  ]),
+] as [string, ...string[]];
 
 // Position context. The backend auto-fetches anything omitted when position_id
 // is supplied, and anything explicitly passed wins over the fetched value.

@@ -359,7 +359,7 @@ Parameters:
 
 Configure an account's automations from a list of intents and return the unsigned setAssetManagers transaction. The backend resolves which asset managers each intent needs, validates the combination, encodes the metadata and builds the calldata, so you describe the desired outcome rather than the contracts.
 
-The `intents` array is the complete desired state: any automation left out is disabled. When a compatibility rule fires the tool returns an error with the rule name and reason, and no transaction.
+In save mode the `intents` array is the complete desired state: any automation left out is disabled by the returned transaction, and a single intent with `enabled: false` disables everything. When a compatibility rule fires the tool returns an error with the rule name and reason, and no transaction. There is also deliberately no transaction when the account already matches the request (`no_changes_needed`), when the Tenderly simulation predicts a revert (an error), or in preview mode (`preview_only`).
 
 Intent kinds:
 - `compound_fees`: reinvest earned fees/rewards into the LP. Optional `tokens` (token0|token1|reward) scopes it per token
@@ -371,7 +371,7 @@ Intent kinds:
 Parameters:
 - `account_address` (string, required): Arcadia account address
 - `intents` (object[], required): Complete desired automation state, at least one intent
-- `mode` (enum, default: "save"): save diffs against on-chain state for a minimal call; preview encodes the intents as given
+- `mode` (enum, default: "save"): save diffs against on-chain state and returns a signable transaction that also disables anything omitted; preview resolves and validates only, returning a plan and no transaction
 - `position_id` (number, optional): LP position id. Supply it and the backend fetches protocol, staked flag, tokens and reward tokens
 - `protocol` (enum, optional): Only needed without position_id. Accepts slipstream_v1 | slipstream_v2 | slipstream_v3 | uniswap_v3 | uniswap_v4, or the dex_protocol spellings (slipstream, staked_slipstream_v3, uniV3, ...) which imply is_staked
 - `is_staked` (boolean, optional): Whether the LP position is staked

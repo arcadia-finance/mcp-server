@@ -94,6 +94,21 @@ describe("read.account.info automation", () => {
     expect(data.automation.rebalancer).toBe("slipstream_v3");
   });
 
+  it("reports an unrecognised protocol verbatim, not as account-level", async () => {
+    const handler = setup({
+      enabled: [
+        manager({ manager: "rebalancer", protocol: "slipstream_v9", address: BASE_ACCOUNT }),
+      ],
+    });
+    const data = parseToolResponse(
+      await handler({ account_address: BASE_ACCOUNT, chain_id: 8453 }),
+    );
+
+    expect(data.automation.rebalancer).toBe("slipstream_v9");
+    expect(data.automation.dex_protocol).toBeUndefined();
+    expect(data.context_notes.join(" ")).toContain("unrecognised protocol");
+  });
+
   it("reports an account-level manager as true rather than a protocol", async () => {
     const handler = setup({
       enabled: [

@@ -106,17 +106,49 @@ describe("write.account.automations", () => {
     expect(api.previewAutomations).not.toHaveBeenCalled();
   });
 
-  it("routes mode=preview to /preview", async () => {
+  it("routes mode=preview to /preview and returns no signable transaction", async () => {
+    // Preview does not diff against chain state, so its calldata would leave
+    // omitted automations enabled. It must not come back as a transaction.
     const { mock, api } = setup();
-    await mock.getHandler("write.account.automations")({
+    const parsed = parseToolResponse(
+      await mock.getHandler("write.account.automations")({
+        account_address: TEST_ACCOUNT,
+        intents: [{ kind: "claim_merkl" }],
+        mode: "preview",
+        chain_id: 8453,
+      }),
+    );
+
+    expect(api.previewAutomations).toHaveBeenCalledOnce();
+    expect(api.saveAutomations).not.toHaveBeenCalled();
+    expect(parsed.preview_only).toBe(true);
+    expect(parsed.transaction).toBeUndefined();
+    expect(parsed.plan).toHaveLength(1);
+    expect(parsed.description).toContain('mode "save"');
+  });
+
+  it("still surfaces a compatibility rejection in preview mode", async () => {
+    const { mock } = setup({
+      previewAutomations: vi.fn(async () =>
+        planResponse({
+          valid: false,
+          calldata: null,
+          errors: [
+            { rule: "incomplete_partition", severity: "hard", reason: "some token unassigned" },
+          ],
+        }),
+      ),
+    });
+
+    const result = await mock.getHandler("write.account.automations")({
       account_address: TEST_ACCOUNT,
-      intents: [{ kind: "claim_merkl" }],
+      intents: [{ kind: "compound_fees", tokens: ["token0"] }],
       mode: "preview",
       chain_id: 8453,
     });
 
-    expect(api.previewAutomations).toHaveBeenCalledOnce();
-    expect(api.saveAutomations).not.toHaveBeenCalled();
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("incomplete_partition");
   });
 
   it("appends the ERC-8021 attribution suffix to the backend calldata", async () => {
@@ -310,6 +342,26 @@ describe("write.account.automations", () => {
     expect(parsed.transaction).toBeDefined();
   });
 
+  it("does not treat a missing simulation_success as a pass", async () => {
+    // An ambiguous response must not read as a green light.
+    const { mock } = setup({
+      saveAutomations: vi.fn(async () =>
+        planResponse({ simulation_url: "https://dashboard.tenderly.co/shared/simulation/x" }),
+      ),
+    });
+
+    const parsed = parseToolResponse(
+      await mock.getHandler("write.account.automations")({
+        account_address: TEST_ACCOUNT,
+        intents: [{ kind: "compound_fees" }],
+        mode: "save",
+        chain_id: 8453,
+      }),
+    );
+
+    expect(parsed.tenderly_sim_status).toBe("unavailable");
+  });
+
   it("reports a passing simulation as success", async () => {
     const { mock } = setup({
       saveAutomations: vi.fn(async () =>
@@ -488,6 +540,28 @@ describe("read.asset_manager.intents", () => {
     expect(byKind.claim_rewards.unavailable_reason).toContain("compound_and_claim");
     // Kinds the backend did not report keep the catalog entry untouched.
     expect(byKind.rebalance.available).toBeUndefined();
+  });
+
+  it("degrades to the catalog when availability cannot be read", async () => {
+    const { mock } = setup({
+      getAvailableAutomations: vi.fn(async () => {
+        throw new Error("Arcadia API error (503 on /automations/available): upstream unavailable");
+      }),
+    });
+
+    const parsed = parseToolResponse(
+      await mock.getHandler("read.asset_manager.intents")({
+        account_address: TEST_ACCOUNT,
+        chain_id: 8453,
+      }),
+    );
+
+    expect(parsed.automations).toHaveLength(5);
+    expect(parsed.availability_error).toContain("503");
+    // Nothing is guessed: no intent claims availability either way.
+    expect(
+      parsed.automations.every((a: { available?: boolean }) => a.available === undefined),
+    ).toBe(true);
   });
 
   it("rejects position_id without an account", async () => {

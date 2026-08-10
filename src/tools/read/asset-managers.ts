@@ -110,20 +110,34 @@ export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClie
 
         let automations: Record<string, unknown>[] = INTENT_CATALOG.map((i) => ({ ...i }));
 
+        // The catalog is static, so an availability outage degrades to catalog-only
+        // with the reason stated rather than failing the whole call. The absent
+        // `available` fields plus availability_error say what is missing; nothing
+        // is guessed.
+        let availabilityError: string | null = null;
         if (params.account_address) {
           const account = validateAddress(params.account_address, "account_address");
-          const live = await api.getAvailableAutomations(account, chainId, params.position_id);
-          const byKind = new Map(live.intents.map((i) => [i.kind, i]));
-          automations = automations.map((doc) => {
-            const entry = byKind.get(doc.kind as string);
-            return entry
-              ? { ...doc, available: entry.available, unavailable_reason: entry.reason ?? null }
-              : doc;
-          });
+          try {
+            const live = await api.getAvailableAutomations(account, chainId, params.position_id);
+            const byKind = new Map(live.intents.map((i) => [i.kind, i]));
+            automations = automations.map((doc) => {
+              const entry = byKind.get(doc.kind as string);
+              return entry
+                ? { ...doc, available: entry.available, unavailable_reason: entry.reason ?? null }
+                : doc;
+            });
+          } catch (err) {
+            availabilityError = err instanceof Error ? err.message : String(err);
+          }
         }
 
         const result = {
           automations,
+          ...(availabilityError
+            ? {
+                availability_error: `Per-account availability could not be read: ${availabilityError}. The catalog below is complete, but no intent is annotated as available or blocked. write.account.automations still validates the combination.`,
+              }
+            : {}),
           shared_params: [
             "enabled (boolean, default true): set false to disable an intent's managers",
             "position_id (number): scopes the intent and auto-fetches position context",
