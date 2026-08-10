@@ -8,7 +8,7 @@
   "packageManager": "yarn@4.13.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arcadia-finance/mcp-server.git"
+    "url": "git+https://github.com/arcadia-finance/mcp-server.git"
   },
   "homepage": "https://arcadia.finance",
   "keywords": [
@@ -45,7 +45,7 @@
     "LICENSE.md"
   ],
   "bin": {
-    "arcadia-mcp": "./dist/index.js"
+    "arcadia-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "rm -rf dist && tsc && cp src/abis/*.json dist/abis/",
