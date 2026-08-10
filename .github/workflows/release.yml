@@ -53,7 +53,11 @@ jobs:
           yarn build
           # Tolerate an already-published version so a retry after a later-step
           # failure does not abort here.
-          if npm view "@arcadia-finance/mcp-server@${{ steps.check.outputs.version }}" version >/dev/null 2>&1; then
+          # --prefer-online for the same reason the verify step uses it: npm view
+          # answers from the packument cache for max-age=300. A cold runner makes this
+          # correct today, but a warm cache would let the guard skip a publish that
+          # never happened.
+          if npm view "@arcadia-finance/mcp-server@${{ steps.check.outputs.version }}" version --prefer-online >/dev/null 2>&1; then
             echo "npm already has ${{ steps.check.outputs.version }}, skipping publish."
           else
             npm publish --access public
@@ -158,33 +162,86 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           fail=0
+          PKG="@arcadia-finance/mcp-server"
+          REGISTRY_URL="https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest"
+          SMITHERY_URL="https://registry.smithery.ai/servers/arcadia-finance/mcp-server"
 
-          if npm view "@arcadia-finance/mcp-server@${VERSION}" version >/dev/null 2>&1; then
-            echo "npm: ${VERSION} present"
-          else
-            echo "::error::npm does not report ${VERSION}"
-            fail=1
-          fi
+          # --prefer-online is load-bearing, not a nicety. npm view answers from the
+          # on-disk packument cache, and the registry serves it with
+          # cache-control: max-age=300, so npm returns the cached copy without
+          # revalidating for five minutes. The retry-tolerance pre-check in the
+          # publish step above necessarily runs BEFORE the publish and caches a
+          # packument that lacks the new version; npm publish does not invalidate it.
+          # That is what failed 0.5.1 five seconds after a successful publish, and no
+          # amount of polling inside the TTL would have changed the answer.
+          npm_has_version() {
+            npm view "${PKG}@${VERSION}" version --prefer-online >/dev/null 2>&1
+          }
 
-          if curl -sf --max-time 30 \
-            "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest" \
-            | jq -e --arg v "$VERSION" '[.servers[] | select(.server.version == $v)] | length > 0' \
-                >/dev/null; then
-            echo "MCP Registry: ${VERSION} present"
-          else
-            echo "::error::MCP Registry does not report ${VERSION}"
-            fail=1
-          fi
+          registry_has_version() {
+            curl -sf --max-time 30 "$REGISTRY_URL" \
+              | jq -e --arg v "$VERSION" '[.servers[] | select(.server.version == $v)] | length > 0' \
+                  >/dev/null 2>&1
+          }
 
-          # Smithery is advisory: its endpoints are intermittently unavailable and a
-          # listing lag should not fail an otherwise good release.
-          if [ -n "$SMITHERY_API_KEY" ]; then
-            if curl -sf --max-time 30 "https://registry.smithery.ai/servers/arcadia-finance/mcp-server" \
-              | jq -e '.deploymentUrl == "https://mcp.arcadia.finance/mcp"' >/dev/null; then
-              echo "Smithery: listing points at the current deployment"
-            else
-              echo "::warning::Smithery listing has not picked up the deployment URL"
+          # Both are polled in one loop, each dropped as it satisfies, so a genuine
+          # failure in one does not serially burn the other's budget.
+          npm_ok=0
+          registry_ok=0
+          slept=0
+          while :; do
+            if [ "$npm_ok" -eq 0 ] && npm_has_version; then
+              echo "npm: ${VERSION} present"
+              npm_ok=1
             fi
+            if [ "$registry_ok" -eq 0 ] && registry_has_version; then
+              echo "MCP Registry: ${VERSION} present"
+              registry_ok=1
+            fi
+            [ "$npm_ok" -eq 1 ] && [ "$registry_ok" -eq 1 ] && break
+            [ "$slept" -ge 90 ] && break
+            echo "waiting for propagation, retrying in 10s (${slept}s elapsed)"
+            sleep 10
+            slept=$((slept + 10))
+          done
+
+          # On failure, re-run without suppressing output: the silent form exits
+          # non-zero identically for a 404, a network blip and an auth failure, which
+          # is why the 0.5.1 failure needed a re-run to understand.
+          if [ "$npm_ok" -eq 0 ]; then
+            echo "::group::npm view output"
+            npm view "${PKG}@${VERSION}" version --prefer-online || true
+            echo "::endgroup::"
+            echo "::error::npm does not report ${VERSION} after ${slept}s"
+            fail=1
+          fi
+          if [ "$registry_ok" -eq 0 ]; then
+            echo "::group::MCP Registry response"
+            curl -s --max-time 30 "$REGISTRY_URL" || true
+            echo "::endgroup::"
+            echo "::error::MCP Registry does not report ${VERSION} after ${slept}s"
+            fail=1
+          fi
+
+          # Advisory. Smithery accepts a publish as PENDING and applies it
+          # asynchronously, so a short poll keeps this from warning on every release
+          # and going unread. This is the one check with a proven catch, so the
+          # signal is worth protecting.
+          if [ -n "$SMITHERY_API_KEY" ]; then
+            smithery_slept=0
+            while :; do
+              if curl -sf --max-time 30 "$SMITHERY_URL" \
+                | jq -e '.deploymentUrl == "https://mcp.arcadia.finance/mcp"' >/dev/null 2>&1; then
+                echo "Smithery: listing points at the current deployment"
+                break
+              fi
+              if [ "$smithery_slept" -ge 30 ]; then
+                echo "::warning::Smithery listing still points at the previous deployment after ${smithery_slept}s. The publish is accepted asynchronously, so check the releases page if this persists."
+                break
+              fi
+              sleep 10
+              smithery_slept=$((smithery_slept + 10))
+            done
           fi
 
           exit $fail
