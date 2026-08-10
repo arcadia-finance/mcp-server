@@ -159,31 +159,51 @@ jobs:
         run: |
           fail=0
 
-          if npm view "@arcadia-finance/mcp-server@${VERSION}" version >/dev/null 2>&1; then
-            echo "npm: ${VERSION} present"
-          else
-            echo "::error::npm does not report ${VERSION}"
-            fail=1
-          fi
+          npm_has_version() {
+            npm view "@arcadia-finance/mcp-server@${VERSION}" version >/dev/null 2>&1
+          }
 
-          if curl -sf --max-time 30 \
-            "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest" \
-            | jq -e --arg v "$VERSION" '[.servers[] | select(.server.version == $v)] | length > 0' \
-                >/dev/null; then
-            echo "MCP Registry: ${VERSION} present"
-          else
-            echo "::error::MCP Registry does not report ${VERSION}"
-            fail=1
-          fi
+          registry_has_version() {
+            curl -sf --max-time 30 \
+              "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest" \
+              | jq -e --arg v "$VERSION" '[.servers[] | select(.server.version == $v)] | length > 0' \
+                  >/dev/null 2>&1
+          }
 
-          # Smithery is advisory: its endpoints are intermittently unavailable and a
-          # listing lag should not fail an otherwise good release.
+          # Both registries serve reads from replicas that lag the write, so a check
+          # fired seconds after publishing can miss a version that did publish. This
+          # is not hypothetical: 0.5.1 published successfully and this step failed
+          # five seconds later reporting npm did not have it. Poll instead.
+          wait_for() {
+            label="$1"
+            check="$2"
+            attempt=0
+            until "$check"; do
+              attempt=$((attempt + 1))
+              if [ "$attempt" -ge 10 ]; then
+                echo "::error::${label} does not report ${VERSION} after $((attempt * 10))s"
+                return 1
+              fi
+              echo "${label}: ${VERSION} not visible yet, retrying in 10s (${attempt}/10)"
+              sleep 10
+            done
+            echo "${label}: ${VERSION} present"
+          }
+
+          wait_for "npm" npm_has_version || fail=1
+          wait_for "MCP Registry" registry_has_version || fail=1
+
+          # Advisory. Smithery accepts a publish as PENDING and applies it
+          # asynchronously, so immediately after a release the listing legitimately
+          # still points at the previous deployment. This reports the lag rather
+          # than failing on it, and unlike a reachability check it would not have
+          # passed during the months the listing sat on a stale version.
           if [ -n "$SMITHERY_API_KEY" ]; then
             if curl -sf --max-time 30 "https://registry.smithery.ai/servers/arcadia-finance/mcp-server" \
               | jq -e '.deploymentUrl == "https://mcp.arcadia.finance/mcp"' >/dev/null; then
               echo "Smithery: listing points at the current deployment"
             else
-              echo "::warning::Smithery listing has not picked up the deployment URL"
+              echo "::warning::Smithery listing has not applied the new deployment URL yet (publish is accepted asynchronously; check the releases page if it persists)"
             fi
           fi
 
