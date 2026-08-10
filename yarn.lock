@@ -34,7 +34,7 @@ __metadata:
     vitest: "npm:^3.0.0"
     zod: "npm:^3.23.0"
   bin:
-    arcadia-mcp: ./dist/index.js
+    arcadia-mcp: dist/index.js
   languageName: unknown
   linkType: soft
 
