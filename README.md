@@ -7,7 +7,7 @@
 [![MCP](https://img.shields.io/badge/MCP-2025--11--25-green)](https://modelcontextprotocol.io/)
 [![Smithery](https://img.shields.io/badge/Smithery-listed-6b46c1)](https://smithery.ai/servers/arcadia-finance/mcp-server)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
-[![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server)
+[![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
 
 MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
@@ -236,7 +236,7 @@ Pull requests for documentation fixes are welcome from agents and humans alike. 
 - **LobeHub:** [lobehub.com](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 - **PulseMCP:** [pulsemcp.com](https://www.pulsemcp.com/servers/arcadia-finance)
 - **MCP Market:** [mcpmarket.com](https://mcpmarket.com/server/arcadia-finance)
-- **Glama:** [glama.ai](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server)
+- **Glama:** [glama.ai](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
 - **awesome-mcp-servers:** [github.com/TensorBlock/awesome-mcp-servers](https://github.com/TensorBlock/awesome-mcp-servers)
 
 ## Development
