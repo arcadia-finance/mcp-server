@@ -5,6 +5,9 @@ on:
     paths:
       - package.json
       - server.json
+  # Manual retry: the version-bump gate still applies, so this is a no-op unless
+  # the tag for the current package.json version is absent.
+  workflow_dispatch:
 
 concurrency:
   group: release
@@ -18,11 +21,15 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # actions/checkout passes --no-tags unless this is set, so without it the
+          # version gate below runs `git rev-parse` against a tagless clone and can
+          # never detect an already-released version.
+          fetch-tags: true
       - run: corepack enable
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: yarn
@@ -39,22 +46,18 @@ jobs:
             echo "tag=$TAG" >> "$GITHUB_OUTPUT"
             echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           fi
-      - name: Create tag and release
-        if: steps.check.outputs.skip == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git tag "${{ steps.check.outputs.tag }}"
-          git push origin "${{ steps.check.outputs.tag }}"
-          gh release create "${{ steps.check.outputs.tag }}" \
-            --title "${{ steps.check.outputs.tag }}" \
-            --generate-notes
       - name: Publish to npm
         if: steps.check.outputs.skip == 'false'
         run: |
           yarn install --immutable
           yarn build
-          npm publish --access public
+          # Tolerate an already-published version so a retry after a later-step
+          # failure does not abort here.
+          if npm view "@arcadia-finance/mcp-server@${{ steps.check.outputs.version }}" version >/dev/null 2>&1; then
+            echo "npm already has ${{ steps.check.outputs.version }}, skipping publish."
+          else
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -68,22 +71,39 @@ jobs:
       - name: Authenticate to MCP Registry (OIDC)
         if: steps.check.outputs.skip == 'false'
         run: ./mcp-publisher login github-oidc
+      # The registry rejects republishing an existing version outright, so without
+      # this pre-check a retry after a later-step failure would fail here forever
+      # and the release would only be recoverable via a version bump.
       - name: Publish to MCP Registry
         if: steps.check.outputs.skip == 'false'
-        run: ./mcp-publisher publish
+        env:
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          already=$(curl -sf --max-time 30 \
+            "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=${VERSION}" \
+            | jq '[.servers[]] | length' || echo 0)
+          if [ "$already" -gt 0 ]; then
+            echo "MCP Registry already has ${VERSION}, skipping publish."
+          else
+            ./mcp-publisher publish
+          fi
 
+      # The CLI authenticates via SMITHERY_API_KEY only; it never reads a variable
+      # named SMITHERY_TOKEN, so the previous env name meant this step silently
+      # no-opped on every release. The qualified name is org/name with no leading
+      # @ (the npm-style @scope/name form is not a valid Smithery identifier).
       - name: Publish to Smithery
         if: steps.check.outputs.skip == 'false'
         env:
-          SMITHERY_TOKEN: ${{ secrets.SMITHERY_TOKEN }}
+          SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
         run: |
-          if [ -z "$SMITHERY_TOKEN" ]; then
-            echo "SMITHERY_TOKEN not set, skipping Smithery publish."
+          if [ -z "$SMITHERY_API_KEY" ]; then
+            echo "::warning::SMITHERY_API_KEY not set, skipping Smithery publish."
             exit 0
           fi
           npx -y @smithery/cli mcp publish \
             https://mcp.arcadia.finance/mcp \
-            -n @arcadia-finance/mcp-server
+            -n arcadia-finance/mcp-server
 
       - name: Check openclaw skill version
         if: steps.check.outputs.skip == 'false'
@@ -94,7 +114,15 @@ jobs:
             echo "Could not read version from skills/openclaw/SKILL.md frontmatter."
             exit 1
           fi
-          PREV=$(git show HEAD~1:skills/openclaw/SKILL.md 2>/dev/null | awk '/^version:/ { print $2; exit }' || echo "")
+          # Relative to the last released tag, not HEAD~1: on a manual retry after
+          # further commits, HEAD~1 already carries the new skill version and the
+          # publish that failed would be the one the retry skips.
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            PREV=$(git show "${LAST_TAG}:skills/openclaw/SKILL.md" 2>/dev/null | awk '/^version:/ { print $2; exit }' || echo "")
+          else
+            PREV=""
+          fi
           if [ "$CURR" = "$PREV" ]; then
             echo "Skill version unchanged ($CURR); skipping ClawHub publish."
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -108,7 +136,7 @@ jobs:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
         run: |
           if [ -z "$CLAWHUB_TOKEN" ]; then
-            echo "CLAWHUB_TOKEN not set, skipping ClawHub publish."
+            echo "::warning::CLAWHUB_TOKEN not set, skipping ClawHub publish."
             exit 0
           fi
           npx -y clawhub login --token "$CLAWHUB_TOKEN" --no-input
@@ -117,3 +145,64 @@ jobs:
             --name "Arcadia Finance" \
             --version "${{ steps.skill.outputs.version }}" \
             --no-input
+
+      # ─── Verify before tagging ───
+      # Every publish above can exit 0 without shipping: a missing credential hits a
+      # guard, and npm's own step tolerates an existing version. Assert the release
+      # is actually visible, and do it before the tag so a failure stays retryable.
+      - name: Verify publishes landed
+        if: steps.check.outputs.skip == 'false'
+        env:
+          VERSION: ${{ steps.check.outputs.version }}
+          SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          fail=0
+
+          if npm view "@arcadia-finance/mcp-server@${VERSION}" version >/dev/null 2>&1; then
+            echo "npm: ${VERSION} present"
+          else
+            echo "::error::npm does not report ${VERSION}"
+            fail=1
+          fi
+
+          if curl -sf --max-time 30 \
+            "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest" \
+            | jq -e --arg v "$VERSION" '[.servers[] | select(.server.version == $v)] | length > 0' \
+                >/dev/null; then
+            echo "MCP Registry: ${VERSION} present"
+          else
+            echo "::error::MCP Registry does not report ${VERSION}"
+            fail=1
+          fi
+
+          # Smithery is advisory: its endpoints are intermittently unavailable and a
+          # listing lag should not fail an otherwise good release.
+          if [ -n "$SMITHERY_API_KEY" ]; then
+            if curl -sf --max-time 30 "https://registry.smithery.ai/servers/arcadia-finance/mcp-server" \
+              | jq -e '.deploymentUrl == "https://mcp.arcadia.finance/mcp"' >/dev/null; then
+              echo "Smithery: listing points at the current deployment"
+            else
+              echo "::warning::Smithery listing has not picked up the deployment URL"
+            fi
+          fi
+
+          exit $fail
+
+      # ─── Tag and release LAST ───
+      # The version-bump gate above keys off this tag, so creating it only after
+      # every publish has succeeded keeps a failed run fully retryable. Creating
+      # it first would make the gate skip everything on the next attempt.
+      - name: Create tag and release
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git tag "${{ steps.check.outputs.tag }}"
+          git push origin "${{ steps.check.outputs.tag }}"
+          # Not atomic with the tag push above: if the tag lands and this fails, the
+          # gate would skip everything next run with no release created.
+          gh release create "${{ steps.check.outputs.tag }}" \
+            --title "${{ steps.check.outputs.tag }}" \
+            --generate-notes \
+            || gh release view "${{ steps.check.outputs.tag }}" >/dev/null

@@ -5,9 +5,9 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-2025--11--25-green)](https://modelcontextprotocol.io/)
-[![smithery badge](https://smithery.ai/badge/@arcadia-finance/mcp-server)](https://smithery.ai/servers/arcadia-finance/mcp-server)
+[![Smithery](https://img.shields.io/badge/Smithery-listed-6b46c1)](https://smithery.ai/servers/arcadia-finance/mcp-server)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
-[![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server)
+[![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
 
 MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
@@ -40,31 +40,31 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 | `read.strategy.info`           | Full detail for a specific LP strategy: APY per range width, pool config.                                   |
 | `read.strategy.recommendation` | Rebalancing recommendation for an account.                                                                  |
 | `read.guides`                  | Reference guides: automation setup, strategy selection, strategy templates.                                 |
-| `read.asset_manager.intents`   | Automation intents and their params; add `account_address` for live per-account availability.                |
+| `read.asset_manager.intents`   | Automation intents and their params; add `account_address` for live per-account availability.               |
 | `read.asset_manager.current`   | Automations enabled on an account: decoded config, mapped intents, Merkl state, superseded managers.        |
 
 ### Write Tools
 
 All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
-| Tool                                        | Description                                                                                                                                        |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `write.wallet.approve`                      | Approve an ERC20 token for spending. Required before depositing into an account. Call `read.wallet.allowances` first to check if already approved. |
-| `write.pool.deposit`                        | Lend the pool's underlying asset into an ERC-4626 tranche to earn interest. Mints tranche shares to the receiver.                                  |
-| `write.pool.redeem`                         | Redeem tranche shares back into the underlying asset (lender exit).                                                                                |
-| `write.account.create`                      | Create a new Arcadia account via Factory.                                                                                                          |
-| `write.account.deposit`                     | Deposit ERC20 tokens into an account.                                                                                                              |
-| `write.account.withdraw`                    | Withdraw assets from an account.                                                                                                                   |
-| `write.account.borrow`                      | Borrow from a lending pool.                                                                                                                        |
-| `write.account.repay`                       | Repay debt to a lending pool from wallet.                                                                                                          |
-| `write.account.add_liquidity`               | Flash-action: deposit + swap + mint LP + optional leverage, atomically.                                                                            |
-| `write.account.remove_liquidity`            | Remove/decrease LP position liquidity.                                                                                                             |
-| `write.account.swap`                        | Swap assets within an account (backend-routed).                                                                                                    |
-| `write.account.deleverage`                  | Repay debt by selling collateral (swap + repay in one tx).                                                                                         |
-| `write.account.close`                       | Atomic close: burn LP + swap + repay debt in one tx.                                                                                               |
-| `write.account.stake`                       | Stake, unstake, or claim rewards for LP positions.                                                                                                 |
-| `write.account.automations`                 | Configure automations from an intents array (full desired state). Returns the unsigned setAssetManagers tx.                                         |
-| `write.account.automations_delta`           | Enable/disable individual automations, leaving the rest untouched.                                                                                  |
+| Tool                              | Description                                                                                                                                        |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `write.wallet.approve`            | Approve an ERC20 token for spending. Required before depositing into an account. Call `read.wallet.allowances` first to check if already approved. |
+| `write.pool.deposit`              | Lend the pool's underlying asset into an ERC-4626 tranche to earn interest. Mints tranche shares to the receiver.                                  |
+| `write.pool.redeem`               | Redeem tranche shares back into the underlying asset (lender exit).                                                                                |
+| `write.account.create`            | Create a new Arcadia account via Factory.                                                                                                          |
+| `write.account.deposit`           | Deposit ERC20 tokens into an account.                                                                                                              |
+| `write.account.withdraw`          | Withdraw assets from an account.                                                                                                                   |
+| `write.account.borrow`            | Borrow from a lending pool.                                                                                                                        |
+| `write.account.repay`             | Repay debt to a lending pool from wallet.                                                                                                          |
+| `write.account.add_liquidity`     | Flash-action: deposit + swap + mint LP + optional leverage, atomically.                                                                            |
+| `write.account.remove_liquidity`  | Remove/decrease LP position liquidity.                                                                                                             |
+| `write.account.swap`              | Swap assets within an account (backend-routed).                                                                                                    |
+| `write.account.deleverage`        | Repay debt by selling collateral (swap + repay in one tx).                                                                                         |
+| `write.account.close`             | Atomic close: burn LP + swap + repay debt in one tx.                                                                                               |
+| `write.account.stake`             | Stake, unstake, or claim rewards for LP positions.                                                                                                 |
+| `write.account.automations`       | Configure automations from an intents array (full desired state). Returns the unsigned setAssetManagers tx.                                        |
+| `write.account.automations_delta` | Enable/disable individual automations, leaving the rest untouched.                                                                                 |
 
 ### Dev Tools
 
@@ -210,8 +210,8 @@ ln -s /path/to/mcp-server/skills/clamm-liquidity ~/.claude/skills/clamm-liquidit
 
 Available skills:
 
-| Skill             | Description                                                                                                         |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Skill             | Description                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------- |
 | `clamm-liquidity` | Concentrated liquidity management: concepts, intent-based automation, and step-by-step workflows. |
 
 ## Reporting Issues
@@ -236,7 +236,7 @@ Pull requests for documentation fixes are welcome from agents and humans alike. 
 - **LobeHub:** [lobehub.com](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 - **PulseMCP:** [pulsemcp.com](https://www.pulsemcp.com/servers/arcadia-finance)
 - **MCP Market:** [mcpmarket.com](https://mcpmarket.com/server/arcadia-finance)
-- **Glama:** [glama.ai](https://glama.ai/mcp/servers/arcadia-finance/arcadia-finance-mcp-server)
+- **Glama:** [glama.ai](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
 - **awesome-mcp-servers:** [github.com/TensorBlock/awesome-mcp-servers](https://github.com/TensorBlock/awesome-mcp-servers)
 
 ## Development

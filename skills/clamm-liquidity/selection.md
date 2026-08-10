@@ -143,14 +143,14 @@ Target collateral ratio ≥ 1.5 at entry (≈ health factor ~0.5+). Never open b
 
 ## 4. Combining Automation
 
-| Combination                | Compatible | Notes                                                                                   |
-| -------------------------- | ---------- | --------------------------------------------------------------------------------------- |
-| `rebalance` + `compound_fees`         | ✅ Yes     | Rebalance compounds at rebalance time; compound_fees adds compounding between rebalances. |
-| `rebalance` + `claim_rewards`         | ✅ Yes     | Claims yield between rebalances. Order is handled by the keeper's claim-before guard.     |
-| `rebalance` + `claim_merkl`           | ✅ Yes     | Always combine when the pool has Merkl incentives. Zero conflict.                         |
-| `compound_fees` + `claim_merkl`       | ✅ Yes     | Merkl rewards are claimed separately from trading fees.                                   |
-| `compound_fees` + `claim_rewards`     | ⚠️ Per token | Valid only as a partition: each yielding token must go to exactly one of the two, and every yielding token must be covered. |
-| `add_to_lp` + anything                | ✅ Yes     | Independent fold. Only constraint: a folded token cannot be a convert `buy_token`.         |
+| Combination                       | Compatible   | Notes                                                                                                                       |
+| --------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `rebalance` + `compound_fees`     | ✅ Yes       | Rebalance compounds at rebalance time; compound_fees adds compounding between rebalances.                                   |
+| `rebalance` + `claim_rewards`     | ✅ Yes       | Claims yield between rebalances. Order is handled by the keeper's claim-before guard.                                       |
+| `rebalance` + `claim_merkl`       | ✅ Yes       | Always combine when the pool has Merkl incentives. Zero conflict.                                                           |
+| `compound_fees` + `claim_merkl`   | ✅ Yes       | Merkl rewards are claimed separately from trading fees.                                                                     |
+| `compound_fees` + `claim_rewards` | ⚠️ Per token | Valid only as a partition: each yielding token must go to exactly one of the two, and every yielding token must be covered. |
+| `add_to_lp` + anything            | ✅ Yes       | Independent fold. Only constraint: a folded token cannot be a convert `buy_token`.                                          |
 
 ---
 
