@@ -22,6 +22,10 @@ jobs:
       - run: yarn install --immutable
       - run: yarn build
       - run: yarn lint
+      # yarn format is prettier --check over the whole repo, markdown included.
+      # It was absent, which is how formatting drift in the README and skills docs
+      # reached main unnoticed.
+      - run: yarn format
       - run: yarn test --exclude '**/*integration.test.ts'
       - name: Verify version sync
         run: |
