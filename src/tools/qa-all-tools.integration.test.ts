@@ -267,12 +267,14 @@ const fixtures: Record<string, Fixture> = {
     successExpected: true,
   },
   // Automations: claim_merkl needs no position context, so it resolves against a
-  // live account without depending on a specific LP position existing.
+  // live account without depending on a specific LP position existing. Uses save
+  // rather than preview so this covers the path that actually returns a signable
+  // transaction (save only builds unsigned calldata, it broadcasts nothing).
   "write.account.automations": {
     args: (c) => ({
       account_address: c.account.accountAddress,
       intents: [{ kind: "claim_merkl" }],
-      mode: "preview",
+      mode: "save",
       chain_id: CHAIN_ID,
     }),
     successExpected: true,

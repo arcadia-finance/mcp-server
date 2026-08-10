@@ -127,6 +127,42 @@ describe("write.account.automations", () => {
     expect(parsed.description).toContain('mode "save"');
   });
 
+  it("previews a valid empty plan cleanly even without calldata", async () => {
+    // The disable-everything idiom resolves to an empty plan. Preview does not use
+    // calldata, so absent calldata must not surface as a rejection.
+    const { mock } = setup({
+      previewAutomations: vi.fn(async () => planResponse({ plan: [], calldata: null })),
+    });
+
+    const result = await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "compound_fees", enabled: false }],
+      mode: "preview",
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBeFalsy();
+    const parsed = parseToolResponse(result);
+    expect(parsed.preview_only).toBe(true);
+    expect(parsed.plan).toEqual([]);
+    expect(parsed.transaction).toBeUndefined();
+  });
+
+  it("still rejects a save with no calldata", async () => {
+    const { mock } = setup({
+      saveAutomations: vi.fn(async () => planResponse({ calldata: null })),
+    });
+
+    const result = await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBe(true);
+  });
+
   it("still surfaces a compatibility rejection in preview mode", async () => {
     const { mock } = setup({
       previewAutomations: vi.fn(async () =>

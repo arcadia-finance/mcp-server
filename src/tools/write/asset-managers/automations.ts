@@ -64,20 +64,21 @@ function planResult(
     tenderly_sim_status: simStatus,
   };
 
-  // A failed compatibility rule or an unbuildable plan is an error, not an
-  // empty transaction: the caller must see why and fix the intents.
-  if (!resp.valid || !resp.calldata) {
+  const rejected = (detail: string) => ({
+    content: [
+      {
+        type: "text" as const,
+        text: `Automation plan rejected: ${detail}\n\n${JSON.stringify(base, null, 2)}`,
+      },
+    ],
+    isError: true as const,
+  });
+
+  // A failed compatibility rule is an error in either mode: the caller must see
+  // why and fix the intents.
+  if (!resp.valid) {
     const reasons = (resp.errors ?? []).map((e) => `${e.rule}: ${e.reason}`).join("; ");
-    const detail = reasons || "the plan produced no calldata (nothing to change?)";
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `Automation plan rejected: ${detail}\n\n${JSON.stringify(base, null, 2)}`,
-        },
-      ],
-      isError: true as const,
-    };
+    return rejected(reasons || "no reason given");
   }
 
   // Preview does not read chain state, so its calldata only enables the resolved
@@ -86,12 +87,20 @@ function planResult(
   // unlisted automations running, and neither the empty-diff guard (no diff on
   // preview) nor the simulation guard (not enriched on preview) would catch it.
   // So preview returns the plan for inspection and no signable transaction.
+  // Checked before calldata, which preview never uses: an intent set that
+  // legitimately resolves to an empty plan (a single enabled: false intent) must
+  // still preview cleanly.
   if (previewOnly) {
     return formatResult({
       ...base,
       preview_only: true,
       description: `${description}: preview only, no transaction. Preview does not diff against on-chain state, so its calldata would not disable automations you left out. Re-run with mode "save" to get a transaction.`,
     });
+  }
+
+  const calldata = resp.calldata;
+  if (!calldata) {
+    return rejected("the plan produced no calldata (nothing to change?)");
   }
 
   // An empty diff means the account already matches the request. The backend
@@ -127,7 +136,7 @@ function planResult(
     ...base,
     transaction: {
       to: account,
-      data: appendDataSuffix(resp.calldata),
+      data: appendDataSuffix(calldata),
       value: "0",
       chainId,
     },
