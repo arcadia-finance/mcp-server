@@ -71,9 +71,22 @@ jobs:
       - name: Authenticate to MCP Registry (OIDC)
         if: steps.check.outputs.skip == 'false'
         run: ./mcp-publisher login github-oidc
+      # The registry rejects republishing an existing version outright, so without
+      # this pre-check a retry after a later-step failure would fail here forever
+      # and the release would only be recoverable via a version bump.
       - name: Publish to MCP Registry
         if: steps.check.outputs.skip == 'false'
-        run: ./mcp-publisher publish
+        env:
+          VERSION: ${{ steps.check.outputs.version }}
+        run: |
+          already=$(curl -sf --max-time 30 \
+            "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=${VERSION}" \
+            | jq '[.servers[]] | length' || echo 0)
+          if [ "$already" -gt 0 ]; then
+            echo "MCP Registry already has ${VERSION}, skipping publish."
+          else
+            ./mcp-publisher publish
+          fi
 
       # The CLI authenticates via SMITHERY_API_KEY only; it never reads a variable
       # named SMITHERY_TOKEN, so the previous env name meant this step silently
@@ -101,7 +114,15 @@ jobs:
             echo "Could not read version from skills/openclaw/SKILL.md frontmatter."
             exit 1
           fi
-          PREV=$(git show HEAD~1:skills/openclaw/SKILL.md 2>/dev/null | awk '/^version:/ { print $2; exit }' || echo "")
+          # Relative to the last released tag, not HEAD~1: on a manual retry after
+          # further commits, HEAD~1 already carries the new skill version and the
+          # publish that failed would be the one the retry skips.
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            PREV=$(git show "${LAST_TAG}:skills/openclaw/SKILL.md" 2>/dev/null | awk '/^version:/ { print $2; exit }' || echo "")
+          else
+            PREV=""
+          fi
           if [ "$CURR" = "$PREV" ]; then
             echo "Skill version unchanged ($CURR); skipping ClawHub publish."
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -134,6 +155,7 @@ jobs:
         env:
           VERSION: ${{ steps.check.outputs.version }}
           SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           fail=0
 
@@ -144,9 +166,9 @@ jobs:
             fail=1
           fi
 
-          if curl -sf --max-time 30 "https://registry.modelcontextprotocol.io/v0/servers?search=arcadia-finance" \
-            | jq -e --arg v "$VERSION" \
-                '[.servers[] | select(.server.name == "io.github.arcadia-finance/mcp-server" and .server.version == $v)] | length > 0' \
+          if curl -sf --max-time 30 \
+            "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest" \
+            | jq -e --arg v "$VERSION" '[.servers[] | select(.server.version == $v)] | length > 0' \
                 >/dev/null; then
             echo "MCP Registry: ${VERSION} present"
           else
@@ -157,10 +179,11 @@ jobs:
           # Smithery is advisory: its endpoints are intermittently unavailable and a
           # listing lag should not fail an otherwise good release.
           if [ -n "$SMITHERY_API_KEY" ]; then
-            if curl -sf --max-time 30 "https://registry.smithery.ai/servers/@arcadia-finance/mcp-server" >/dev/null; then
-              echo "Smithery: listing reachable"
+            if curl -sf --max-time 30 "https://registry.smithery.ai/servers/arcadia-finance/mcp-server" \
+              | jq -e '.deploymentUrl == "https://mcp.arcadia.finance/mcp"' >/dev/null; then
+              echo "Smithery: listing points at the current deployment"
             else
-              echo "::warning::Smithery listing not reachable"
+              echo "::warning::Smithery listing has not picked up the deployment URL"
             fi
           fi
 
@@ -177,6 +200,9 @@ jobs:
         run: |
           git tag "${{ steps.check.outputs.tag }}"
           git push origin "${{ steps.check.outputs.tag }}"
+          # Not atomic with the tag push above: if the tag lands and this fails, the
+          # gate would skip everything next run with no release created.
           gh release create "${{ steps.check.outputs.tag }}" \
             --title "${{ steps.check.outputs.tag }}" \
-            --generate-notes
+            --generate-notes \
+            || gh release view "${{ steps.check.outputs.tag }}" >/dev/null
