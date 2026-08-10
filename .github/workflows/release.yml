@@ -53,7 +53,11 @@ jobs:
           yarn build
           # Tolerate an already-published version so a retry after a later-step
           # failure does not abort here.
-          if npm view "@arcadia-finance/mcp-server@${{ steps.check.outputs.version }}" version >/dev/null 2>&1; then
+          # --prefer-online for the same reason the verify step uses it: npm view
+          # answers from the packument cache for max-age=300. A cold runner makes this
+          # correct today, but a warm cache would let the guard skip a publish that
+          # never happened.
+          if npm view "@arcadia-finance/mcp-server@${{ steps.check.outputs.version }}" version --prefer-online >/dev/null 2>&1; then
             echo "npm already has ${{ steps.check.outputs.version }}, skipping publish."
           else
             npm publish --access public
@@ -159,6 +163,7 @@ jobs:
         run: |
           fail=0
           PKG="@arcadia-finance/mcp-server"
+          REGISTRY_URL="https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest"
           SMITHERY_URL="https://registry.smithery.ai/servers/arcadia-finance/mcp-server"
 
           # --prefer-online is load-bearing, not a nicety. npm view answers from the
@@ -174,8 +179,7 @@ jobs:
           }
 
           registry_has_version() {
-            curl -sf --max-time 30 \
-              "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest" \
+            curl -sf --max-time 30 "$REGISTRY_URL" \
               | jq -e --arg v "$VERSION" '[.servers[] | select(.server.version == $v)] | length > 0' \
                   >/dev/null 2>&1
           }
@@ -213,8 +217,7 @@ jobs:
           fi
           if [ "$registry_ok" -eq 0 ]; then
             echo "::group::MCP Registry response"
-            curl -s --max-time 30 \
-              "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest" || true
+            curl -s --max-time 30 "$REGISTRY_URL" || true
             echo "::endgroup::"
             echo "::error::MCP Registry does not report ${VERSION} after ${slept}s"
             fail=1
