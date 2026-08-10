@@ -102,25 +102,20 @@ write.account.add_liquidity(
   chain_id: 8453
 )
 
-// 6. ENCODE AND ENABLE REBALANCER + MERKL (match dex_protocol to LP protocol from step 1)
-// Step 6a: Encode rebalancer intent
-write.asset_manager.rebalancer(
-  dex_protocol: "slipstream_v2",
-  enabled: true,
-  compound_leftovers: "all",
-  trigger_lower_ratio: 0,
-  trigger_upper_ratio: 0,
-  min_rebalance_time: 3600,
+// 6. ENABLE AUTOMATIONS — one call, one transaction
+// Include every automation you want active: the intents array is the full desired state.
+// Add claim_merkl only if the pool has Merkl incentives (check fee APY breakdown in step 1).
+write.account.automations(
+  account_address: <account>,
+  position_id: <lp_nft_id>,          // backend resolves protocol + tokens from this
+  intents: [
+    { kind: "compound_fees" },       // reinvest fees/rewards between rebalances
+    { kind: "rebalance", strategy: { kind: "out_of_range", min_rebalance_time: 3600 } },
+    { kind: "claim_merkl" }
+  ],
   chain_id: 8453
 )
-// → Returns { description, asset_managers, statuses, datas } for the rebalancer
-
-// 7. ENCODE MERKL (if pool has Merkl incentives — check fee APY breakdown in step 1)
-write.asset_manager.merkl_operator(
-  reward_recipient: <owner_wallet>,
-  enabled: true,
-  chain_id: 8453
-)
+// → Returns { valid, plan, diff, human_summary, transaction } — broadcast the transaction
 ```
 
 ### Monitoring
@@ -188,13 +183,14 @@ write.account.deleverage(
 #### Preferred: Atomic close (1-2 transactions)
 
 ```
-// 0. Disable automation first (prevents rebalancer from acting during close)
-write.asset_manager.rebalancer(
-  dex_protocol: "slipstream_v2",
-  enabled: false,
+// 0. Disable automation first (prevents the rebalancer from acting during close)
+read.asset_manager.current(account_address: <account>, chain_id: 8453)
+// → take the rebalancer's address from `enabled`, then:
+write.account.automations_delta(
+  account_address: <account>,
+  disable: [<rebalancer_address>],
   chain_id: 8453
 )
-// → Merge result into write.account.set_asset_managers(account_address: <account>, ...)
 
 // 1. Get account state — need asset list for the close call
 read.account.info(account_address: <account>, chain_id: 8453)
@@ -307,22 +303,32 @@ write.account.add_liquidity(
   chain_id: 8453
 )
 
-// 5. Enable rebalancer with POL strategy hook
-write.asset_manager.rebalancer(
-  dex_protocol: <dex_protocol>,   // e.g. "slipstream_v2", "uniV3"
-  enabled: true,
-  strategy_hook: "0x13beD1A58d87c0454872656c5328103aAe5eB86A",  // POL dynamic range algorithm
-  trigger_lower_ratio: 0,
-  trigger_upper_ratio: 0,
-  compound_leftovers: "all",
-  min_rebalance_time: 3600,
+// 5. Enable the rebalancer on the POL strategy
+// The backend routes POL to the unified rebalancer and its POL strategy hook;
+// tuning params are part of the intent, all optional with the defaults shown.
+write.account.automations(
+  account_address: <account>,
+  position_id: <lp_nft_id>,
+  intents: [{
+    kind: "rebalance",
+    strategy: {
+      kind: "protocol_owned_liquidity",
+      initial_range: 200000,
+      base_range: 50000,
+      k1: 0,
+      k2: 0,
+      rebalance_threshold: 25000,
+      limit_order_withdrawal_threshold: 50000,
+      fraction_excess_to_limit_order: 500000,
+      deadzone: 20000,
+      target_token0_ratio: 500000
+    }
+  }],
   chain_id: 8453
 )
-// → Pass result to write.account.set_asset_managers(account_address: <account>, ...)
-// → POL tuning params (base_range, k1, k2, rebalance_threshold) configured in Arcadia platform
 ```
 
-**MCP limitation:** POL tuning parameters are configured in the Arcadia platform backend, not via MCP tools. Agents can deploy and enable the rebalancer contract, but specific POL parameterization requires platform access.
+POL runs on the unified V2.1.1 rebalancer, which is the only deployment that speaks the POL strategy hook ABI. You do not select it or its hook: pass `strategy.kind: "protocol_owned_liquidity"` and the backend resolves both.
 
 ### Monitoring for POL
 

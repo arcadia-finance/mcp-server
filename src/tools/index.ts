@@ -17,12 +17,7 @@ import { registerRepayTool } from "./write/account/repay.js";
 import { registerApproveTool } from "./write/wallet/approve.js";
 import { registerPoolDepositTool } from "./write/pool/deposit.js";
 import { registerPoolRedeemTool } from "./write/pool/redeem.js";
-import { registerRebalancerTool } from "./write/asset-managers/rebalancer.js";
-import { registerCompounderTools } from "./write/asset-managers/compounder.js";
-import { registerYieldClaimerTools } from "./write/asset-managers/yield-claimer.js";
-import { registerCowSwapperTool } from "./write/asset-managers/cow-swapper.js";
-import { registerMerklOperatorTool } from "./write/asset-managers/merkl-operator.js";
-import { registerSetAssetManagersTool } from "./write/asset-managers/set-asset-managers.js";
+import { registerAutomationsTools } from "./write/asset-managers/automations.js";
 import { registerSendTool } from "./dev/send.js";
 import { registerAddLiquidityTool } from "./write/account/add-liquidity.js";
 import { registerRemoveLiquidityTool } from "./write/account/remove-liquidity.js";
@@ -44,7 +39,7 @@ export function registerAllTools(
   registerPointsTools(server, api);
   registerGuideTools(server);
   registerWalletTools(server, chains, api);
-  registerAssetManagerTools(server);
+  registerAssetManagerTools(server, api);
 
   // Write tools — account
   registerCreateTool(server, chains);
@@ -66,13 +61,8 @@ export function registerAllTools(
   registerPoolDepositTool(server, chains);
   registerPoolRedeemTool(server, chains);
 
-  // Write tools — asset managers
-  registerRebalancerTool(server, chains);
-  registerCompounderTools(server, chains);
-  registerYieldClaimerTools(server, chains);
-  registerCowSwapperTool(server, chains);
-  registerMerklOperatorTool(server, chains);
-  registerSetAssetManagersTool(server, chains);
+  // Write tools: asset managers (intent-based, compiled by the backend)
+  registerAutomationsTools(server, api);
 
   // Dev tools
   registerSendTool(server, chains);

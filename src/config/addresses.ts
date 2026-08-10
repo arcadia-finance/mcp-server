@@ -75,267 +75,44 @@ export const TOKENS: Partial<Record<ChainId, Record<string, TokenInfo>>> = {
   },
 };
 
-// Asset manager protocol keys (protocol-specific AMs: rebalancer, compounder, yield claimer)
-export type AmProtocol = "slipstreamV1" | "slipstreamV2" | "slipstreamV3" | "uniV3" | "uniV4";
+// Asset-manager addresses are NOT duplicated here. The automations backend owns
+// the address book (current + superseded deployments, per chain and protocol) and
+// returns finished setAssetManagers calldata, so the only mapping the MCP server
+// needs is between the backend's protocol vocabulary and the dex_protocol values
+// the read tools report.
 
-// Standalone AM keys (protocol-agnostic)
-export type StandaloneAm = "merklOperator" | "gasRelayer" | "cowSwapper";
+/** Asset-manager groups the automations reader can report on an account. */
+export const AUTOMATION_GROUPS = [
+  "rebalancer",
+  "compounder",
+  "yield_claimer",
+  "cow_swapper",
+  "merkl_operator",
+] as const;
 
-export type AmCategory = "rebalancers" | "compounders" | "yieldClaimers";
+// The gas relayer pulls deposited AAA to pay for rebalances beyond the free
+// quota. It is registered as an asset manager but is not part of the automations
+// address book (no intent configures it), so it is not in the backend's reader
+// and stays here. Same address on every supported chain.
+export const GAS_RELAYER = "0xD938C8d04cF91094fecAF0A2018EAac483a40137" as const;
 
-// AM address book by version. Older versions are still active on some chains
-// for users who registered before newer versions shipped. Address for a given
-// (version, protocol) may be missing (slipstreamV3 did not exist before V2.1.1).
-type AmVersionMap = Readonly<Partial<Record<AmProtocol, string>>>;
-
-// Rebalancers — V2.1.1 (current, unified rebalancer + profit taker), V2.1.0
-// (split architecture, still active on Base + Unichain), V2.0.1 (legacy, Base).
-const REBALANCERS_V2_1_1: AmVersionMap = {
-  slipstreamV1: "0x5802454749cc0c4A6F28D5001B4cD84432e2b79F",
-  slipstreamV2: "0x953Ff365d0b562ceC658dc46B394E9282338d9Ea",
-  slipstreamV3: "0x37c6258aEe125d520B6f03fc2cb490955050D557",
-  uniV3: "0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd",
-  uniV4: "0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0",
-};
-
-const REBALANCERS_V2_1_0: AmVersionMap = {
-  slipstreamV1: "0xE07A9383AF8E0B1320419dFeF205bb9bA75f3Ef2",
-  slipstreamV2: "0xc0dBb5443689E40E4b58b627F82f468Ef1Ad7561",
-  uniV3: "0xbb22cdbfFF5a263E85917803692db3630bF860c4",
-  uniV4: "0x9E466179c46eB098B564cbE319bA4b3EAd6476C1",
-};
-
-const REBALANCERS_V2_0_1: AmVersionMap = {
-  slipstreamV1: "0xEfe600366e9847D405f2238cF9196E33780B3A42",
-  uniV3: "0xD8285fC23eFF687B8b618b78d85052f1eD17236E",
-  uniV4: "0xa8676C8c197E12a71AE82a08B02DD9e666312cF1",
-};
-
-const COMPOUNDERS_V2_1_1: AmVersionMap = {
-  slipstreamV1: "0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7",
-  slipstreamV2: "0x35e59448C7145482E56212510cC689612AB4F61f",
-  slipstreamV3: "0xd42A3Ac56456bD5422835B36C35Cacb6448ddCd9",
-  uniV3: "0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3",
-  uniV4: "0xAA95c9c402b195D8690eCaea2341a76e3266B189",
-};
-
-const COMPOUNDERS_V2_0_1: AmVersionMap = {
-  slipstreamV1: "0x4694c34d153EE777CC07d01AC433bcC010A20EBd",
-  uniV3: "0x80D3548bc54710d46201D554712E8638fD51326D",
-  uniV4: "0xCfF15E24a453aFAd454533E6D10889A84e2A68e1",
-};
-
-const YIELD_CLAIMERS_V2_1_1: AmVersionMap = {
-  slipstreamV1: "0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba",
-  slipstreamV2: "0xc8bF4B2c740FF665864E9494832520f18822871C",
-  slipstreamV3: "0x8c1Fbf38118fD5A704b6E7babcB7AF1a9A291980",
-  uniV3: "0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16",
-  uniV4: "0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4",
-};
-
-const YIELD_CLAIMERS_V2_0_1: AmVersionMap = {
-  slipstreamV1: "0x1f75aBF8a24782053B351D9b4EA6d1236ED59105",
-  uniV3: "0x40462e71Effd9974Fee04B6b327B701D663f753e",
-  uniV4: "0x3BC2B398eEEE9807ff76fdb4E11526dE0Ee80cEa",
-};
-
-// Optimism-specific V2.1.1 overrides: slipstreamV3 was deployed at different addresses on Optimism.
-const REBALANCERS_V2_1_1_OPTIMISM: AmVersionMap = {
-  ...REBALANCERS_V2_1_1,
-  slipstreamV3: "0x33442fC10a20Aad0ddD73F6ae24500F5B370DC51",
-};
-
-const COMPOUNDERS_V2_1_1_OPTIMISM: AmVersionMap = {
-  ...COMPOUNDERS_V2_1_1,
-  slipstreamV3: "0x3e7b6997399eC402491c4A049e4CD727d3aA1738",
-};
-
-const YIELD_CLAIMERS_V2_1_1_OPTIMISM: AmVersionMap = {
-  ...YIELD_CLAIMERS_V2_1_1,
-  slipstreamV3: "0x3630bDb1Ac7cF8A435411391db75450350814F42",
-};
-
-// Deployed versions per chain, newest first. The first entry is treated as
-// the "current" version (used for new registrations). Older entries are
-// probed in read.account.info so users registered on older versions are
-// reported as active. See multichain-deploy-scripts Arcadia.sol for source.
-const CHAIN_AM_VERSIONS: Record<ChainId, Record<AmCategory, ReadonlyArray<AmVersionMap>>> = {
-  8453: {
-    rebalancers: [REBALANCERS_V2_1_1, REBALANCERS_V2_1_0, REBALANCERS_V2_0_1],
-    compounders: [COMPOUNDERS_V2_1_1, COMPOUNDERS_V2_0_1],
-    yieldClaimers: [YIELD_CLAIMERS_V2_1_1, YIELD_CLAIMERS_V2_0_1],
-  },
-  130: {
-    rebalancers: [REBALANCERS_V2_1_1, REBALANCERS_V2_1_0],
-    compounders: [COMPOUNDERS_V2_1_1],
-    yieldClaimers: [YIELD_CLAIMERS_V2_1_1],
-  },
-  10: {
-    rebalancers: [REBALANCERS_V2_1_1_OPTIMISM],
-    compounders: [COMPOUNDERS_V2_1_1_OPTIMISM],
-    yieldClaimers: [YIELD_CLAIMERS_V2_1_1_OPTIMISM],
-  },
-};
-
-const STANDALONE_AM_ADDRESSES: Record<StandaloneAm, string> = {
-  merklOperator: "0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6",
-  gasRelayer: "0xD938C8d04cF91094fecAF0A2018EAac483a40137",
-  cowSwapper: "0xFfC742E68D41389BE9Ef1aFD518F036064DA2Bb6",
-};
-
-// Per-chain availability — update these when deploying to new chains.
-// Slipstream V2 is Base-only. V3 is live on Base and Optimism. Unichain has V1 only.
-const CHAIN_PROTOCOLS: Record<ChainId, ReadonlySet<AmProtocol>> = {
-  8453: new Set(["slipstreamV1", "slipstreamV2", "slipstreamV3", "uniV3", "uniV4"]),
-  130: new Set(["slipstreamV1", "uniV3", "uniV4"]),
-  10: new Set(["slipstreamV1", "slipstreamV3", "uniV3", "uniV4"]),
-};
-
-const CHAIN_STANDALONE_AMS: Record<ChainId, ReadonlySet<StandaloneAm>> = {
-  8453: new Set(["merklOperator", "gasRelayer", "cowSwapper"]),
-  130: new Set(["merklOperator", "gasRelayer"]),
-  10: new Set(["merklOperator", "gasRelayer"]),
-};
-
-const CHAIN_NAMES: Record<ChainId, string> = { 8453: "Base", 130: "Unichain", 10: "Optimism" };
-
-// Map LP asset names → dex_protocol values
-const LP_NAME_TO_POOL_PROTOCOL: Record<string, string> = {
-  UniV3: "uniV3",
-  UniV4: "uniV4",
-  slipstream: "slipstream",
+const BACKEND_PROTOCOL_TO_DEX_PROTOCOL: Record<string, string> = {
+  slipstream_v1: "slipstream",
   slipstream_v2: "slipstream_v2",
   slipstream_v3: "slipstream_v3",
-  "Staked Slipstream": "staked_slipstream",
-  "Staked Slipstream V2": "staked_slipstream_v2",
-  "Staked Slipstream V3": "staked_slipstream_v3",
-  "Wrapped Staked Slipstream": "staked_slipstream",
-  "Wrapped Staked Slipstream V2": "staked_slipstream_v2",
-  "Wrapped Staked Slipstream V3": "staked_slipstream_v3",
-  "Wrapped Aerodrome": "slipstream",
-  "Staked Aerodrome": "staked_slipstream",
+  slipstream_v3_op: "slipstream_v3",
+  uniswap_v3: "uniV3",
+  uniswap_v4: "uniV4",
 };
 
-export function lpNameToPoolProtocol(name: string): string | null {
-  return LP_NAME_TO_POOL_PROTOCOL[name] ?? null;
+/**
+ * Backend protocol name to the dex_protocol value the read tools use.
+ * Returns null for an unrecognised name so callers can surface it rather than
+ * silently reporting a wrong protocol.
+ */
+export function backendProtocolToDexProtocol(protocol: string): string | null {
+  return BACKEND_PROTOCOL_TO_DEX_PROTOCOL[protocol] ?? null;
 }
-
-// Map internal AM keys to user-facing dex_protocol values (used in error messages and account info)
-export const AM_KEY_TO_POOL_PROTOCOL: Record<AmProtocol, string> = {
-  slipstreamV1: "slipstream",
-  slipstreamV2: "slipstream_v2",
-  slipstreamV3: "slipstream_v3",
-  uniV3: "uniV3",
-  uniV4: "uniV4",
-};
-
-// User-facing dex_protocol values available on a chain. Slipstream AMs are
-// shared between plain and staked pools, so each slipstreamV* on a chain
-// contributes both `slipstream_vN` and `staked_slipstream_vN`.
-export function getChainDexProtocols(chainId: ChainId): string[] {
-  const values: string[] = [];
-  for (const protocol of CHAIN_PROTOCOLS[chainId]) {
-    const base = AM_KEY_TO_POOL_PROTOCOL[protocol];
-    values.push(base);
-    if (protocol.startsWith("slipstream")) {
-      values.push(base.replace(/^slipstream/, "staked_slipstream"));
-    }
-  }
-  return values;
-}
-
-export function getAmProtocolAddress(
-  chainId: ChainId,
-  category: AmCategory,
-  protocol: AmProtocol,
-): string {
-  if (!CHAIN_PROTOCOLS[chainId].has(protocol)) {
-    const available = [...CHAIN_PROTOCOLS[chainId]]
-      .map((k) => AM_KEY_TO_POOL_PROTOCOL[k])
-      .join(", ");
-    throw new Error(
-      `${AM_KEY_TO_POOL_PROTOCOL[protocol]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Available protocols: ${available}.`,
-    );
-  }
-  // Write tools always target the current (newest) version for that chain.
-  const current = CHAIN_AM_VERSIONS[chainId][category][0][protocol];
-  if (!current) {
-    throw new Error(
-      `No ${category} address for ${AM_KEY_TO_POOL_PROTOCOL[protocol]} on ${CHAIN_NAMES[chainId]} (${chainId}).`,
-    );
-  }
-  return current;
-}
-
-const STANDALONE_TO_USER_FACING: Record<StandaloneAm, string> = {
-  merklOperator: "merkl_operator",
-  gasRelayer: "gas_relayer",
-  cowSwapper: "cow_swapper",
-};
-
-export function getStandaloneAmAddress(chainId: ChainId, am: StandaloneAm): string {
-  if (!CHAIN_STANDALONE_AMS[chainId].has(am)) {
-    const supportedChains = (
-      Object.entries(CHAIN_STANDALONE_AMS) as [string, ReadonlySet<StandaloneAm>][]
-    )
-      .filter(([, ams]) => ams.has(am))
-      .map(([id]) => `${CHAIN_NAMES[Number(id) as ChainId]} (${id})`)
-      .join(", ");
-    throw new Error(
-      `${STANDALONE_TO_USER_FACING[am]} is not available on ${CHAIN_NAMES[chainId]} (${chainId}). Supported chains: ${supportedChains}.`,
-    );
-  }
-  return STANDALONE_AM_ADDRESSES[am];
-}
-
-export interface AmCheck {
-  group: string;
-  protocol: string | null;
-  address: string;
-}
-
-const CATEGORY_TO_GROUP: Record<AmCategory, string> = {
-  rebalancers: "rebalancer",
-  compounders: "compounder",
-  yieldClaimers: "yield_claimer",
-};
-
-const STANDALONE_TO_GROUP: Record<StandaloneAm, string> = {
-  merklOperator: "merkl_operator",
-  gasRelayer: "gas_relayer",
-  cowSwapper: "cow_swapper",
-};
-
-export function getChainAmChecks(chainId: ChainId): AmCheck[] {
-  const protocols = CHAIN_PROTOCOLS[chainId];
-  const standalone = CHAIN_STANDALONE_AMS[chainId];
-  const checks: AmCheck[] = [];
-
-  // Fan out across every deployed version so users registered on an older
-  // version (e.g. V2.1.0 on Base) are still reported as active.
-  for (const category of ["rebalancers", "compounders", "yieldClaimers"] as const) {
-    for (const versionMap of CHAIN_AM_VERSIONS[chainId][category]) {
-      for (const protocol of protocols) {
-        const address = versionMap[protocol];
-        if (!address) continue;
-        checks.push({ group: CATEGORY_TO_GROUP[category], protocol, address });
-      }
-    }
-  }
-
-  for (const am of standalone) {
-    checks.push({
-      group: STANDALONE_TO_GROUP[am],
-      protocol: null,
-      address: STANDALONE_AM_ADDRESSES[am],
-    });
-  }
-
-  return checks;
-}
-
-// Minimal strategy hook — required for rebalancer onSetAssetManager callback
-export const MINIMAL_STRATEGY_HOOK = "0x13beD1A58d87c0454872656c5328103aAe5eB86A" as const;
 
 // Chain-specific addresses
 export const STATE_VIEWERS: Partial<Record<ChainId, `0x${string}`>> = {
@@ -361,12 +138,15 @@ export const CHAIN_POSITION_MANAGERS: Partial<Record<ChainId, Record<string, str
   },
   10: {
     "0x416b433906b1b72fa758e166e239c43d68dc6f29": "slipstream", // Velodrome Slipstream V1
+    "0xf7f8ccce99ca2896ec75d3a399d152db96808399": "slipstream_v3",
     "0xc36442b4a4522e871399cd717abdd847ab11fe88": "uniV3",
     "0x3c3ea4b57a46241e54610e5f022e5c45859a1017": "uniV4",
   },
 };
 
-// Universal staked/wrapped-staked position manager addresses (same on all chains)
+// Staked / wrapped-staked position managers. V1 and V2 are deployed at the same
+// address on every chain; the V3 pair was deployed at different addresses on
+// Optimism, so those are chain-scoped and take precedence over the shared table.
 export const UNIVERSAL_POSITION_MANAGERS: Record<string, string> = {
   "0x1dc7a0f5336f52724b650e39174cfcbbedd67bf1": "staked_slipstream", // StakedSlipstreamAM V1
   "0xbed6c3e35b9b1e044b3bc71465769edfdc0fdd4c": "staked_slipstream_v2", // StakedSlipstreamAM V2
@@ -375,3 +155,21 @@ export const UNIVERSAL_POSITION_MANAGERS: Record<string, string> = {
   "0x147a2ccbaf4521ad209a2875ae0b3c496f4b25a4": "staked_slipstream_v2", // WrappedStakedSlipstream V2
   "0x9189bc25f8fac157b4d87b0b3c14f56ba1477d53": "staked_slipstream_v3", // WrappedStakedSlipstream V3
 };
+
+export const CHAIN_STAKED_POSITION_MANAGERS: Partial<Record<ChainId, Record<string, string>>> = {
+  10: {
+    "0xf6a87d944204bb5fdb9cf5534c03c46895f78ecd": "staked_slipstream_v3", // StakedSlipstreamAM V3 (OP)
+    "0xc4d3d804ed64c1f78097799208d46b1db4252749": "staked_slipstream_v3", // WrappedStakedSlipstream V3 (OP)
+  },
+};
+
+/** dex_protocol for an LP position manager address on a chain, or null if unknown. */
+export function positionManagerToDexProtocol(chainId: ChainId, address: string): string | null {
+  const key = address.toLowerCase();
+  return (
+    CHAIN_STAKED_POSITION_MANAGERS[chainId]?.[key] ??
+    UNIVERSAL_POSITION_MANAGERS[key] ??
+    CHAIN_POSITION_MANAGERS[chainId]?.[key] ??
+    null
+  );
+}

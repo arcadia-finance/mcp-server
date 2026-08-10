@@ -12,7 +12,7 @@ const GUIDES = {
   automation: {
     file: "automation.md",
     description:
-      "Rebalancer, compounder, yield claimer, merkl operator, CoW swapper setup and addresses",
+      "Intent-based automation setup: compound fees, claim rewards, add to LP, rebalance, claim Merkl",
   },
   strategies: {
     file: "strategies.md",

@@ -29,12 +29,50 @@ export const BatchedTransactionOutput = z.object({
     .optional(),
 });
 
-export const IntentOutput = z.object({
-  description: z.string().optional(),
-  asset_managers: z.array(z.string()),
-  statuses: z.array(z.boolean()),
-  datas: z.array(z.string()),
-  strategy_name: z.string().optional(),
+const ResolvedManager = z.object({
+  manager: z.string(),
+  address: z.string(),
+  enabled: z.boolean(),
+  strategy: z.string().nullish(),
+  serving_intents: z.array(z.string()),
+});
+
+const DiffEntry = z.object({
+  manager: z.string(),
+  address: z.string(),
+  enabled: z.boolean(),
+});
+
+export const AutomationsPlanOutput = z.object({
+  description: z.string(),
+  valid: z.boolean(),
+  errors: z.array(z.object({ rule: z.string(), severity: z.string(), reason: z.string() })),
+  warnings: z.array(z.string()),
+  human_summary: z.array(z.string()),
+  plan: z.array(ResolvedManager),
+  diff: z
+    .object({
+      added: z.array(DiffEntry),
+      removed: z.array(DiffEntry),
+      updated: z.array(DiffEntry),
+    })
+    .optional(),
+  transaction: Transaction.optional(),
+  simulation_url: z.string().optional(),
+  tenderly_sim_status: z.enum(["success", "failure", "unavailable"]).optional(),
+  no_changes_needed: z.boolean().optional(),
+  preview_only: z.boolean().optional(),
+});
+
+export const AutomationsStateOutput = z.object({
+  account: z.string(),
+  chain_id: z.number(),
+  read_ok: z.boolean(),
+  inferred_intents: z.array(z.string()),
+  enabled: z.array(z.record(z.unknown())),
+  deprecated: z.array(z.record(z.unknown())),
+  merkl: z.record(z.unknown()).nullish(),
+  warnings: z.array(z.string()),
 });
 
 export const WalletBalancesOutput = z.object({
@@ -153,6 +191,7 @@ export const GuideOutput = z.object({
 
 export const IntentsListOutput = z.object({
   automations: z.array(z.record(z.unknown())),
+  availability_error: z.string().optional(),
   shared_params: z.array(z.string()),
   usage: z.string(),
 });

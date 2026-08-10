@@ -1,6 +1,6 @@
 ---
 name: arcadia-finance
-version: 1.1.3
+version: 1.2.0
 description: "DeFi liquidity management on Uniswap and Aerodrome, live on Base, Unichain, and Optimism. Deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools."
 metadata:
   openclaw:
@@ -78,8 +78,8 @@ All write tools return unsigned transactions `{ to, data, value, chainId }`. Sig
 {baseDir}/arcadia.sh write_account_create '{"wallet_address":"0x...","salt":1,"chain_id":8453}'
 
 # Enable automation
-{baseDir}/arcadia.sh write_asset_manager_rebalancer '{"dex_protocol":"slipstream"}'
-{baseDir}/arcadia.sh write_account_set_asset_managers '{"account_address":"0x...","asset_managers":[...],"statuses":[...],"datas":[...]}'
+{baseDir}/arcadia.sh read_asset_manager_intents '{"account_address":"0x...","chain_id":8453}'
+{baseDir}/arcadia.sh write_account_automations '{"account_address":"0x...","position_id":12345,"intents":[{"kind":"compound_fees"},{"kind":"rebalance"}],"chain_id":8453}'
 ```
 
 ## Configuration
