@@ -1,143 +1,74 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { validateChainId } from "../../utils/validation.js";
-import { IntentsListOutput } from "../output-schemas.js";
-import type { ChainId } from "../../config/chains.js";
-import { getChainDexProtocols } from "../../config/addresses.js";
+import type { ArcadiaApiClient } from "../../clients/api.js";
+import { validateAddress, validateChainId } from "../../utils/validation.js";
+import { AutomationsStateOutput, IntentsListOutput } from "../output-schemas.js";
 
-const POOL_PROTOCOLS = [
-  "slipstream",
-  "slipstream_v2",
-  "slipstream_v3",
-  "staked_slipstream",
-  "staked_slipstream_v2",
-  "staked_slipstream_v3",
-  "uniV3",
-  "uniV4",
-] as const;
-
-interface RequiredParam {
-  name: string;
-  type: string;
-  values?: readonly string[];
-  hint?: string;
-}
-
-interface AutomationIntent {
-  id: string;
-  tool: string;
+// Static catalog of the intent vocabulary the backend compiles. Availability is
+// account-specific and comes from the backend; this only documents the shapes so
+// an agent can build a request without an account in hand.
+interface IntentDoc {
+  kind: string;
   description: string;
-  sets_managers: string[];
-  required_params: RequiredParam[];
-  optional_params: string[];
-  chains: ChainId[];
+  params: string[];
+  needs_position_context: boolean;
 }
 
-const DEX_PROTOCOL_PARAM: RequiredParam = {
-  name: "dex_protocol",
-  type: "enum",
-  values: POOL_PROTOCOLS,
-  hint: "LP DEX protocol of the position",
-};
-
-const ALL_CHAINS: ChainId[] = [8453, 130, 10];
-const BASE_ONLY: ChainId[] = [8453];
-
-const INTENTS: AutomationIntent[] = [
+const INTENT_CATALOG: IntentDoc[] = [
   {
-    id: "rebalancer",
-    tool: "write.asset_manager.rebalancer",
+    kind: "compound_fees",
     description:
-      "Repositions LP when out of range, compounds fees and rewards. Configurable triggers, cooldowns, and token composition.",
-    sets_managers: ["rebalancer"],
-    required_params: [DEX_PROTOCOL_PARAM],
-    optional_params: [
-      "compound_leftovers",
-      "optimal_token0_ratio",
-      "trigger_lower_ratio",
-      "trigger_upper_ratio",
-      "min_rebalance_time",
-      "max_rebalance_time",
-      "strategy_hook",
+      "Reinvest earned fees and rewards back into the LP. On a staked position whose reward token is not a pool token, the reward is swapped to a pool token via CowSwap and folded in.",
+    params: ["tokens (token0|token1|reward)[], omit for all yielding tokens"],
+    needs_position_context: true,
+  },
+  {
+    kind: "claim_rewards",
+    description:
+      "Claim pending yield out of the position, either as-earned or converted to a single token via CowSwap.",
+    params: [
+      "config.mode (as_earned|convert_to)",
+      "config.destination (account|wallet)",
+      "config.buy_token (address, required when converting)",
+      "config.recipient (address, overrides destination)",
+      "config.tokens (token0|token1|reward)[]",
+      "config.convert_tokens (token0|token1|reward)[]: convert a subset, claim the rest as-earned",
     ],
-    chains: ALL_CHAINS,
+    needs_position_context: true,
   },
   {
-    id: "compounder",
-    tool: "write.asset_manager.compounder",
+    kind: "add_to_lp",
     description:
-      "Claims LP fees and reinvests into position. Pair with rebalancer for compounding between rebalances.",
-    sets_managers: ["compounder"],
-    required_params: [DEX_PROTOCOL_PARAM],
-    optional_params: [],
-    chains: ALL_CHAINS,
+      "Fold idle pool-token balances (deposits, rebalance leftovers) back into the LP. Opt-in per token.",
+    params: ["tokens (token0|token1)[], omit for both"],
+    needs_position_context: true,
   },
   {
-    id: "compounder_staked",
-    tool: "write.asset_manager.compounder_staked",
+    kind: "claim_merkl",
     description:
-      "Compounder + CowSwap for staked LP positions (e.g. staked Slipstream/Aerodrome). Claims staked rewards (AERO) — staked positions earn staking rewards only, not LP fees. Swaps rewards to a target token via CowSwap batch auction, then compounds back into the LP. Base only.",
-    sets_managers: ["cow_swapper", "compounder"],
-    required_params: [
-      DEX_PROTOCOL_PARAM,
-      { name: "sell_tokens", type: "string[]", hint: "array of ERC20 addresses to sell" },
-      { name: "buy_token", type: "string", hint: "ERC20 address to buy" },
+      "Auto-claim Merkl incentive rewards. Independent of the other automations and needs no position context.",
+    params: ["config.destination (account|wallet)", "config.reward_recipient (address)"],
+    needs_position_context: false,
+  },
+  {
+    kind: "rebalance",
+    description:
+      "Reposition the LP when it moves out of range, or on a take-profit / POL strategy. Claims and compounds yield as part of the rebalance.",
+    params: [
+      "strategy.kind (out_of_range|take_profit|protocol_owned_liquidity)",
+      "out_of_range: optimal_token0_ratio, trigger_lower_tick_ratio, trigger_upper_tick_ratio, min_rebalance_time, max_rebalance_time",
+      "take_profit: profit_token, take_profit_trigger_type/threshold, take_profit_reposition_mode, has_reversal, reversal_*",
+      "protocol_owned_liquidity: initial_range, base_range, k1, k2, rebalance_threshold, limit_order_withdrawal_threshold, fraction_excess_to_limit_order, deadzone, target_token0_ratio",
+      "max_tolerance, min_liquidity_ratio (1e18-scaled overrides)",
     ],
-    optional_params: [],
-    chains: BASE_ONLY,
-  },
-  {
-    id: "yield_claimer",
-    tool: "write.asset_manager.yield_claimer",
-    description: "Claims pending fees/emissions and sends to a designated recipient address.",
-    sets_managers: ["yield_claimer"],
-    required_params: [
-      DEX_PROTOCOL_PARAM,
-      { name: "fee_recipient", type: "address", hint: "address to receive claimed fees" },
-    ],
-    optional_params: [],
-    chains: ALL_CHAINS,
-  },
-  {
-    id: "yield_claimer_cowswap",
-    tool: "write.asset_manager.yield_claimer_cowswap",
-    description:
-      "Yield claimer coupled with CowSwap. Claims fees, swaps to target token via batch auction, sends to recipient.",
-    sets_managers: ["cow_swapper", "yield_claimer"],
-    required_params: [
-      DEX_PROTOCOL_PARAM,
-      { name: "sell_tokens", type: "string[]", hint: "array of ERC20 addresses to sell" },
-      { name: "buy_token", type: "string", hint: "ERC20 address to buy" },
-      { name: "fee_recipient", type: "address", hint: "address to receive claimed fees" },
-    ],
-    optional_params: [],
-    chains: BASE_ONLY,
-  },
-  {
-    id: "cow_swapper",
-    tool: "write.asset_manager.cow_swapper",
-    description:
-      "Standalone CowSwap mode. Swap any ERC20 via batch auctions. Each swap requires account owner signature.",
-    sets_managers: ["cow_swapper"],
-    required_params: [],
-    optional_params: [],
-    chains: BASE_ONLY,
-  },
-  {
-    id: "merkl_operator",
-    tool: "write.asset_manager.merkl_operator",
-    description:
-      "Claims external Merkl incentive rewards. Enable when pool has active Merkl campaigns. Combine with rebalancer for extra yield.",
-    sets_managers: ["merkl_operator"],
-    required_params: [
-      { name: "reward_recipient", type: "address", hint: "address to receive Merkl rewards" },
-    ],
-    optional_params: [],
-    chains: ALL_CHAINS,
+    needs_position_context: true,
   },
 ];
 
-export function registerAssetManagerTools(server: McpServer) {
+const USAGE =
+  "Build an intents array from these kinds and pass it to write.account.automations (full desired state) or write.account.automations_delta (change one automation, leave the rest alone). The backend resolves the asset managers, validates the combination and returns the unsigned transaction.";
+
+export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
     "read.asset_manager.intents",
     {
@@ -146,45 +77,123 @@ export function registerAssetManagerTools(server: McpServer) {
         readOnlyHint: true,
         destructiveHint: false,
         idempotentHint: true,
-        openWorldHint: false,
+        openWorldHint: true,
       },
       description:
-        "List all available automation intents with their tool names, required parameters, and supported chains. Use this to discover which automations can be configured and what each one does. Each intent has a corresponding write.asset_manager.{id} tool that returns encoded args. To apply automations, call the intent tools then pass the combined result to write.account.set_asset_managers. All intent tools accept enabled=false to disable. Multiple intents can be combined by merging their returned arrays into a single set_asset_managers call.",
+        "List the automation intents Arcadia supports, with the parameters each one accepts. " +
+        "Pass account_address to also get per-account availability: which intents can be enabled right now and, for any that cannot, the compatibility rule blocking it. " +
+        "Pass position_id as well to scope availability to one LP position. Without account_address this returns the catalog only.",
+      outputSchema: IntentsListOutput,
       inputSchema: {
+        account_address: z
+          .string()
+          .optional()
+          .describe("Arcadia account address. Include it to get live per-account availability."),
+        position_id: z
+          .number()
+          .int()
+          .optional()
+          .describe("LP position (NFT) id to scope availability to. Requires account_address."),
         chain_id: z
           .number()
-          .optional()
-          .describe("Filter to automations available on this chain. Omit to see all."),
+          .default(8453)
+          .describe("Chain id: 8453 Base, 130 Unichain, 10 Optimism"),
       },
-      outputSchema: IntentsListOutput,
     },
     async (params) => {
       try {
-        let filtered = INTENTS;
-        if (params.chain_id !== undefined) {
-          const validChainId = validateChainId(params.chain_id);
-          const chainDexProtocols = getChainDexProtocols(validChainId);
-          filtered = INTENTS.filter((i) => i.chains.includes(validChainId)).map((intent) => ({
-            ...intent,
-            required_params: intent.required_params.map((p) =>
-              p.name === "dex_protocol" ? { ...p, values: chainDexProtocols } : p,
-            ),
-          }));
+        const chainId = validateChainId(params.chain_id);
+
+        if (params.position_id !== undefined && !params.account_address) {
+          throw new Error("position_id requires account_address.");
+        }
+
+        let automations: Record<string, unknown>[] = INTENT_CATALOG.map((i) => ({ ...i }));
+
+        if (params.account_address) {
+          const account = validateAddress(params.account_address, "account_address");
+          const live = await api.getAvailableAutomations(account, chainId, params.position_id);
+          const byKind = new Map(live.intents.map((i) => [i.kind, i]));
+          automations = automations.map((doc) => {
+            const entry = byKind.get(doc.kind as string);
+            return entry
+              ? { ...doc, available: entry.available, unavailable_reason: entry.reason ?? null }
+              : doc;
+          });
         }
 
         const result = {
-          automations: filtered,
-          shared_params: ["enabled (boolean, default true)", "chain_id (number, default 8453)"],
-          usage:
-            "1. Call the intent tool (e.g. write.asset_manager.rebalancer) with enabled + chain_id to get encoded args. 2. Optionally merge arrays from multiple intent calls. 3. Pass to write.account.set_asset_managers to build the unsigned tx.",
+          automations,
+          shared_params: [
+            "enabled (boolean, default true): set false to disable an intent's managers",
+            "position_id (number): scopes the intent and auto-fetches position context",
+            "chain_id (number, default 8453)",
+          ],
+          usage: USAGE,
         };
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+          structuredContent: result,
+        };
+      } catch (err) {
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(result, null, 2),
+              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
             },
           ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    "read.asset_manager.current",
+    {
+      annotations: {
+        title: "Read Current Account Automations",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+      description:
+        "Read which asset managers are currently enabled on an account, with their decoded on-chain configuration. " +
+        "Returns the active managers (address, protocol, initiator, decoded strategy metadata, slippage and value-loss caps, fee recipient), the intents they map to, and Merkl claim state including whether reward tokens still need registering. " +
+        "Managers from superseded deployments are listed separately under `deprecated`: pass their addresses to write.account.automations_delta to clear them, or run write.account.automations which disables them as part of the save. " +
+        "read_ok is false when chain state could not be read, in which case the result is unreliable rather than empty.",
+      outputSchema: AutomationsStateOutput,
+      inputSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain id: 8453 Base, 130 Unichain, 10 Optimism"),
+      },
+    },
+    async (params) => {
+      try {
+        const chainId = validateChainId(params.chain_id);
+        const account = validateAddress(params.account_address, "account_address");
+        const state = await api.getCurrentAutomations(account, chainId);
+
+        const all = state.enabled ?? [];
+        const result = {
+          account: state.account,
+          chain_id: state.chain_id,
+          read_ok: state.read_ok,
+          inferred_intents: state.inferred_intents ?? [],
+          enabled: all.filter((m) => !m.deprecated) as unknown as Record<string, unknown>[],
+          deprecated: all.filter((m) => m.deprecated) as unknown as Record<string, unknown>[],
+          merkl: (state.merkl ?? null) as Record<string, unknown> | null,
+          warnings: state.warnings ?? [],
+        };
+
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
           structuredContent: result,
         };
       } catch (err) {

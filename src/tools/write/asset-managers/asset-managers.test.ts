@@ -1,512 +1,574 @@
-import { describe, it, expect } from "vitest";
-import { decodeAbiParameters, decodeFunctionData } from "viem";
-import {
-  createMockServer,
-  createMockChains,
-  parseToolResponse,
-  TEST_ACCOUNT,
-} from "../../../test-utils.js";
-import { registerRebalancerTool } from "./rebalancer.js";
-import { registerCompounderTools } from "./compounder.js";
-import { registerYieldClaimerTools } from "./yield-claimer.js";
-import { registerCowSwapperTool } from "./cow-swapper.js";
-import { registerMerklOperatorTool } from "./merkl-operator.js";
-import { registerSetAssetManagersTool } from "./set-asset-managers.js";
+import { describe, it, expect, vi } from "vitest";
+import { decodeFunctionData, encodeFunctionData } from "viem";
+import type { ArcadiaApiClient } from "../../../clients/api.js";
+import { createMockServer, parseToolResponse, TEST_ACCOUNT } from "../../../test-utils.js";
+import { registerAutomationsTools } from "./automations.js";
 import { registerAssetManagerTools } from "../../read/asset-managers.js";
+import { DATA_SUFFIX } from "../../../utils/attribution.js";
 import { accountAbi } from "../../../abis/index.js";
 
-const FEE_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
-const AERO = "0x940181a94A35A4569E4529A3CDfB74e38FD98631" as const;
 const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
+const COMPOUNDER = "0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7";
+const REBALANCER = "0x5802454749cc0c4A6F28D5001B4cD84432e2b79F";
 
-const REBALANCER_INITIATOR = "0x163CcA8F161CBBB401a96aDf4Cbf4D74f3faD1Ed";
-const COMPOUNDER_INITIATOR = "0xb0f46DB8B96e265C1D93396444Eee952086C6f3D";
-const CLAIMER_INITIATOR = "0xDc9B596ce15F859673D1Be72e2Aadd41DD3aC4fE";
-const MERKL_INITIATOR = "0x521541D932B15631e8a1B037f17457C801722bA0";
+// Real setAssetManagers calldata, so the tool's output stays decodable.
+// The data blob is a v3 packed envelope: [version=3][intent_flags u16][body].
+const SET_AM_CALLDATA = encodeFunctionData({
+  abi: accountAbi,
+  functionName: "setAssetManagers",
+  args: [[COMPOUNDER as `0x${string}`], [true], ["0x03000100" as `0x${string}`]],
+});
 
-function setupAll() {
-  const mock = createMockServer();
-  const chains = createMockChains();
-  registerAssetManagerTools(mock.server);
-  registerRebalancerTool(mock.server, chains);
-  registerCompounderTools(mock.server, chains);
-  registerYieldClaimerTools(mock.server, chains);
-  registerCowSwapperTool(mock.server, chains);
-  registerMerklOperatorTool(mock.server, chains);
-  registerSetAssetManagersTool(mock.server, chains);
-  return mock;
+function planResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    valid: true,
+    errors: [],
+    warnings: [],
+    plan: [
+      {
+        manager: "compounder",
+        address: COMPOUNDER,
+        enabled: true,
+        strategy: "cow_swap_compound",
+        serving_intents: ["compound_fees"],
+      },
+    ],
+    diff: {
+      added: [{ manager: "compounder", address: COMPOUNDER, enabled: true }],
+      removed: [],
+      updated: [],
+    },
+    calldata: SET_AM_CALLDATA,
+    human_summary: ["Reinvest earned fees and rewards back into the LP."],
+    ...overrides,
+  };
 }
 
-describe("write.asset_manager.rebalancer", () => {
-  it("encodes rebalancer with default params", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.rebalancer");
-    const result = await handler({
-      dex_protocol: "slipstream",
-      enabled: true,
-      compound_leftovers: "all",
-      optimal_token0_ratio: 500000,
-      trigger_lower_ratio: 0,
-      trigger_upper_ratio: 0,
-      min_rebalance_time: 3600,
-      max_rebalance_time: 1e12,
+function setup(apiOverrides: Record<string, unknown> = {}) {
+  const mock = createMockServer();
+  const api = {
+    saveAutomations: vi.fn(async () => planResponse()),
+    previewAutomations: vi.fn(async () => planResponse()),
+    applyAutomationsDelta: vi.fn(async () => planResponse()),
+    getCurrentAutomations: vi.fn(async () => ({
+      account: TEST_ACCOUNT,
       chain_id: 8453,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toHaveLength(1);
-    expect(parsed.statuses).toEqual([true]);
-    expect(parsed.datas[0]).toMatch(/^0x/);
-
-    const [initiator] = decodeAbiParameters(
-      [{ name: "initiator", type: "address" }],
-      parsed.datas[0] as `0x${string}`,
-    );
-    expect((initiator as string).toLowerCase()).toBe(REBALANCER_INITIATOR.toLowerCase());
-  });
-
-  it("returns disabled intent with enabled=false", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.rebalancer");
-    const result = await handler({
-      dex_protocol: "slipstream",
-      enabled: false,
-      compound_leftovers: "all",
-      optimal_token0_ratio: 500000,
-      trigger_lower_ratio: 0,
-      trigger_upper_ratio: 0,
-      min_rebalance_time: 3600,
-      max_rebalance_time: 1e12,
+      enabled: [],
+      inferred_intents: [],
+      warnings: [],
+      merkl: null,
+      read_ok: true,
+    })),
+    getAvailableAutomations: vi.fn(async () => ({
+      account: TEST_ACCOUNT,
       chain_id: 8453,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.statuses).toEqual([false]);
-    expect(parsed.datas).toEqual(["0x"]);
-  });
-
-  it("returns error for slipstream_v2 on Unichain", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.rebalancer");
-    const result = await handler({
-      dex_protocol: "slipstream_v2",
-      enabled: true,
-      compound_leftovers: "all",
-      optimal_token0_ratio: 500000,
-      trigger_lower_ratio: 0,
-      trigger_upper_ratio: 0,
-      min_rebalance_time: 3600,
-      max_rebalance_time: 1e12,
-      chain_id: 130,
-    });
-
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("not available");
-  });
-
-  it("resolves slipstream_v3 rebalancer address on Base", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.rebalancer");
-    const result = await handler({
-      dex_protocol: "slipstream_v3",
-      enabled: true,
-      compound_leftovers: "all",
-      optimal_token0_ratio: 500000,
-      trigger_lower_ratio: 0,
-      trigger_upper_ratio: 0,
-      min_rebalance_time: 3600,
-      max_rebalance_time: 1e12,
-      chain_id: 8453,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toEqual(["0x37c6258aEe125d520B6f03fc2cb490955050D557"]);
-    expect(parsed.statuses).toEqual([true]);
-  });
-
-  it("resolves slipstream_v3 rebalancer address on Optimism", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.rebalancer");
-    const result = await handler({
-      dex_protocol: "slipstream_v3",
-      enabled: true,
-      compound_leftovers: "all",
-      optimal_token0_ratio: 500000,
-      trigger_lower_ratio: 0,
-      trigger_upper_ratio: 0,
-      min_rebalance_time: 3600,
-      max_rebalance_time: 1e12,
-      chain_id: 10,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toEqual(["0x33442fC10a20Aad0ddD73F6ae24500F5B370DC51"]);
-    expect(parsed.statuses).toEqual([true]);
-  });
-
-  it("resolves slipstream V1 rebalancer on Optimism", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.rebalancer");
-    const result = await handler({
-      dex_protocol: "slipstream",
-      enabled: true,
-      compound_leftovers: "all",
-      optimal_token0_ratio: 500000,
-      trigger_lower_ratio: 0,
-      trigger_upper_ratio: 0,
-      min_rebalance_time: 3600,
-      max_rebalance_time: 1e12,
-      chain_id: 10,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toEqual(["0x5802454749cc0c4A6F28D5001B4cD84432e2b79F"]);
-    expect(parsed.statuses).toEqual([true]);
-  });
-});
-
-describe("write.asset_manager.compounder", () => {
-  it("encodes compounder with correct initiator", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.compounder");
-    const result = await handler({
-      dex_protocol: "uniV3",
-      enabled: true,
-      chain_id: 8453,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toHaveLength(1);
-    expect(parsed.statuses).toEqual([true]);
-
-    const [initiator] = decodeAbiParameters(
-      [{ name: "initiator", type: "address" }],
-      parsed.datas[0] as `0x${string}`,
-    );
-    expect((initiator as string).toLowerCase()).toBe(COMPOUNDER_INITIATOR.toLowerCase());
-  });
-
-  it("resolves slipstream_v3 compounder address on Base", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.compounder");
-    const result = await handler({
-      dex_protocol: "slipstream_v3",
-      enabled: true,
-      chain_id: 8453,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toEqual(["0xd42A3Ac56456bD5422835B36C35Cacb6448ddCd9"]);
-  });
-});
-
-describe("write.asset_manager.compounder_staked", () => {
-  it("encodes cowswapper + compounder with 2 entries", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.compounder_staked");
-    const result = await handler({
-      dex_protocol: "slipstream",
-      sell_tokens: [AERO],
-      buy_token: USDC,
-      enabled: true,
-      chain_id: 8453,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toHaveLength(2);
-    expect(parsed.statuses).toEqual([true, true]);
-    expect(parsed.datas).toHaveLength(2);
-  });
-
-  it("returns error for cowswapper on Unichain", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.compounder_staked");
-    const result = await handler({
-      dex_protocol: "slipstream",
-      sell_tokens: [AERO],
-      buy_token: USDC,
-      enabled: true,
-      chain_id: 130,
-    });
-
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("not available");
-  });
-});
-
-describe("write.asset_manager.yield_claimer", () => {
-  it("encodes yield claimer with fee_recipient", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.yield_claimer");
-    const result = await handler({
-      dex_protocol: "slipstream",
-      fee_recipient: FEE_RECIPIENT,
-      enabled: true,
-      chain_id: 8453,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toHaveLength(1);
-
-    const [initiator, feeRecipient] = decodeAbiParameters(
-      [
-        { name: "initiator", type: "address" },
-        { name: "feeRecipient", type: "address" },
+      intents: [
+        { kind: "compound_fees", available: true, reason: null },
+        {
+          kind: "claim_rewards",
+          available: false,
+          reason: "compound_and_claim: would race for the same fees",
+        },
       ],
-      parsed.datas[0] as `0x${string}`,
-    );
-    expect((initiator as string).toLowerCase()).toBe(CLAIMER_INITIATOR.toLowerCase());
-    expect((feeRecipient as string).toLowerCase()).toBe(FEE_RECIPIENT.toLowerCase());
-  });
-});
+    })),
+    ...apiOverrides,
+  } as unknown as ArcadiaApiClient;
 
-describe("write.asset_manager.yield_claimer_cowswap", () => {
-  it("encodes cowswapper + yield claimer with 2 entries", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.yield_claimer_cowswap");
-    const result = await handler({
-      dex_protocol: "slipstream",
-      sell_tokens: [AERO],
-      buy_token: USDC,
-      fee_recipient: FEE_RECIPIENT,
-      enabled: true,
-      chain_id: 8453,
-    });
+  registerAutomationsTools(mock.server, api);
+  registerAssetManagerTools(mock.server, api);
+  return { mock, api: api as unknown as Record<string, ReturnType<typeof vi.fn>> };
+}
 
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toHaveLength(2);
-    expect(parsed.statuses).toEqual([true, true]);
-  });
-});
-
-describe("write.asset_manager.cow_swapper", () => {
-  it("encodes direct cowswap mode", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.cow_swapper");
-    const result = await handler({
-      enabled: true,
-      chain_id: 8453,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toHaveLength(1);
-    expect(parsed.statuses).toEqual([true]);
-  });
-
-  it("returns error on Unichain", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.cow_swapper");
-    const result = await handler({
-      enabled: true,
-      chain_id: 130,
-    });
-
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("not available");
-  });
-
-  it("returns error on Optimism", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.cow_swapper");
-    const result = await handler({
-      enabled: true,
-      chain_id: 10,
-    });
-
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("not available on Optimism");
-  });
-});
-
-describe("write.asset_manager.merkl_operator", () => {
-  it("encodes merkl operator with reward_recipient", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.asset_manager.merkl_operator");
-    const result = await handler({
-      reward_recipient: FEE_RECIPIENT,
-      enabled: true,
-      chain_id: 8453,
-    });
-
-    const parsed = parseToolResponse(result);
-    expect(parsed.asset_managers).toHaveLength(1);
-
-    const [initiator, rewardRecipient] = decodeAbiParameters(
-      [
-        { name: "initiator", type: "address" },
-        { name: "rewardRecipient", type: "address" },
-      ],
-      parsed.datas[0] as `0x${string}`,
-    );
-    expect((initiator as string).toLowerCase()).toBe(MERKL_INITIATOR.toLowerCase());
-    expect((rewardRecipient as string).toLowerCase()).toBe(FEE_RECIPIENT.toLowerCase());
-  });
-});
-
-describe("write.account.set_asset_managers", () => {
-  it("builds setAssetManagers tx from encoded args", async () => {
-    const mock = setupAll();
-
-    // First get encoded args from rebalancer
-    const rebalancerHandler = mock.getHandler("write.asset_manager.rebalancer");
-    const rebalancerResult = await rebalancerHandler({
-      dex_protocol: "slipstream",
-      enabled: true,
-      compound_leftovers: "all",
-      optimal_token0_ratio: 500000,
-      trigger_lower_ratio: 0,
-      trigger_upper_ratio: 0,
-      min_rebalance_time: 3600,
-      max_rebalance_time: 1e12,
-      chain_id: 8453,
-    });
-    const rebalancerArgs = parseToolResponse(rebalancerResult);
-
-    // Build tx
-    const setHandler = mock.getHandler("write.account.set_asset_managers");
-    const result = await setHandler({
+describe("write.account.automations", () => {
+  it("sends the intents to /save and returns the unsigned transaction", async () => {
+    const { mock, api } = setup();
+    const result = await mock.getHandler("write.account.automations")({
       account_address: TEST_ACCOUNT,
-      asset_managers: rebalancerArgs.asset_managers,
-      statuses: rebalancerArgs.statuses,
-      datas: rebalancerArgs.datas,
+      intents: [{ kind: "compound_fees", enabled: true }],
+      mode: "save",
+      position_id: 42,
       chain_id: 8453,
     });
 
-    const { transaction } = parseToolResponse(result);
-    expect(transaction.to.toLowerCase()).toBe(TEST_ACCOUNT.toLowerCase());
-    expect(transaction.chainId).toBe(8453);
+    const parsed = parseToolResponse(result);
+    expect(result.isError).toBeFalsy();
+    expect(parsed.valid).toBe(true);
+    expect(parsed.transaction.to.toLowerCase()).toBe(TEST_ACCOUNT.toLowerCase());
+    expect(parsed.transaction.value).toBe("0");
+    expect(parsed.transaction.chainId).toBe(8453);
+    expect(parsed.human_summary).toHaveLength(1);
+    expect(parsed.diff.added).toHaveLength(1);
 
-    const decoded = decodeFunctionData({ abi: accountAbi, data: transaction.data });
+    expect(api.saveAutomations).toHaveBeenCalledWith(TEST_ACCOUNT, 8453, {
+      intents: [{ kind: "compound_fees", enabled: true }],
+      position_id: 42,
+    });
+    expect(api.previewAutomations).not.toHaveBeenCalled();
+  });
+
+  it("routes mode=preview to /preview", async () => {
+    const { mock, api } = setup();
+    await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "claim_merkl" }],
+      mode: "preview",
+      chain_id: 8453,
+    });
+
+    expect(api.previewAutomations).toHaveBeenCalledOnce();
+    expect(api.saveAutomations).not.toHaveBeenCalled();
+  });
+
+  it("appends the ERC-8021 attribution suffix to the backend calldata", async () => {
+    const { mock } = setup();
+    const parsed = parseToolResponse(
+      await mock.getHandler("write.account.automations")({
+        account_address: TEST_ACCOUNT,
+        intents: [{ kind: "compound_fees" }],
+        mode: "save",
+        chain_id: 8453,
+      }),
+    );
+
+    expect(parsed.transaction.data.endsWith(DATA_SUFFIX.slice(2))).toBe(true);
+    // The suffix must not corrupt the call it is attached to.
+    const decoded = decodeFunctionData({ abi: accountAbi, data: SET_AM_CALLDATA as `0x${string}` });
     expect(decoded.functionName).toBe("setAssetManagers");
-    expect(decoded.args[1][0]).toBe(true);
   });
 
-  it("returns error for mismatched array lengths", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.account.set_asset_managers");
-    const result = await handler({
+  it("translates a staked dex_protocol into protocol + is_staked", async () => {
+    const { mock, api } = setup();
+    await mock.getHandler("write.account.automations")({
       account_address: TEST_ACCOUNT,
-      asset_managers: [FEE_RECIPIENT],
-      statuses: [true, false],
-      datas: ["0x"],
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      protocol: "staked_slipstream_v3",
+      chain_id: 8453,
+    });
+
+    expect(api.saveAutomations).toHaveBeenCalledWith(TEST_ACCOUNT, 8453, {
+      intents: [{ kind: "compound_fees" }],
+      protocol: "slipstream_v3",
+      is_staked: true,
+    });
+  });
+
+  it("lets an explicit is_staked override the protocol spelling", async () => {
+    const { mock, api } = setup();
+    await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      protocol: "staked_slipstream_v3",
+      is_staked: false,
+      chain_id: 8453,
+    });
+
+    const body = api.saveAutomations.mock.calls[0][2] as Record<string, unknown>;
+    expect(body.protocol).toBe("slipstream_v3");
+    expect(body.is_staked).toBe(false);
+  });
+
+  it("passes canonical protocol names through untouched", async () => {
+    const { mock, api } = setup();
+    await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      protocol: "uniswap_v4",
+      chain_id: 8453,
+    });
+
+    const body = api.saveAutomations.mock.calls[0][2] as Record<string, unknown>;
+    expect(body.protocol).toBe("uniswap_v4");
+    expect(body.is_staked).toBeUndefined();
+  });
+
+  it("omits position-context fields that were not supplied", async () => {
+    const { mock, api } = setup();
+    await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "claim_merkl" }],
+      mode: "save",
+      chain_id: 8453,
+    });
+
+    expect(api.saveAutomations.mock.calls[0][2]).toEqual({ intents: [{ kind: "claim_merkl" }] });
+  });
+
+  it("errors with the failing rule when the plan is invalid", async () => {
+    const { mock } = setup({
+      saveAutomations: vi.fn(async () =>
+        planResponse({
+          valid: false,
+          calldata: null,
+          errors: [
+            {
+              rule: "claim_convert_to_wallet",
+              severity: "hard",
+              reason:
+                "CowSwap settles in the account, so a converted claim cannot pay out to a wallet",
+            },
+          ],
+        }),
+      ),
+    });
+
+    const result = await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [
+        {
+          kind: "claim_rewards",
+          config: { mode: "convert_to", destination: "wallet", buy_token: USDC },
+        },
+      ],
+      mode: "save",
       chain_id: 8453,
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Array lengths must match");
+    expect(result.content[0].text).toContain("claim_convert_to_wallet");
+    expect(result.content[0].text).toContain("CowSwap settles in the account");
   });
 
-  it("returns error for empty arrays", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("write.account.set_asset_managers");
-    const result = await handler({
+  it("errors when a valid plan produced no calldata", async () => {
+    const { mock } = setup({
+      saveAutomations: vi.fn(async () => planResponse({ calldata: null })),
+    });
+
+    const result = await mock.getHandler("write.account.automations")({
       account_address: TEST_ACCOUNT,
-      asset_managers: [],
-      statuses: [],
-      datas: [],
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
       chain_id: 8453,
     });
 
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("At least one");
+    expect(result.content[0].text).toContain("no calldata");
+  });
+
+  it("returns no transaction when the diff is empty instead of a no-op call", async () => {
+    const { mock } = setup({
+      saveAutomations: vi.fn(async () =>
+        planResponse({ diff: { added: [], removed: [], updated: [] } }),
+      ),
+    });
+
+    const parsed = parseToolResponse(
+      await mock.getHandler("write.account.automations")({
+        account_address: TEST_ACCOUNT,
+        intents: [{ kind: "compound_fees" }],
+        mode: "save",
+        chain_id: 8453,
+      }),
+    );
+
+    expect(parsed.no_changes_needed).toBe(true);
+    expect(parsed.transaction).toBeUndefined();
+    expect(parsed.description).toContain("nothing to change");
+  });
+
+  it("refuses to hand back a transaction whose simulation predicted a revert", async () => {
+    const { mock } = setup({
+      saveAutomations: vi.fn(async () =>
+        planResponse({
+          simulation_url: "https://dashboard.tenderly.co/shared/simulation/abc",
+          simulation_success: false,
+        }),
+      ),
+    });
+
+    const result = await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("do NOT broadcast");
+    expect(result.content[0].text).toContain("tenderly.co");
+  });
+
+  it("treats a simulation that could not run as unavailable, not a failure", async () => {
+    // The proxy reports simulation_success=false with no URL when no owner was
+    // supplied, which must not condemn the transaction.
+    const { mock } = setup({
+      saveAutomations: vi.fn(async () => planResponse({ simulation_success: false })),
+    });
+
+    const parsed = parseToolResponse(
+      await mock.getHandler("write.account.automations")({
+        account_address: TEST_ACCOUNT,
+        intents: [{ kind: "compound_fees" }],
+        mode: "save",
+        chain_id: 8453,
+      }),
+    );
+
+    expect(parsed.tenderly_sim_status).toBe("unavailable");
+    expect(parsed.transaction).toBeDefined();
+  });
+
+  it("reports a passing simulation as success", async () => {
+    const { mock } = setup({
+      saveAutomations: vi.fn(async () =>
+        planResponse({
+          simulation_url: "https://dashboard.tenderly.co/shared/simulation/ok",
+          simulation_success: true,
+        }),
+      ),
+    });
+
+    const parsed = parseToolResponse(
+      await mock.getHandler("write.account.automations")({
+        account_address: TEST_ACCOUNT,
+        intents: [{ kind: "compound_fees" }],
+        mode: "save",
+        chain_id: 8453,
+      }),
+    );
+
+    expect(parsed.tenderly_sim_status).toBe("success");
+    expect(parsed.transaction).toBeDefined();
+  });
+
+  it("rejects an invalid account address before calling the API", async () => {
+    const { mock, api } = setup();
+    const result = await mock.getHandler("write.account.automations")({
+      account_address: "not-an-address",
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(api.saveAutomations).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unsupported chain", async () => {
+    const { mock, api } = setup();
+    const result = await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      chain_id: 1,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(api.saveAutomations).not.toHaveBeenCalled();
+  });
+
+  it("surfaces an API failure as a tool error", async () => {
+    const { mock } = setup({
+      saveAutomations: vi.fn(async () => {
+        throw new Error("Arcadia API error (503 on /automations): upstream unavailable");
+      }),
+    });
+
+    const result = await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("503");
+  });
+});
+
+describe("write.account.automations_delta", () => {
+  it("forwards enable + disable to /apply", async () => {
+    const { mock, api } = setup();
+    const result = await mock.getHandler("write.account.automations_delta")({
+      account_address: TEST_ACCOUNT,
+      enable: [{ kind: "rebalance" }],
+      disable: [REBALANCER],
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(api.applyAutomationsDelta).toHaveBeenCalledWith(TEST_ACCOUNT, 8453, {
+      enable: [{ kind: "rebalance" }],
+      disable: [REBALANCER],
+    });
+  });
+
+  it("allows a disable-only delta", async () => {
+    const { mock, api } = setup();
+    const result = await mock.getHandler("write.account.automations_delta")({
+      account_address: TEST_ACCOUNT,
+      enable: [],
+      disable: [COMPOUNDER],
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBeFalsy();
+    const body = api.applyAutomationsDelta.mock.calls[0][2] as Record<string, unknown>;
+    expect(body.enable).toEqual([]);
+    expect(body.disable).toEqual([COMPOUNDER]);
+  });
+
+  it("errors when neither enable nor disable is supplied", async () => {
+    const { mock, api } = setup();
+    const result = await mock.getHandler("write.account.automations_delta")({
+      account_address: TEST_ACCOUNT,
+      enable: [],
+      disable: [],
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(api.applyAutomationsDelta).not.toHaveBeenCalled();
+  });
+
+  it("rejects an enabled:false entry in enable[] instead of silently doing nothing", async () => {
+    // The backend resolves only enabled intents, so such an entry would be dropped.
+    const { mock, api } = setup();
+    const result = await mock.getHandler("write.account.automations_delta")({
+      account_address: TEST_ACCOUNT,
+      enable: [{ kind: "compound_fees", enabled: false }],
+      disable: [],
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("enabled: false");
+    expect(result.content[0].text).toContain("disable");
+    expect(api.applyAutomationsDelta).not.toHaveBeenCalled();
+  });
+
+  it("rejects a malformed disable address", async () => {
+    const { mock, api } = setup();
+    const result = await mock.getHandler("write.account.automations_delta")({
+      account_address: TEST_ACCOUNT,
+      enable: [],
+      disable: ["0xnope"],
+      chain_id: 8453,
+    });
+
+    expect(result.isError).toBe(true);
+    expect(api.applyAutomationsDelta).not.toHaveBeenCalled();
   });
 });
 
 describe("read.asset_manager.intents", () => {
-  it("returns all 7 automations without chain filter", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("read.asset_manager.intents");
-    const result = await handler({});
+  it("returns the catalog without an account and does not call the API", async () => {
+    const { mock, api } = setup();
+    const parsed = parseToolResponse(
+      await mock.getHandler("read.asset_manager.intents")({ chain_id: 8453 }),
+    );
 
-    const parsed = parseToolResponse(result);
-    expect(parsed.automations).toHaveLength(7);
-    expect(parsed.automations.map((a: { id: string }) => a.id)).toEqual([
-      "rebalancer",
-      "compounder",
-      "compounder_staked",
-      "yield_claimer",
-      "yield_claimer_cowswap",
-      "cow_swapper",
-      "merkl_operator",
+    expect(parsed.automations.map((a: { kind: string }) => a.kind)).toEqual([
+      "compound_fees",
+      "claim_rewards",
+      "add_to_lp",
+      "claim_merkl",
+      "rebalance",
     ]);
+    expect(parsed.automations[0].available).toBeUndefined();
+    expect(api.getAvailableAutomations).not.toHaveBeenCalled();
   });
 
-  it("filters by chain_id — Unichain excludes cowswapper intents", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("read.asset_manager.intents");
-    const result = await handler({ chain_id: 130 });
-
-    const parsed = parseToolResponse(result);
-    const ids = parsed.automations.map((a: { id: string }) => a.id);
-    expect(ids).not.toContain("compounder_staked");
-    expect(ids).not.toContain("yield_claimer_cowswap");
-    expect(ids).not.toContain("cow_swapper");
-    expect(ids).toContain("rebalancer");
-    expect(ids).toContain("merkl_operator");
-  });
-
-  it("filters by chain_id — Optimism excludes cowswapper intents", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("read.asset_manager.intents");
-    const result = await handler({ chain_id: 10 });
-
-    const parsed = parseToolResponse(result);
-    const ids = parsed.automations.map((a: { id: string }) => a.id);
-    expect(ids).not.toContain("compounder_staked");
-    expect(ids).not.toContain("yield_claimer_cowswap");
-    expect(ids).not.toContain("cow_swapper");
-    expect(ids).toContain("rebalancer");
-    expect(ids).toContain("compounder");
-    expect(ids).toContain("yield_claimer");
-    expect(ids).toContain("merkl_operator");
-  });
-
-  it("dex_protocol enum includes slipstream_v3 on Base", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("read.asset_manager.intents");
-    const result = await handler({ chain_id: 8453 });
-
-    const parsed = parseToolResponse(result);
-    const rebalancer = parsed.automations.find((a: { id: string }) => a.id === "rebalancer");
-    const dexProtocolParam = rebalancer.required_params.find(
-      (p: { name: string }) => p.name === "dex_protocol",
+  it("merges live availability when an account is supplied", async () => {
+    const { mock, api } = setup();
+    const parsed = parseToolResponse(
+      await mock.getHandler("read.asset_manager.intents")({
+        account_address: TEST_ACCOUNT,
+        position_id: 7,
+        chain_id: 8453,
+      }),
     );
-    expect(dexProtocolParam.values).toContain("slipstream_v3");
-    expect(dexProtocolParam.values).toContain("staked_slipstream_v3");
+
+    expect(api.getAvailableAutomations).toHaveBeenCalledWith(TEST_ACCOUNT, 8453, 7);
+    const byKind = Object.fromEntries(parsed.automations.map((a: { kind: string }) => [a.kind, a]));
+    expect(byKind.compound_fees.available).toBe(true);
+    expect(byKind.claim_rewards.available).toBe(false);
+    expect(byKind.claim_rewards.unavailable_reason).toContain("compound_and_claim");
+    // Kinds the backend did not report keep the catalog entry untouched.
+    expect(byKind.rebalance.available).toBeUndefined();
   });
 
-  it("dex_protocol enum excludes V2 but includes V3 on Optimism", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("read.asset_manager.intents");
-    const result = await handler({ chain_id: 10 });
+  it("rejects position_id without an account", async () => {
+    const { mock } = setup();
+    const result = await mock.getHandler("read.asset_manager.intents")({
+      position_id: 7,
+      chain_id: 8453,
+    });
 
-    const parsed = parseToolResponse(result);
-    const rebalancer = parsed.automations.find((a: { id: string }) => a.id === "rebalancer");
-    const dexProtocolParam = rebalancer.required_params.find(
-      (p: { name: string }) => p.name === "dex_protocol",
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("requires account_address");
+  });
+});
+
+describe("read.asset_manager.current", () => {
+  it("splits current managers from superseded ones", async () => {
+    const { mock } = setup({
+      getCurrentAutomations: vi.fn(async () => ({
+        account: TEST_ACCOUNT,
+        chain_id: 8453,
+        enabled: [
+          {
+            manager: "compounder",
+            protocol: "slipstream_v1",
+            address: COMPOUNDER,
+            enabled: true,
+            deprecated: false,
+            active: true,
+          },
+          {
+            manager: "cow_swapper",
+            protocol: "",
+            address: "0xFfC742E68D41389BE9Ef1aFD518F036064DA2Bb6",
+            enabled: true,
+            deprecated: true,
+            version: "1.1.0",
+          },
+        ],
+        inferred_intents: ["compound_fees"],
+        warnings: [],
+        merkl: null,
+        read_ok: true,
+      })),
+    });
+
+    const parsed = parseToolResponse(
+      await mock.getHandler("read.asset_manager.current")({
+        account_address: TEST_ACCOUNT,
+        chain_id: 8453,
+      }),
     );
-    expect(dexProtocolParam.values).toContain("slipstream");
-    expect(dexProtocolParam.values).toContain("staked_slipstream");
-    expect(dexProtocolParam.values).toContain("slipstream_v3");
-    expect(dexProtocolParam.values).toContain("staked_slipstream_v3");
-    expect(dexProtocolParam.values).toContain("uniV3");
-    expect(dexProtocolParam.values).toContain("uniV4");
-    expect(dexProtocolParam.values).not.toContain("slipstream_v2");
-    expect(dexProtocolParam.values).not.toContain("staked_slipstream_v2");
+
+    expect(parsed.enabled).toHaveLength(1);
+    expect(parsed.enabled[0].manager).toBe("compounder");
+    expect(parsed.deprecated).toHaveLength(1);
+    expect(parsed.deprecated[0].version).toBe("1.1.0");
+    expect(parsed.inferred_intents).toEqual(["compound_fees"]);
+    expect(parsed.read_ok).toBe(true);
   });
 
-  it("each automation has required fields", async () => {
-    const mock = setupAll();
-    const handler = mock.getHandler("read.asset_manager.intents");
-    const result = await handler({});
+  it("reports read_ok=false rather than an empty state", async () => {
+    const { mock } = setup({
+      getCurrentAutomations: vi.fn(async () => ({
+        account: TEST_ACCOUNT,
+        chain_id: 8453,
+        enabled: [],
+        inferred_intents: [],
+        warnings: ["account could not be confirmed on-chain; state is unknown"],
+        merkl: null,
+        read_ok: false,
+      })),
+    });
 
-    const parsed = parseToolResponse(result);
-    for (const a of parsed.automations) {
-      expect(a).toHaveProperty("id");
-      expect(a).toHaveProperty("tool");
-      expect(a).toHaveProperty("description");
-      expect(a).toHaveProperty("chains");
-      expect(a).toHaveProperty("required_params");
-    }
+    const parsed = parseToolResponse(
+      await mock.getHandler("read.asset_manager.current")({
+        account_address: TEST_ACCOUNT,
+        chain_id: 8453,
+      }),
+    );
+
+    expect(parsed.read_ok).toBe(false);
+    expect(parsed.warnings).toHaveLength(1);
   });
 });

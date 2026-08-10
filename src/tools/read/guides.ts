@@ -14,7 +14,7 @@ const TOPICS = {
   automation: {
     file: "automation.md",
     summary:
-      "Rebalancer, compounder, yield claimer, merkl operator, CoW swapper setup and addresses",
+      "Intent-based automation setup: compound fees, claim rewards, add to LP, rebalance, claim Merkl",
   },
   strategies: {
     file: "strategies.md",
@@ -55,13 +55,13 @@ export function registerGuideTools(server: McpServer) {
         openWorldHint: true,
       },
       description:
-        "Get Arcadia workflow guides and reference documentation. Call this before multi-step workflows (opening LP positions, enabling automation, closing positions) or when you need contract addresses, asset manager addresses, or strategy parameters. Topics: overview (addresses + tool catalog), automation (rebalancer/compounder setup), strategies (step-by-step templates), selection (how to evaluate and parameterize strategies).",
+        "Get Arcadia workflow guides and reference documentation. Call this before multi-step workflows (opening LP positions, enabling automation, closing positions) or when you need contract addresses, asset manager addresses, or strategy parameters. Topics: overview (addresses + tool catalog), automation (intent-based automation setup), strategies (step-by-step templates), selection (how to evaluate and parameterize strategies).",
       inputSchema: {
         topic: z
           .enum(TOPIC_KEYS)
           .optional()
           .describe(
-            "overview = addresses + tool catalog, automation = rebalancer/compounder/claimer setup, strategies = step-by-step LP templates, selection = pool evaluation + leverage sizing",
+            "overview = addresses + tool catalog, automation = intent-based automation setup, strategies = step-by-step LP templates, selection = pool evaluation + leverage sizing",
           ),
       },
       outputSchema: GuideOutput,

@@ -40,7 +40,8 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 | `read.strategy.info`           | Full detail for a specific LP strategy: APY per range width, pool config.                                   |
 | `read.strategy.recommendation` | Rebalancing recommendation for an account.                                                                  |
 | `read.guides`                  | Reference guides: automation setup, strategy selection, strategy templates.                                 |
-| `read.asset_manager.intents`   | Available automation intents with tool names, required params, and supported chains.                        |
+| `read.asset_manager.intents`   | Automation intents and their params; add `account_address` for live per-account availability.                |
+| `read.asset_manager.current`   | Automations enabled on an account: decoded config, mapped intents, Merkl state, superseded managers.        |
 
 ### Write Tools
 
@@ -62,14 +63,8 @@ All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 | `write.account.deleverage`                  | Repay debt by selling collateral (swap + repay in one tx).                                                                                         |
 | `write.account.close`                       | Atomic close: burn LP + swap + repay debt in one tx.                                                                                               |
 | `write.account.stake`                       | Stake, unstake, or claim rewards for LP positions.                                                                                                 |
-| `write.asset_manager.rebalancer`            | Encode rebalancer automation args (strategy config, triggers, compound mode).                                                                      |
-| `write.asset_manager.compounder`            | Encode standalone compounder args.                                                                                                                 |
-| `write.asset_manager.compounder_staked`     | Encode compounder + CowSwap coupled args (sell rewards, buy target token).                                                                         |
-| `write.asset_manager.yield_claimer`         | Encode yield claimer args (claim fees to recipient).                                                                                               |
-| `write.asset_manager.yield_claimer_cowswap` | Encode yield claimer + CowSwap coupled args.                                                                                                       |
-| `write.asset_manager.cow_swapper`           | Encode direct CowSwap mode args (Base only).                                                                                                       |
-| `write.asset_manager.merkl_operator`        | Encode Merkl operator args (claim external rewards).                                                                                               |
-| `write.account.set_asset_managers`          | Build unsigned setAssetManagers tx from encoded intent args. Combine multiple intents by merging arrays.                                           |
+| `write.account.automations`                 | Configure automations from an intents array (full desired state). Returns the unsigned setAssetManagers tx.                                         |
+| `write.account.automations_delta`           | Enable/disable individual automations, leaving the rest untouched.                                                                                  |
 
 ### Dev Tools
 
@@ -217,7 +212,7 @@ Available skills:
 
 | Skill             | Description                                                                                                         |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `clamm-liquidity` | Concentrated liquidity management: concepts, asset managers (rebalancers, compounders), and step-by-step workflows. |
+| `clamm-liquidity` | Concentrated liquidity management: concepts, intent-based automation, and step-by-step workflows. |
 
 ## Reporting Issues
 

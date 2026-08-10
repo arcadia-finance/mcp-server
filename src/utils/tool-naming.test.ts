@@ -15,9 +15,7 @@ describe("convertToolNames", () => {
   });
 
   it("converts tool names with existing underscores", () => {
-    expect(convertToolNames("write.asset_manager.rebalancer")).toBe(
-      "write_asset_manager_rebalancer",
-    );
+    expect(convertToolNames("read.asset_manager.current")).toBe("read_asset_manager_current");
     expect(convertToolNames("write.account.add_liquidity")).toBe("write_account_add_liquidity");
   });
 
@@ -49,8 +47,10 @@ describe("convertToolNames", () => {
   });
 
   it("converts tool names in JSON strings", () => {
-    const json = JSON.stringify({ tool: "write.asset_manager.rebalancer" });
-    expect(convertToolNames(json)).toBe(JSON.stringify({ tool: "write_asset_manager_rebalancer" }));
+    const json = JSON.stringify({ tool: "write.account.automations_delta" });
+    expect(convertToolNames(json)).toBe(
+      JSON.stringify({ tool: "write_account_automations_delta" }),
+    );
   });
 
   it("returns empty string unchanged", () => {

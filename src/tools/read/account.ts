@@ -5,11 +5,10 @@ import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../conf
 import { accountAbi } from "../../abis/index.js";
 import { getPublicClient } from "../../clients/chain.js";
 import {
-  getChainAmChecks,
-  AM_KEY_TO_POOL_PROTOCOL,
-  CHAIN_POSITION_MANAGERS,
-  UNIVERSAL_POSITION_MANAGERS,
-  type AmProtocol,
+  AUTOMATION_GROUPS,
+  backendProtocolToDexProtocol,
+  GAS_RELAYER,
+  positionManagerToDexProtocol,
 } from "../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../utils/validation.js";
 import { AccountInfoOutput, AccountHistoryOutput, AccountPnlOutput } from "../output-schemas.js";
@@ -39,9 +38,7 @@ function trimOverview(
         if (details.token1) asset.token1 = details.token1;
       }
       if (typeof rest.address === "string") {
-        const addr = rest.address.toLowerCase();
-        const dexProtocol =
-          CHAIN_POSITION_MANAGERS[chainId]?.[addr] ?? UNIVERSAL_POSITION_MANAGERS[addr];
+        const dexProtocol = positionManagerToDexProtocol(chainId, rest.address);
         if (dexProtocol) asset.dex_protocol = dexProtocol;
       }
       return asset;
@@ -84,7 +81,10 @@ export function registerAccountTools(
         openWorldHint: true,
       },
       description:
-        "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. On all supported chains returns an `automation` object showing which asset managers are enabled (rebalancer, compounder, yield_claimer, merkl_operator, gas_relayer, cow_swapper). Automation detection spans every asset-manager version deployed on the selected chain, so registrations made on older versions are still reported as active; the returned value is the user-facing dex_protocol (e.g. 'slipstream') with no version suffix. LP positions in assets[] include a dex_protocol field (slipstream, slipstream_v2, slipstream_v3, staked_slipstream, staked_slipstream_v2, staked_slipstream_v3, uniV3, uniV4) — use this as the dex_protocol param for write.asset_manager.* tools. Slipstream V2 is Base-only. V3 is available on Base and Optimism. Unichain supports only Slipstream V1, uniV3, and uniV4. The automation object uses internal AM key names (slipstreamV1, slipstreamV2, slipstreamV3, uniV3, uniV4): map slipstreamV1 → 'slipstream'/'staked_slipstream', slipstreamV2 → 'slipstream_v2'/'staked_slipstream_v2', slipstreamV3 → 'slipstream_v3'/'staked_slipstream_v3', uniV3 → 'uniV3', uniV4 → 'uniV4'. Numeric fields without a _usd suffix are in the account's numeraire token raw units (divide by 10^decimals: 6 for USDC, 18 for WETH, 8 for cbBTC). Fields ending in _usd are in USD with 18 decimals (divide by 1e18). health_factor is unitless. Asset amounts are raw token units. To list all accounts for a wallet, use read.wallet.accounts.",
+        "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. " +
+        "The `automation` object reports which asset managers are enabled (rebalancer, compounder, yield_claimer, cow_swapper, merkl_operator, gas_relayer), each as the position's dex_protocol when protocol-specific or true when account-level, plus `inferred_intents` (the automations those managers add up to), `merkl` claim state, and `deprecated_managers` for any superseded deployment still set on the account. Superseded managers should be cleared: write.account.automations disables them as part of a save. For the full decoded per-manager config use read.asset_manager.current. " +
+        "LP positions in assets[] include a dex_protocol field (slipstream, slipstream_v2, slipstream_v3, staked_slipstream, staked_slipstream_v2, staked_slipstream_v3, uniV3, uniV4). To configure automations, prefer passing the position's id as position_id to write.account.automations, which resolves the protocol and tokens for you; the dex_protocol value is also accepted directly as its `protocol` param. Slipstream V2 is Base-only. V3 is available on Base and Optimism. Unichain supports only Slipstream V1, uniV3, and uniV4. " +
+        "Numeric fields without a _usd suffix are in the account's numeraire token raw units (divide by 10^decimals: 6 for USDC, 18 for WETH, 8 for cbBTC). Fields ending in _usd are in USD with 18 decimals (divide by 1e18). health_factor is unitless. Asset amounts are raw token units. To list all accounts for a wallet, use read.wallet.accounts.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
@@ -148,41 +148,65 @@ export function registerAccountTools(
           }
         }
 
+        // Automation state comes from the backend's automations reader, which owns
+        // the asset-manager address book (including superseded deployments) and
+        // decodes each manager's on-chain config.
         let automation: Record<string, unknown> | null = null;
-        const owner = (overview as Record<string, unknown> | null)?.owner as string | undefined;
-        if (owner) {
-          const amChecks = getChainAmChecks(validChainId);
-          automation = await client
-            .multicall({
-              contracts: amChecks.map((c) => ({
+        try {
+          const state = await api.getCurrentAutomations(validAccount, validChainId);
+          const managers = state.enabled ?? [];
+          const out: Record<string, unknown> = {};
+          for (const group of AUTOMATION_GROUPS) out[group] = false;
+
+          let activeProtocol: string | null = null;
+          for (const m of managers) {
+            if (m.deprecated) continue;
+            const dexProtocol = m.protocol ? backendProtocolToDexProtocol(m.protocol) : null;
+            out[m.manager] = dexProtocol ?? true;
+            if (dexProtocol && !activeProtocol) activeProtocol = dexProtocol;
+          }
+          if (activeProtocol) out.dex_protocol = activeProtocol;
+
+          out.inferred_intents = state.inferred_intents ?? [];
+          const deprecated = managers.filter((m) => m.deprecated);
+          if (deprecated.length > 0) {
+            out.deprecated_managers = deprecated.map((m) => ({
+              manager: m.manager,
+              address: m.address,
+              version: m.version ?? null,
+            }));
+          }
+          if (state.merkl) out.merkl = state.merkl;
+
+          // The gas relayer is an asset manager but no intent configures it, so the
+          // backend's reader does not cover it. Probe it directly to keep reporting it.
+          const owner = (overview as Record<string, unknown> | null)?.owner as string | undefined;
+          if (owner) {
+            try {
+              out.gas_relayer = await client.readContract({
                 address: validAccount,
                 abi: accountAbi,
                 functionName: "isAssetManager",
-                args: [owner as `0x${string}`, c.address as `0x${string}`],
-              })),
-              allowFailure: true,
-            })
-            .then((results: { status: string; result?: boolean }[]) => {
-              const out: Record<string, string | boolean> = {};
-              for (const c of amChecks) out[c.group] = false;
-              let activeProtocol: string | null = null;
-              results.forEach((r: { status: string; result?: boolean }, i: number) => {
-                if (r.status !== "success" || !r.result) return;
-                const check = amChecks[i];
-                if (check.protocol) {
-                  const userFacing = AM_KEY_TO_POOL_PROTOCOL[check.protocol as AmProtocol];
-                  out[check.group] = userFacing ?? check.protocol;
-                  if (!activeProtocol) activeProtocol = userFacing ?? check.protocol;
-                } else {
-                  out[check.group] = true;
-                }
+                args: [owner as `0x${string}`, GAS_RELAYER],
               });
-              if (activeProtocol) {
-                out.dex_protocol = activeProtocol;
-              }
-              return out;
-            })
-            .catch(() => null);
+            } catch (relayerErr) {
+              notes.push(
+                `gas_relayer state could not be read: ${relayerErr instanceof Error ? relayerErr.message : String(relayerErr)}. Other automation fields are unaffected.`,
+              );
+            }
+          }
+
+          if (!state.read_ok) {
+            notes.push(
+              "Automation state could not be confirmed on-chain, so the automation object may be incomplete. Retry, or read it directly with read.asset_manager.current.",
+            );
+          }
+          for (const w of state.warnings ?? []) notes.push(`Automation state: ${w}`);
+          automation = out;
+        } catch (amErr) {
+          notes.push(
+            `Automation state unavailable: ${amErr instanceof Error ? amErr.message : String(amErr)}. Other account data is unaffected.`,
+          );
         }
 
         const result: Record<string, unknown> = {

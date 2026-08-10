@@ -4,7 +4,7 @@
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 40 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 35 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -24,7 +24,7 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Read Tools (17)
+## Read Tools (18)
 
 ### read.account.info
 
@@ -153,10 +153,20 @@ Parameters:
 
 ### read.asset_manager.intents
 
-List all available automation intents with their tool names, required parameters, and supported chains.
+List the automation intents Arcadia supports with the parameters each accepts. Pass `account_address` to also get live per-account availability, including the compatibility rule blocking anything unavailable.
 
 Parameters:
-- `chain_id` (number, optional): Filter to automations available on this chain
+- `account_address` (string, optional): Include it to get live per-account availability
+- `position_id` (number, optional): Scope availability to one LP position. Requires account_address
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+
+### read.asset_manager.current
+
+Read which asset managers are enabled on an account, with their decoded on-chain configuration, the intents they map to, Merkl claim state, and any superseded managers that should be cleared.
+
+Parameters:
+- `account_address` (string, required): Arcadia account address
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
 
 ### read.guides
 
@@ -165,7 +175,7 @@ Get Arcadia workflow guides and reference documentation.
 Parameters:
 - `topic` (enum, optional): overview | automation | strategies | selection
 
-## Write Tools (22)
+## Write Tools (16)
 
 All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
@@ -345,91 +355,40 @@ Parameters:
 - `slippage` (number, default: 100): Basis points, 100 = 1%
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
 
-### write.account.set_asset_managers
+### write.account.automations
 
-Build an unsigned setAssetManagers transaction from encoded intent args.
+Configure an account's automations from a list of intents and return the unsigned setAssetManagers transaction. The backend resolves which asset managers each intent needs, validates the combination, encodes the metadata and builds the calldata, so you describe the desired outcome rather than the contracts.
+
+The `intents` array is the complete desired state: any automation left out is disabled. When a compatibility rule fires the tool returns an error with the rule name and reason, and no transaction.
+
+Intent kinds:
+- `compound_fees`: reinvest earned fees/rewards into the LP. Optional `tokens` (token0|token1|reward) scopes it per token
+- `claim_rewards`: claim yield out. `config.mode` as_earned or convert_to, `config.destination` account or wallet, `config.buy_token`, `config.recipient`, `config.tokens`, `config.convert_tokens`
+- `add_to_lp`: fold idle pool-token balances into the LP. Optional `tokens` (token0|token1), opt-in per token
+- `claim_merkl`: auto-claim Merkl incentive rewards. `config.destination`, `config.reward_recipient`. Needs no position context
+- `rebalance`: reposition the LP. `strategy.kind` out_of_range (default), take_profit, or protocol_owned_liquidity, plus optional `max_tolerance` / `min_liquidity_ratio` (1e18-scaled)
 
 Parameters:
 - `account_address` (string, required): Arcadia account address
-- `asset_managers` (string[], required): Asset manager addresses from intent tools
-- `statuses` (boolean[], required): Enable/disable flags from intent tools
-- `datas` (string[], required): Encoded callback data from intent tools (hex)
+- `intents` (object[], required): Complete desired automation state, at least one intent
+- `mode` (enum, default: "save"): save diffs against on-chain state for a minimal call; preview encodes the intents as given
+- `position_id` (number, optional): LP position id. Supply it and the backend fetches protocol, staked flag, tokens and reward tokens
+- `protocol` (enum, optional): Only needed without position_id. Accepts slipstream_v1 | slipstream_v2 | slipstream_v3 | uniswap_v3 | uniswap_v4, or the dex_protocol spellings (slipstream, staked_slipstream_v3, uniV3, ...) which imply is_staked
+- `is_staked` (boolean, optional): Whether the LP position is staked
+- `token0` / `token1` (string, optional): Pool token addresses
+- `reward_tokens` (string[], optional): Staking reward token addresses
+- `owner` (string, optional): Account owner EOA, used to resolve wallet payout targets
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
 
-### write.asset_manager.rebalancer
+### write.account.automations_delta
 
-Encode args for the rebalancer automation.
-
-Parameters:
-- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
-- `enabled` (boolean, default: true): Enable or disable
-- `compound_leftovers` (enum, default: "all"): all | none | token0 | token1
-- `optimal_token0_ratio` (number, default: 500000): Target token0 ratio scaled by 1e6 (500000 = 50%)
-- `trigger_lower_ratio` (number, default: 0): Offset from tick_lower, fraction of tick range, scaled by 1e6
-- `trigger_upper_ratio` (number, default: 0): Offset from tick_upper, fraction of tick range, scaled by 1e6
-- `min_rebalance_time` (number, default: 3600): Min seconds between rebalances
-- `max_rebalance_time` (number, default: 1e12): Max seconds before forced rebalance
-- `strategy_hook` (string, optional): Custom strategy hook address
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
-
-### write.asset_manager.compounder
-
-Encode args for the standalone compounder automation.
+Apply an explicit change to an account's automations and return the unsigned setAssetManagers transaction. A delta, not a full desired state: automations not mentioned are left untouched. Superseded managers still set on the account are force-disabled regardless.
 
 Parameters:
-- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
-- `enabled` (boolean, default: true): Enable or disable
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
-
-### write.asset_manager.compounder_staked
-
-Encode args for compounder + CowSwap for staked LP positions.
-
-Parameters:
-- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
-- `sell_tokens` (string[], required): Token addresses to sell via CowSwap
-- `buy_token` (string, required): Token address to buy (USDC, WETH, cbBTC)
-- `enabled` (boolean, default: true): Enable or disable
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
-
-### write.asset_manager.yield_claimer
-
-Encode args for the standalone yield claimer automation.
-
-Parameters:
-- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
-- `fee_recipient` (string, required): Address to receive claimed fees
-- `enabled` (boolean, default: true): Enable or disable
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
-
-### write.asset_manager.yield_claimer_cowswap
-
-Encode args for yield claimer + CowSwap.
-
-Parameters:
-- `dex_protocol` (enum, required): slipstream | slipstream_v2 | staked_slipstream | staked_slipstream_v2 | uniV3 | uniV4
-- `sell_tokens` (string[], required): Token addresses to sell
-- `buy_token` (string, required): Token address to receive after swap
-- `fee_recipient` (string, required): Address to receive claimed fees
-- `enabled` (boolean, default: true): Enable or disable
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
-
-### write.asset_manager.cow_swapper
-
-Encode args for standalone direct CowSwap mode (Base only).
-
-Parameters:
-- `enabled` (boolean, default: true): Enable or disable
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base)
-
-### write.asset_manager.merkl_operator
-
-Encode args for the Merkl operator automation.
-
-Parameters:
-- `reward_recipient` (string, required): Address to receive Merkl rewards
-- `enabled` (boolean, default: true): Enable or disable
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `account_address` (string, required): Arcadia account address
+- `enable` (object[], default: []): Intents to switch on, same shapes as write.account.automations
+- `disable` (string[], default: []): Asset-manager addresses to switch off, as returned by read.asset_manager.current
+- position context params and `chain_id`: same as write.account.automations
 
 ## Dev Tools (1)
 

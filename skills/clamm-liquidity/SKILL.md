@@ -1,6 +1,6 @@
 ---
 name: clamm-liquidity
-description: Agent guide for clAMM management on Arcadia Finance. Covers 39 MCP tools (+1 dev), automation setup (rebalancers, compounders, yield claimers, Merkl, CoW swapper), single-sided liquidity via ERC-4626 tranches, strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
+description: Agent guide for clAMM management on Arcadia Finance. Covers 34 MCP tools (+1 dev), intent-based automation setup (compound fees, claim rewards, add to LP, rebalance, claim Merkl), single-sided liquidity via ERC-4626 tranches, strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
 user-invocable: true
 ---
 
@@ -47,7 +47,7 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 
 **Batched write tools (`write.account.add_liquidity`, `write.account.close`, `write.account.deleverage`, `write.account.swap`, `write.account.remove_liquidity`, `write.account.stake`) return time-sensitive calldata** — sign and broadcast promptly; calldata may expire after 30–60 seconds depending on market conditions. If a transaction reverts due to price movement, rebuild and retry at least once before falling back to individual tools.
 
-## MCP Tools (39 + 1 dev)
+## MCP Tools (34 + 1 dev)
 
 ### Read Tools
 
@@ -68,7 +68,8 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 | `read.strategy.info`           | Detail for a specific strategy by `strategy_id`, including range-width APY breakdown.                                                                                                                                                                                                                                                                 |
 | `read.point_leaderboard`       | Points leaderboard. No `chain_id` needed — points are cross-chain.                                                                                                                                                                                                                                                                                    |
 | `read.strategy.recommendation` | Rebalancing recommendation for an account. Uses 1d APY (not 7d like `read.strategy.list`), so numbers may differ.                                                                                                                                                                                                                                     |
-| `read.asset_manager.intents`   | List available automations with tool names, required params, and supported chains. Use to discover what automations can be configured. Filter by `chain_id` to exclude chain-unsupported intents.                                                                                                                                                     |
+| `read.asset_manager.intents`   | List the automation intents and their params. Pass `account_address` for live per-account availability plus the rule blocking anything unavailable.                                                                                                                                                                                                    |
+| `read.asset_manager.current`   | What is enabled on an account now: decoded per-manager config, the intents it maps to, Merkl claim state, and superseded managers to clear.                                                                                                                                                                                                            |
 | `read.guides`                  | Reference guides: `automation` (AM setup), `selection` (pool evaluation), `strategies` (step-by-step templates).                                                                                                                                                                                                                                      |
 
 ### Preferred Write Tools (atomic/multi-step — use these first)
@@ -80,7 +81,7 @@ These tools batch multiple operations into ONE atomic transaction. Always prefer
 | `write.account.add_liquidity`      | deposit + swap + mint LP + optional borrow         | Open LP position. Do NOT call `write.account.deposit` separately — this handles wallet transfer atomically.     |
 | `write.account.close`              | burn LP + swap + repay debt (up to 3 steps)        | Close/exit a position. ALWAYS try this first. Tokens stay in account — follow up with `write.account.withdraw`. |
 | `write.account.deleverage`         | swap collateral + repay debt                       | Repay debt using account collateral (no wallet tokens needed). Preferred for health factor fixes.               |
-| `write.account.set_asset_managers` | build setAssetManagers tx from encoded intent args | Combine multiple automations by merging arrays from `write.asset_manager.*` intent tools.                       |
+| `write.account.automations`        | resolve intents + validate + build setAssetManagers tx | Configure automations. Pass the full desired intents array; the backend picks the managers and encodes them.  |
 
 ### Individual Write Tools (use when batched tools fail or for standalone operations)
 
@@ -97,7 +98,7 @@ These tools batch multiple operations into ONE atomic transaction. Always prefer
 | `write.account.stake`            | Stake, unstake, or claim rewards for an LP position. Direction auto-detected from `asset_address`.                                                                                                                                                                                                                                                        |
 | `write.pool.deposit`             | **Lend to earn yield.** Deposit the pool's underlying asset (USDC / WETH / cbBTC) into the ERC-4626 tranche, receive tranche shares that accrue interest from borrowers. Requires prior `write.wallet.approve` to the tranche. **Different from `write.account.deposit`**: that deposits collateral into your Arcadia account; this deposits as a lender. |
 | `write.pool.redeem`              | **Lender exit.** Burn tranche shares and redeem the underlying asset, including accrued interest. Pass the owner's share balance (or a partial amount) in `shares`.                                                                                                                                                                                       |
-| `write.asset_manager.*`          | Encode automation intents (rebalancer, compounder, compounder_staked, yield_claimer, yield_claimer_cowswap, cow_swapper, merkl_operator). Each returns `{ asset_managers, statuses, datas }` — merge arrays, pass to `write.account.set_asset_managers`. See automation.md and `read.asset_manager.intents` for full details.                             |
+| `write.account.automations_delta` | Change one automation without restating the rest: `enable` takes intents, `disable` takes asset-manager addresses from `read.asset_manager.current`. Prefer `write.account.automations` when setting the full desired state. See automation.md.                                                                                                            |
 
 ### Dev Tools (only available when `PK` env var is set)
 
@@ -123,7 +124,9 @@ Use as `pool_address` in `write.account.borrow` / `write.account.repay`, as `cre
 
 ### Asset Manager Addresses
 
-Addresses are auto-resolved by `write.asset_manager.*` intent tools based on `dex_protocol`, targeting the latest deployed version on the selected chain. Listed here for reference. All require V3/V4 accounts. Older asset-manager versions remain on-chain for users who registered before the latest version shipped; `read.account.info` detects active registrations across every deployed version and reports the dex_protocol with no version suffix.
+Asset-manager addresses are resolved by the backend, not by this server, and are not passed to or returned by the automation tools. All require V3/V4 accounts. Older asset-manager versions remain on-chain for users who registered before the latest version shipped: `read.asset_manager.current` reports those as `deprecated` so they can be disabled, and reports the dex_protocol with no version suffix.
+
+The addresses below are for reference and orientation only. The one you may actually need is the gas relayer, for paying for extra rebalances with AAA.
 
 Standalone AMs (not tied to a DEX protocol, same address on all supported chains):
 
@@ -131,7 +134,7 @@ Standalone AMs (not tied to a DEX protocol, same address on all supported chains
 | -------------- | -------------------------------------------- | ------------------------ |
 | Merkl Operator | `0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6` | Base, Optimism, Unichain |
 | Gas Relayer    | `0xD938C8d04cF91094fecAF0A2018EAac483a40137` | Base, Optimism, Unichain |
-| CoW Swapper    | `0xFfC742E68D41389BE9Ef1aFD518F036064DA2Bb6` | Base only                |
+| CoW Swapper    | `0xb988a32DeF54821Dde0D7382e8a74f1BE4da1f23` | Base only                |
 
 Protocol-specific AMs (rebalancer, compounder, yield claimer). Slipstream V2 is Base-only. All other addresses apply to every chain where the protocol exists:
 
@@ -161,7 +164,7 @@ Slipstream V3 on Optimism uses different addresses (exception to the determinist
 | Compounder    | `0x3e7b6997399eC402491c4A049e4CD727d3aA1738` |
 | Yield Claimer | `0x3630bDb1Ac7cF8A435411391db75450350814F42` |
 
-**Slipstream V1 vs V2 vs V3:** The pool determines the version, each pool is bound to a specific Slipstream version. `read.account.info` returns a `dex_protocol` field on LP positions (derived from the position manager address), so you can read the protocol directly from the account overview. Pass this value (`slipstream`, `slipstream_v2`, `slipstream_v3`, or their `staked_*` variants) as `dex_protocol` to `write.asset_manager.*` intent tools to auto-resolve the correct AM address.
+**Slipstream V1 vs V2 vs V3:** The pool determines the version, each pool is bound to a specific Slipstream version. `read.account.info` returns a `dex_protocol` field on LP positions (derived from the position manager address), so you can read the protocol directly from the account overview. For automations, prefer passing the position's id as `position_id` to `write.account.automations`, which resolves the protocol and tokens for you. If you have no position id, that value (`slipstream`, `slipstream_v2`, `slipstream_v3`, or their `staked_*` variants) is also accepted directly as the `protocol` param.
 
 ## Account Versions
 
@@ -169,7 +172,7 @@ Spot vs margin is determined by whether a **creditor** (lending pool) is set at 
 
 - `account_version: 3` — **margin account** (created with a `creditor`). Can borrow, leverage, and mint LP. Uses an onchain whitelist of allowed collateral tokens.
 - `account_version: 4` or `0` (latest) — **spot account** (no creditor, no borrowing). Can hold assets and mint LP with `leverage: 0`. Accepts any ERC20 (no onchain whitelist).
-- `account_version: 1` or `2` — legacy. Not supported by current MCP tools (`write.asset_manager.*` and `write.account.set_asset_managers` require V3/V4).
+- `account_version: 1` or `2` — legacy. Not supported by current MCP tools (the automation tools require V3/V4).
 - For **leveraged LP strategies**, use `account_version: 3` with a creditor.
 - To check an existing account's version: call `read.account.info` — the response includes the account version.
 

@@ -4,7 +4,7 @@
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 40 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 35 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -12,7 +12,7 @@ Arcadia lets users deploy concentrated liquidity positions with automated rebala
 - **Single-sided liquidity**: deposit a single asset into a lending pool (ERC-4626 tranche) to earn borrower interest
 - **LP strategies**: concentrated liquidity strategies with APY per range width, recommendations
 - **Transaction building**: unsigned calldata for deposits, borrows, swaps, LP minting/closing, staking
-- **Automation**: configure asset managers (rebalancer, compounder, yield claimer, CowSwap, Merkl)
+- **Automation**: configure automations from intents (compound fees, claim rewards, add to LP, rebalance, claim Merkl); the backend resolves the asset managers and returns the calldata
 
 All write tools return unsigned transactions (`{ to, data, value, chainId }`). Signing is the client's responsibility.
 
@@ -24,9 +24,9 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Tools (40 total)
+## Tools (35 total)
 
-### Read (17)
+### Read (18)
 
 - read.account.info: account overview with health factor, collateral, debt, positions, liquidation price, automation status
 - read.account.history: historical account value over time
@@ -44,9 +44,10 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - read.strategy.info: full detail for a specific LP strategy
 - read.strategy.recommendation: rebalancing recommendation for an account
 - read.guides: reference guides for automation, strategies, addresses
-- read.asset_manager.intents: available automation intents with params and supported chains
+- read.asset_manager.intents: automation intents and their params; pass account_address for live per-account availability
+- read.asset_manager.current: automations enabled on an account, with decoded per-manager config, mapped intents, Merkl state, and superseded managers
 
-### Write (22)
+### Write (16)
 
 - write.wallet.approve: approve ERC20/ERC721 for spending
 - write.pool.deposit: deposit the pool's underlying asset into an ERC-4626 tranche to earn lender yield
@@ -62,14 +63,8 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - write.account.deleverage: repay debt by selling collateral
 - write.account.close: atomic close that burns LP, swaps, and repays in one tx
 - write.account.stake: stake, unstake, or claim LP rewards
-- write.account.set_asset_managers: build setAssetManagers tx from encoded intent args
-- write.asset_manager.rebalancer: encode rebalancer automation args
-- write.asset_manager.compounder: encode standalone compounder args
-- write.asset_manager.compounder_staked: encode compounder + CowSwap for staked positions
-- write.asset_manager.yield_claimer: encode yield claimer args
-- write.asset_manager.yield_claimer_cowswap: encode yield claimer + CowSwap args
-- write.asset_manager.cow_swapper: encode direct CowSwap mode args
-- write.asset_manager.merkl_operator: encode Merkl reward claimer args
+- write.account.automations: configure automations from an intents array (complete desired state), returns the unsigned setAssetManagers tx
+- write.account.automations_delta: switch individual automations on or off, leaving the rest untouched
 
 ### Dev (1)
 

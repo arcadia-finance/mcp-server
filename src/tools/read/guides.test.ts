@@ -20,8 +20,9 @@ describe("read.guides", () => {
   it("returns automation guide content", async () => {
     const handler = setup();
     const result = await handler({ topic: "automation" });
-    expect(result.content[0].text).toContain("Rebalancer");
-    expect(result.content[0].text).toContain("Compounder");
+    expect(result.content[0].text).toContain("compound_fees");
+    expect(result.content[0].text).toContain("rebalance");
+    expect(result.content[0].text).toContain("write.account.automations");
   });
 
   it("returns strategies guide content", async () => {

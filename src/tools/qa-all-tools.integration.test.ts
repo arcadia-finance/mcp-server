@@ -102,7 +102,14 @@ const fixtures: Record<string, Fixture> = {
     args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.asset_manager.intents": { args: () => ({}), successExpected: true },
+  "read.asset_manager.intents": {
+    args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
+    successExpected: true,
+  },
+  "read.asset_manager.current": {
+    args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
+    successExpected: true,
+  },
   "read.guides": { args: () => ({ topic: "overview" }), successExpected: true },
 
   // ── Writes (unsigned tx builders) ────────────────────────────────
@@ -259,62 +266,24 @@ const fixtures: Record<string, Fixture> = {
     }),
     successExpected: true,
   },
-  "write.account.set_asset_managers": {
+  // Automations: claim_merkl needs no position context, so it resolves against a
+  // live account without depending on a specific LP position existing.
+  "write.account.automations": {
     args: (c) => ({
       account_address: c.account.accountAddress,
-      asset_managers: ["0x0000000000000000000000000000000000000001"],
-      statuses: [true],
-      datas: ["0x"],
+      intents: [{ kind: "claim_merkl" }],
+      mode: "preview",
       chain_id: CHAIN_ID,
     }),
     successExpected: true,
   },
-  // Asset-manager encoders: drive the `enabled: false` (disabledIntent) branch
-  // so we exercise IntentOutput validation without needing live position state.
-  "write.asset_manager.rebalancer": {
-    args: () => ({ enabled: false, dex_protocol: "slipstream", chain_id: CHAIN_ID }),
-    successExpected: true,
-  },
-  "write.asset_manager.compounder": {
-    args: () => ({ enabled: false, dex_protocol: "slipstream", chain_id: CHAIN_ID }),
-    successExpected: true,
-  },
-  "write.asset_manager.compounder_staked": {
-    args: () => ({
-      enabled: false,
-      dex_protocol: "slipstream",
-      sell_tokens: [WETH],
-      buy_token: USDC,
-      chain_id: CHAIN_ID,
-    }),
-    successExpected: true,
-  },
-  "write.asset_manager.yield_claimer": {
+  "write.account.automations_delta": {
     args: (c) => ({
-      enabled: false,
-      dex_protocol: "slipstream",
-      fee_recipient: c.account.owner,
+      account_address: c.account.accountAddress,
+      enable: [{ kind: "claim_merkl" }],
+      disable: [],
       chain_id: CHAIN_ID,
     }),
-    successExpected: true,
-  },
-  "write.asset_manager.yield_claimer_cowswap": {
-    args: (c) => ({
-      enabled: false,
-      dex_protocol: "slipstream",
-      fee_recipient: c.account.owner,
-      sell_tokens: [WETH],
-      buy_token: USDC,
-      chain_id: CHAIN_ID,
-    }),
-    successExpected: true,
-  },
-  "write.asset_manager.cow_swapper": {
-    args: () => ({ enabled: false, chain_id: CHAIN_ID }),
-    successExpected: true,
-  },
-  "write.asset_manager.merkl_operator": {
-    args: (c) => ({ enabled: false, reward_recipient: c.account.owner, chain_id: CHAIN_ID }),
     successExpected: true,
   },
 

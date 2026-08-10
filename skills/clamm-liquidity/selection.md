@@ -145,11 +145,12 @@ Target collateral ratio ≥ 1.5 at entry (≈ health factor ~0.5+). Never open b
 
 | Combination                | Compatible | Notes                                                                                   |
 | -------------------------- | ---------- | --------------------------------------------------------------------------------------- |
-| Rebalancer + Compounder    | ✅ Yes     | Rebalancer compounds at rebalance time; Compounder adds compounding between rebalances. |
-| Rebalancer + Yield Claimer | ✅ Yes     | Yield claimer claims fees between rebalances; rebalancer compounds at rebalance time.   |
-| Rebalancer + Merkl         | ✅ Yes     | Always combine when pool has Merkl incentives. Zero conflict.                           |
-| Compounder + Merkl         | ✅ Yes     | Merkl rewards claimed separately from trading fees.                                     |
-| Any AM + CoW Swapper       | ✅ Yes     | CoW Swapper sells accumulated tokens independently.                                     |
+| `rebalance` + `compound_fees`         | ✅ Yes     | Rebalance compounds at rebalance time; compound_fees adds compounding between rebalances. |
+| `rebalance` + `claim_rewards`         | ✅ Yes     | Claims yield between rebalances. Order is handled by the keeper's claim-before guard.     |
+| `rebalance` + `claim_merkl`           | ✅ Yes     | Always combine when the pool has Merkl incentives. Zero conflict.                         |
+| `compound_fees` + `claim_merkl`       | ✅ Yes     | Merkl rewards are claimed separately from trading fees.                                   |
+| `compound_fees` + `claim_rewards`     | ⚠️ Per token | Valid only as a partition: each yielding token must go to exactly one of the two, and every yielding token must be covered. |
+| `add_to_lp` + anything                | ✅ Yes     | Independent fold. Only constraint: a folded token cannot be a convert `buy_token`.         |
 
 ---
 

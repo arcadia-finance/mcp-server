@@ -4,8 +4,13 @@ import { fileURLToPath } from "node:url";
 import type {
   ApiResponse,
   ApiListResponse,
+  AutomationsAvailableResponse,
+  AutomationsCurrentStateResponse,
+  AutomationsDeltaBody,
+  AutomationsPlanResponse,
   BundleCalldataRequest,
   BundleCalldataResponse,
+  IntentsBody,
 } from "../types/api.js";
 
 const pkg = JSON.parse(
@@ -271,5 +276,42 @@ export class ArcadiaApiClient {
       asset: asset_address,
       position_id: asset_id,
     } as Record<string, string | number>);
+  }
+
+  // ── Automations (intent compiler) ────────────────────────────────
+  // The backend owns intent resolution, compatibility validation and metadata
+  // encoding. These endpoints return finished setAssetManagers calldata.
+
+  async previewAutomations(account: string, chainId: number, body: IntentsBody) {
+    return this.post<AutomationsPlanResponse>(
+      `/automations/${account}/preview?chain_id=${chainId}`,
+      body,
+    );
+  }
+
+  async saveAutomations(account: string, chainId: number, body: IntentsBody) {
+    return this.post<AutomationsPlanResponse>(
+      `/automations/${account}/save?chain_id=${chainId}`,
+      body,
+    );
+  }
+
+  async applyAutomationsDelta(account: string, chainId: number, body: AutomationsDeltaBody) {
+    return this.post<AutomationsPlanResponse>(
+      `/automations/${account}/apply?chain_id=${chainId}`,
+      body,
+    );
+  }
+
+  async getCurrentAutomations(account: string, chainId: number) {
+    return this.get<AutomationsCurrentStateResponse>(`/automations/${account}`, {
+      chain_id: chainId,
+    });
+  }
+
+  async getAvailableAutomations(account: string, chainId: number, positionId?: number) {
+    const params: Record<string, string | number> = { chain_id: chainId };
+    if (positionId !== undefined) params.position_id = positionId;
+    return this.get<AutomationsAvailableResponse>(`/automations/${account}/available`, params);
   }
 }
