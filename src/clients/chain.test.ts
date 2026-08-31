@@ -23,8 +23,31 @@ describe("getPublicClient", () => {
         [id]: { ...configs[id], rpcUrl: "https://rpc.example.com" },
       };
       const client = getPublicClient(id, withRpc);
-      expect(client, `no client for chain ${id}`).toBeDefined();
-      expect(client.chain.id, `client for ${id} has the wrong chain`).toBe(id);
+      // Optional chaining, not `client.chain.id`: viem builds a client happily with
+      // `chain: undefined`, so a missing viemChains entry threw a bare TypeError here and the
+      // message below never printed.
+      expect(client.chain?.id, `chain ${id} is missing from viemChains`).toBe(id);
+    }
+  });
+
+  it("declares multicall3 on every supported chain", () => {
+    // getChainContractAddress throws ChainDoesNotSupportContract when the entry is absent, which
+    // takes out every client.multicall() caller — read.wallet.balances, read.wallet.allowances and
+    // the account metadata read — on that chain only.
+    const configs = getChainConfigs();
+    for (const id of SUPPORTED_CHAIN_IDS) {
+      const withRpc: Record<ChainId, ChainConfig> = {
+        ...configs,
+        [id]: { ...configs[id], rpcUrl: "https://rpc.example.com" },
+      };
+      const client = getPublicClient(id, withRpc);
+      // Case-insensitive: viem's own bundled chains declare this address lowercase while the
+      // locally defined ones use the checksummed form. The invariant is that it is declared at
+      // all, not how it is cased.
+      expect(
+        client.chain?.contracts?.multicall3?.address?.toLowerCase(),
+        `chain ${id} declares no multicall3, so client.multicall() throws there`,
+      ).toBe("0xca11bde05977b3631167028862be2a173976ca11");
     }
   });
 

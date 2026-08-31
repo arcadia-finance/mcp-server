@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { resolveChainId, getChainConfigs, SUPPORTED_CHAIN_IDS } from "./chains.js";
+import { STATE_VIEWERS } from "./addresses.js";
 
 describe("resolveChainId", () => {
   it.each([8453, 130, 10, 4663])("accepts numeric chain ID %d", (id) => {
@@ -65,7 +66,12 @@ describe("getChainConfigs", () => {
     for (const id of SUPPORTED_CHAIN_IDS) {
       expect(configs[id], `chain ${id} has no config`).toBeDefined();
       expect(configs[id].chainId).toBe(id);
-      expect(configs[id].stateViewer, `chain ${id} has no state viewer`).toBeTruthy();
+      // Compared against STATE_VIEWERS rather than merely truthy: the value is duplicated in two
+      // files, and the checksum test only covers the addresses.ts copy. Asserting equality makes
+      // this one inherit that check instead of accepting any non-empty string.
+      expect(configs[id].stateViewer, `chain ${id} state viewer differs from addresses.ts`).toBe(
+        STATE_VIEWERS[id],
+      );
     }
   });
 

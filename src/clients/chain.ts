@@ -2,6 +2,9 @@ import { createPublicClient, http, defineChain } from "viem";
 import { base, optimism } from "viem/chains";
 import type { ChainId, ChainConfig } from "../config/chains.js";
 
+// multicall3 must be declared or getChainContractAddress throws ChainDoesNotSupportContract,
+// which takes out every client.multicall() call — read.wallet.balances, read.wallet.allowances and
+// the account metadata read. It is deployed at the canonical address here (3808 bytes on chain).
 const unichain = defineChain({
   id: 130,
   name: "Unichain",
@@ -9,12 +12,13 @@ const unichain = defineChain({
   rpcUrls: {
     default: { http: ["https://mainnet.unichain.org"] },
   },
+  contracts: {
+    multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" },
+  },
 });
 
-// Robinhood is not in viem/chains either. multicall3 is declared with blockCreated: 0 because it is
-// a genesis predeploy at the canonical address there — viem's getChainContractAddress only declines
-// to batch below blockCreated, so with the field absent it aggregates at blocks where multicall3
-// might have no code.
+// Robinhood is not in viem/chains either. multicall3 sits at the canonical address (3808 bytes on
+// chain) and is declared with no blockCreated, so no historical gating applies.
 const robinhood = defineChain({
   id: 4663,
   name: "Robinhood",
@@ -23,7 +27,7 @@ const robinhood = defineChain({
     default: { http: ["https://rpc.mainnet.chain.robinhood.com"] },
   },
   contracts: {
-    multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11", blockCreated: 0 },
+    multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" },
   },
 });
 
