@@ -42,15 +42,17 @@ describe("getChainConfigs", () => {
     delete process.env.RPC_URL_BASE;
     delete process.env.RPC_URL_UNICHAIN;
     delete process.env.RPC_URL_OPTIMISM;
+    delete process.env.RPC_URL_ROBINHOOD;
     const configs = getChainConfigs();
     expect(configs[8453].rpcUrl).toBe("https://mainnet.base.org");
     expect(configs[130].rpcUrl).toBe("https://mainnet.unichain.org");
     expect(configs[10].rpcUrl).toBe("https://mainnet.optimism.io");
+    expect(configs[4663].rpcUrl).toBe("https://rpc.mainnet.chain.robinhood.com");
   });
 
-  it("leaves Robinhood's RPC empty rather than guessing, since it has no public endpoint", () => {
+  it("falls back to Robinhood's public RPC", () => {
     delete process.env.RPC_URL_ROBINHOOD;
-    expect(getChainConfigs()[4663].rpcUrl).toBe("");
+    expect(getChainConfigs()[4663].rpcUrl).toBe("https://rpc.mainnet.chain.robinhood.com");
   });
 
   it("uses RPC_URL_ROBINHOOD when set", () => {

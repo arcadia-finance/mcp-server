@@ -38,10 +38,7 @@ export function getChainConfigs(): Record<ChainId, ChainConfig> {
     4663: {
       name: "robinhood",
       chainId: 4663,
-      // No public endpoint to fall back to, so this is empty when unconfigured rather than a
-      // guessed URL. getPublicClient turns that into a named error for Robinhood requests only,
-      // which keeps the server booting for everyone who does not use the chain.
-      rpcUrl: process.env.RPC_URL_ROBINHOOD ?? "",
+      rpcUrl: process.env.RPC_URL_ROBINHOOD ?? "https://rpc.mainnet.chain.robinhood.com",
       stateViewer: "0xF3334192D15450CdD385c8B70e03f9A6bD9E673b",
     },
   };

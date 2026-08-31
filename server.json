@@ -38,7 +38,7 @@
         },
         {
           "name": "RPC_URL_ROBINHOOD",
-          "description": "RPC URL for Robinhood (4663). Required for chain 4663 — there is no public endpoint to fall back to. Other chains keep working without it.",
+          "description": "RPC URL for Robinhood (4663). Falls back to public RPC if not set.",
           "isRequired": false,
           "isSecret": true
         },

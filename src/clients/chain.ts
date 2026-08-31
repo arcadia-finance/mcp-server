@@ -20,9 +20,7 @@ const robinhood = defineChain({
   name: "Robinhood",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
-    // Deliberately empty: there is no public Robinhood endpoint, and the transport below always
-    // supplies the configured URL explicitly. A placeholder here would be a URL that silently fails.
-    default: { http: [] },
+    default: { http: ["https://rpc.mainnet.chain.robinhood.com"] },
   },
   contracts: {
     multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11", blockCreated: 0 },
