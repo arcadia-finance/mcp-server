@@ -37,6 +37,12 @@
           "isSecret": true
         },
         {
+          "name": "RPC_URL_ROBINHOOD",
+          "description": "RPC URL for Robinhood (4663). Required for chain 4663 — there is no public endpoint to fall back to. Other chains keep working without it.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
           "name": "PK",
           "description": "Private key for dev-only signing (not for production).",
           "isRequired": false,

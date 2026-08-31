@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { resolveChainId, getChainConfigs } from "./chains.js";
+import { resolveChainId, getChainConfigs, SUPPORTED_CHAIN_IDS } from "./chains.js";
 
 describe("resolveChainId", () => {
-  it.each([8453, 130, 10])("accepts numeric chain ID %d", (id) => {
+  it.each([8453, 130, 10, 4663])("accepts numeric chain ID %d", (id) => {
     expect(resolveChainId(id)).toBe(id);
   });
 
@@ -11,6 +11,7 @@ describe("resolveChainId", () => {
   });
 
   it("throws for unsupported numeric chain ID", () => {
+    // Ethereum is deliberately unsupported: Arcadia is not deployed on mainnet.
     expect(() => resolveChainId(1)).toThrow("Unsupported chain_id: 1");
   });
 
@@ -24,6 +25,7 @@ describe("getChainConfigs", () => {
     RPC_URL_BASE: process.env.RPC_URL_BASE,
     RPC_URL_UNICHAIN: process.env.RPC_URL_UNICHAIN,
     RPC_URL_OPTIMISM: process.env.RPC_URL_OPTIMISM,
+    RPC_URL_ROBINHOOD: process.env.RPC_URL_ROBINHOOD,
   };
 
   afterEach(() => {
@@ -44,6 +46,25 @@ describe("getChainConfigs", () => {
     expect(configs[8453].rpcUrl).toBe("https://mainnet.base.org");
     expect(configs[130].rpcUrl).toBe("https://mainnet.unichain.org");
     expect(configs[10].rpcUrl).toBe("https://mainnet.optimism.io");
+  });
+
+  it("leaves Robinhood's RPC empty rather than guessing, since it has no public endpoint", () => {
+    delete process.env.RPC_URL_ROBINHOOD;
+    expect(getChainConfigs()[4663].rpcUrl).toBe("");
+  });
+
+  it("uses RPC_URL_ROBINHOOD when set", () => {
+    process.env.RPC_URL_ROBINHOOD = "https://custom-rh-rpc.example.com";
+    expect(getChainConfigs()[4663].rpcUrl).toBe("https://custom-rh-rpc.example.com");
+  });
+
+  it("gives every supported chain a config with a state viewer", () => {
+    const configs = getChainConfigs();
+    for (const id of SUPPORTED_CHAIN_IDS) {
+      expect(configs[id], `chain ${id} has no config`).toBeDefined();
+      expect(configs[id].chainId).toBe(id);
+      expect(configs[id].stateViewer, `chain ${id} has no state viewer`).toBeTruthy();
+    }
   });
 
   it("uses RPC_URL_BASE when set", () => {

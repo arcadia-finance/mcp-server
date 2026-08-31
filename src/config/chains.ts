@@ -1,9 +1,12 @@
-export const SUPPORTED_CHAIN_IDS = [8453, 130, 10] as const;
+// Ethereum (1) is absent deliberately: Arcadia is not deployed on mainnet, so every address a tool
+// would read there has no code. It joins when the contracts land.
+export const SUPPORTED_CHAIN_IDS = [8453, 130, 10, 4663] as const;
 export type ChainId = (typeof SUPPORTED_CHAIN_IDS)[number];
 
-export const CHAIN_ID_DESCRIPTION = "Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)";
+export const CHAIN_ID_DESCRIPTION =
+  "Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)";
 export const SUPPORTED_CHAINS_ERROR =
-  "Supported chains: Base (8453), Unichain (130), and Optimism (10)";
+  "Supported chains: Base (8453), Unichain (130), Optimism (10), and Robinhood (4663)";
 
 export interface ChainConfig {
   name: string;
@@ -30,7 +33,16 @@ export function getChainConfigs(): Record<ChainId, ChainConfig> {
       name: "optimism",
       chainId: 10,
       rpcUrl: process.env.RPC_URL_OPTIMISM ?? "https://mainnet.optimism.io",
-      stateViewer: "0xc18a3169788F4f75A170290584ecA6395C75Ecdb",
+      stateViewer: "0xc18a3169788F4F75A170290584ECA6395C75Ecdb",
+    },
+    4663: {
+      name: "robinhood",
+      chainId: 4663,
+      // No public endpoint to fall back to, so this is empty when unconfigured rather than a
+      // guessed URL. getPublicClient turns that into a named error for Robinhood requests only,
+      // which keeps the server booting for everyone who does not use the chain.
+      rpcUrl: process.env.RPC_URL_ROBINHOOD ?? "",
+      stateViewer: "0xF3334192D15450CdD385c8B70e03f9A6bD9E673b",
     },
   };
 }

@@ -118,7 +118,8 @@ export function backendProtocolToDexProtocol(protocol: string): string | null {
 export const STATE_VIEWERS: Partial<Record<ChainId, `0x${string}`>> = {
   8453: "0xA3c0c9b65baD0b08107Aa264b0f3dB444b867A71",
   130: "0x86e8631A016F9068C3f085fAF484Ee3F5fDee8f2",
-  10: "0xc18a3169788F4f75A170290584ecA6395C75Ecdb",
+  10: "0xc18a3169788F4F75A170290584ECA6395C75Ecdb",
+  4663: "0xF3334192D15450CdD385c8B70e03f9A6bD9E673b",
 };
 
 // LP position manager address (lowercase) → dex_protocol value
@@ -141,6 +142,12 @@ export const CHAIN_POSITION_MANAGERS: Partial<Record<ChainId, Record<string, str
     "0xf7f8ccce99ca2896ec75d3a399d152db96808399": "slipstream_v3",
     "0xc36442b4a4522e871399cd717abdd847ab11fe88": "uniV3",
     "0x3c3ea4b57a46241e54610e5f022e5c45859a1017": "uniV4",
+  },
+  // Uniswap only. Aerodrome, Velodrome and Slipstream have no deployment on Robinhood, so there is
+  // no position manager for them to name.
+  4663: {
+    "0x73991a25c818bf1f1128deaab1492d45638de0d3": "uniV3",
+    "0x58daec3116aae6d93017baaea7749052e8a04fa7": "uniV4",
   },
 };
 
