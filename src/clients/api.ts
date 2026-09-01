@@ -156,10 +156,16 @@ export class ArcadiaApiClient {
     return this.get<ApiListResponse>("/pools", { chain_id: chainId });
   }
 
-  async getPoolsData(chainId: number, poolAddress?: string) {
-    const params: Record<string, string | number> = { chain_id: chainId };
-    if (poolAddress) params.pool_address = poolAddress;
-    return this.get<ApiListResponse>("/pools_data", params);
+  /**
+   * `pool_address` is required: /pools_data answers 500 without it, so an
+   * optional parameter here turned a missing argument into a runtime error at
+   * the far end rather than a compile error at the call site.
+   */
+  async getPoolsData(chainId: number, poolAddress: string) {
+    return this.get<ApiListResponse>("/pools_data", {
+      chain_id: chainId,
+      pool_address: poolAddress,
+    });
   }
 
   async getPoolApyHistory(chainId: number, poolAddress: string, days = 14) {

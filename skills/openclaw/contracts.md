@@ -12,12 +12,12 @@ Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
 
 Lending pools (same CREATE2 addresses across chains; Unichain has none):
 
-| Pool     | Address                                    | Chains         |
-| -------- | ------------------------------------------ | -------------- |
-| LP_WETH  | 0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2 | Base, Optimism |
-| LP_USDC  | 0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1 | Base, Optimism |
-| LP_CBBTC | 0xa37E9b4369dc20940009030BfbC2088F09645e3B | Base only      |
-| LP_USDG  | 0xf37c0C5996503Fdd2b5CCCE36E659cD30393AE59 | Robinhood only |
+| Pool     | Address                                    | Chains                    |
+| -------- | ------------------------------------------ | ------------------------- |
+| LP_WETH  | 0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2 | Base, Optimism, Robinhood |
+| LP_USDC  | 0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1 | Base, Optimism            |
+| LP_CBBTC | 0xa37E9b4369dc20940009030BfbC2088F09645e3B | Base only                 |
+| LP_USDG  | 0xf37c0C5996503Fdd2b5CCCE36E659cD30393AE59 | Robinhood only            |
 
 ## Asset Managers
 
