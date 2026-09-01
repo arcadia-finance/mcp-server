@@ -27,18 +27,31 @@ import { AccountInfoOutput, AccountHistoryOutput, AccountPnlOutput } from "../ou
  */
 export function normalizeAccountHistory(raw: unknown): Record<string, unknown>[] {
   if (Array.isArray(raw)) return raw as Record<string, unknown>[];
+  if (raw === null || raw === undefined) return [];
 
-  const values = (raw as { values?: unknown } | null | undefined)?.values;
-  if (values && typeof values === "object" && !Array.isArray(values)) {
+  const hasValues = typeof raw === "object" && raw !== null && "values" in raw;
+  const values = (raw as { values?: unknown }).values;
+
+  // A `values` key that is present but carries nothing is the empty window this
+  // function claims to handle — an array or null there is an answer, not an
+  // unrecognised shape.
+  if (hasValues && (values === null || values === undefined)) return [];
+  if (Array.isArray(values)) return values as Record<string, unknown>[];
+
+  if (values && typeof values === "object") {
     return Object.entries(values as Record<string, unknown>)
-      .map(([timestamp, netValue]) => ({
-        timestamp: Number(timestamp),
-        net_value: netValue,
-      }))
+      .map(([timestamp, netValue]) => {
+        // A non-numeric key would become NaN, which sorts unpredictably and
+        // serialises to null. For a function whose point is refusing to mangle
+        // unexpected shapes, that gets the same throw as an unknown shape.
+        const parsed = Number(timestamp);
+        if (!Number.isFinite(parsed)) {
+          throw new Error(`Unexpected account-history timestamp key: ${JSON.stringify(timestamp)}`);
+        }
+        return { timestamp: parsed, net_value: netValue };
+      })
       .sort((a, b) => a.timestamp - b.timestamp);
   }
-
-  if (raw === null || raw === undefined) return [];
 
   throw new Error(
     `Unexpected account-history response shape: ${JSON.stringify(raw).slice(0, 200)}`,

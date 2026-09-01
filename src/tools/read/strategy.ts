@@ -1,3 +1,4 @@
+import { expectArray } from "./shapes.js";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
@@ -39,7 +40,7 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
 
         if (featured_only) {
           const raw = await api.getFeatured(chain_id);
-          const all = Array.isArray(raw) ? (raw as Record<string, unknown>[]) : [];
+          const all = expectArray<Record<string, unknown>>(raw, "featured strategies");
           // The /featured endpoint currently returns curated Base strategies regardless of
           // chain_id. Filter by the chain baked into each strategy's url (`/farm/<chainId>/…`)
           // so we never hand back strategies that belong to a different chain.

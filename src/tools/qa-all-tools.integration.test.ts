@@ -31,6 +31,16 @@ interface Fixture {
    * If false, isError:true is acceptable (API requires state we don't have).
    */
   successExpected?: boolean;
+  /**
+   * Field of `structuredContent` that must be a non-empty array.
+   *
+   * `successExpected` only checks that a response arrived. That is what let
+   * `read.account.history` report `{"history":[]}` for a populated account and
+   * still pass: no error, structuredContent defined, nothing in it. Any tool
+   * whose fixture targets state that definitely exists should name the field
+   * here, so "answered with nothing" fails instead of passing.
+   */
+  nonEmpty?: string;
   /** Skip with reason. */
   skip?: string;
 }
@@ -42,12 +52,20 @@ interface Ctx {
 
 const fixtures: Record<string, Fixture> = {
   // ── Reads ────────────────────────────────────────────────────────
-  "read.pool.list": { args: () => ({ chain_id: CHAIN_ID }), successExpected: true },
+  "read.pool.list": {
+    args: () => ({ chain_id: CHAIN_ID }),
+    successExpected: true,
+    nonEmpty: "pools",
+  },
   "read.pool.info": {
     args: () => ({ pool_address: CBBTC_POOL, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.asset.list": { args: () => ({ chain_id: CHAIN_ID }), successExpected: true },
+  "read.asset.list": {
+    args: () => ({ chain_id: CHAIN_ID }),
+    successExpected: true,
+    nonEmpty: "assets",
+  },
   "read.asset.prices": {
     args: () => ({ asset_addresses: `${USDC},${WETH}`, chain_id: CHAIN_ID }),
     successExpected: true,
@@ -337,6 +355,16 @@ describe("QA: every tool via real MCP SDK", { timeout: 60_000 }, () => {
       if (fix.successExpected) {
         expect(resp.isError ?? false, `${name} errored: ${text}`).toBe(false);
         expect(resp.structuredContent, `${name} missing structuredContent`).toBeDefined();
+      }
+      if (fix.nonEmpty) {
+        const value = (resp.structuredContent as Record<string, unknown> | undefined)?.[
+          fix.nonEmpty
+        ];
+        expect(
+          Array.isArray(value) && value.length > 0,
+          `${name}: structuredContent.${fix.nonEmpty} is empty — ` +
+            `a successful read of existing state must not answer with nothing`,
+        ).toBe(true);
       }
     });
   }

@@ -1,3 +1,4 @@
+import { expectArray } from "./shapes.js";
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
@@ -35,7 +36,7 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
             structuredContent: empty,
           };
         }
-        const wrapped = { pools: Array.isArray(result) ? result : [] };
+        const wrapped = { pools: expectArray(result, "pools") };
         return {
           content: [{ type: "text" as const, text: JSON.stringify(wrapped, null, 2) }],
           structuredContent: wrapped,
