@@ -39,6 +39,11 @@ interface Fixture {
    * still pass: no error, structuredContent defined, nothing in it. Any tool
    * whose fixture targets state that definitely exists should name the field
    * here, so "answered with nothing" fails instead of passing.
+   *
+   * Deliberately NOT applied to `read.account.history`, the case that motivated
+   * it: the fixture's account rotates and may legitimately have no snapshots,
+   * which would make this flaky. The handler tests in
+   * `read/account-history.test.ts` are what guard that one.
    */
   nonEmpty?: string;
   /** Skip with reason. */
