@@ -1,6 +1,6 @@
 # Arcadia Finance MCP Server
 
-> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10).
+> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
 
 ## Overview
 
@@ -32,7 +32,7 @@ Get full overview of an Arcadia account: health factor, collateral value, debt, 
 
 Parameters:
 - `account_address` (string, required): Arcadia account address
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.account.history
 
@@ -41,7 +41,7 @@ Get historical collateral and debt values for an Arcadia account over time.
 Parameters:
 - `account_address` (string, required): Arcadia account address
 - `days` (number, default: 14): Number of days of history
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.account.pnl
 
@@ -49,7 +49,7 @@ Get PnL (cost basis) and yield earned for an Arcadia account.
 
 Parameters:
 - `account_address` (string, required): Arcadia account address
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.wallet.balances
 
@@ -58,7 +58,7 @@ Get native ETH and ERC20 token balances for a wallet address.
 Parameters:
 - `wallet_address` (string, required): Wallet address to check balances for
 - `token_addresses` (string[], required): ERC20 token contract addresses to check
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.wallet.allowances
 
@@ -68,7 +68,7 @@ Parameters:
 - `owner_address` (string, required): Token owner address (the wallet granting approval)
 - `spender_address` (string, required): Spender address to check allowance for
 - `token_addresses` (string[], required): ERC20 token contract addresses to check
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.wallet.accounts
 
@@ -76,7 +76,7 @@ List all Arcadia accounts owned by a wallet address.
 
 Parameters:
 - `wallet_address` (string, required): Wallet address to list accounts for
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.wallet.points
 
@@ -91,7 +91,7 @@ List supported collateral assets on Arcadia.
 
 Parameters:
 - `search` (string, optional): Filter assets by symbol (case-insensitive substring match)
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.asset.prices
 
@@ -99,14 +99,14 @@ Get USD prices for one or more asset addresses.
 
 Parameters:
 - `asset_addresses` (string, required): Single address or comma-separated addresses
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.pool.list
 
 List all Arcadia lending pools: TVL, utilization, available liquidity.
 
 Parameters:
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.pool.info
 
@@ -115,7 +115,7 @@ Get detailed info for a single lending pool including APY history over time.
 Parameters:
 - `pool_address` (string, required): Pool address
 - `days` (number, default: 14): Number of days of APY history
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.point_leaderboard
 
@@ -133,7 +133,7 @@ Parameters:
 - `featured_only` (boolean, default: false): Return only featured/curated strategies
 - `limit` (number, default: 25): Max strategies to return
 - `offset` (number, default: 0): Skip first N strategies for pagination
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.strategy.info
 
@@ -141,7 +141,7 @@ Get full detail for a specific LP strategy by ID.
 
 Parameters:
 - `strategy_id` (number, required): Strategy ID
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.strategy.recommendation
 
@@ -149,7 +149,7 @@ Get a rebalancing recommendation for an Arcadia account.
 
 Parameters:
 - `account_address` (string, required): Arcadia account address
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.asset_manager.intents
 
@@ -158,7 +158,7 @@ List the automation intents Arcadia supports with the parameters each accepts. P
 Parameters:
 - `account_address` (string, optional): Include it to get live per-account availability
 - `position_id` (number, optional): Scope availability to one LP position. Requires account_address
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.asset_manager.current
 
@@ -166,7 +166,7 @@ Read which asset managers are enabled on an account, with their decoded on-chain
 
 Parameters:
 - `account_address` (string, required): Arcadia account address
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### read.guides
 
@@ -188,7 +188,7 @@ Parameters:
 - `spender_address` (string, required): Address being approved
 - `asset_type` (enum, default: "erc20"): erc20 | erc721 | erc1155
 - `amount` (string, default: "max_uint256"): ERC20 only: amount in raw units
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.pool.deposit
 
@@ -198,7 +198,7 @@ Parameters:
 - `tranche_address` (string, required): Tranche contract address (get from `read.pool.list`, each pool's `tranches[0].address`)
 - `assets` (string, required): Amount of underlying asset to deposit in raw units
 - `receiver` (string, required): Address that receives the minted tranche shares
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.pool.redeem
 
@@ -209,7 +209,7 @@ Parameters:
 - `shares` (string, required): Amount of tranche shares to burn in raw units
 - `receiver` (string, required): Address that receives the underlying asset
 - `owner` (string, required): Address that owns the tranche shares being burned
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.create
 
@@ -220,7 +220,7 @@ Parameters:
 - `wallet_address` (string, required): Wallet address that will send the transaction
 - `account_version` (number, default: 0): 0 = latest (V4 spot), 3 = margin (can borrow)
 - `creditor` (string, optional): Lending pool address for V3 margin account
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.deposit
 
@@ -233,7 +233,7 @@ Parameters:
 - `asset_ids` (number[], optional): Token IDs: 0 for ERC20, NFT token ID for ERC721
 - `asset_types` (number[], optional): V4 only. 1=ERC20, 2=ERC721, 3=ERC1155
 - `account_version` (number, optional): Override account version (auto-detected if omitted)
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.withdraw
 
@@ -246,7 +246,7 @@ Parameters:
 - `asset_ids` (number[], optional): Token IDs: 0 for ERC20, NFT token ID for ERC721
 - `asset_types` (number[], optional): V4 only. 1=ERC20, 2=ERC721, 3=ERC1155
 - `account_version` (number, optional): Override account version (auto-detected if omitted)
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.borrow
 
@@ -257,7 +257,7 @@ Parameters:
 - `account_address` (string, required): Arcadia account address used as collateral
 - `amount` (string, required): Amount in raw units
 - `to` (string, required): Address to receive borrowed tokens
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.repay
 
@@ -267,7 +267,7 @@ Parameters:
 - `pool_address` (string, required): Lending pool address
 - `account_address` (string, required): Arcadia account address with debt
 - `amount` (string, required): Amount in raw units, or "max_uint256" to repay all
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.add_liquidity
 
@@ -287,7 +287,7 @@ Parameters:
 - `use_account_assets` (boolean, default: false): Use all existing account collateral
 - `leverage` (number, default: 0): 0 = no borrow, 2 = 2x leverage
 - `slippage` (number, default: 100): Basis points, 100 = 1%
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.remove_liquidity
 
@@ -298,7 +298,7 @@ Parameters:
 - `asset_address` (string, required): Position manager contract
 - `asset_id` (number, required): NFT token ID
 - `adjustment` (string, required): Liquidity amount to remove (raw uint128)
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.swap
 
@@ -310,7 +310,7 @@ Parameters:
 - `asset_to` (string, required): Token address to swap to
 - `amount_in` (string, required): Raw units
 - `slippage` (number, default: 100): Basis points, 100 = 1%
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.deleverage
 
@@ -323,7 +323,7 @@ Parameters:
 - `numeraire` (string, required): Debt token address
 - `creditor` (string, required): Lending pool address
 - `slippage` (number, default: 100): Basis points, 100 = 1%
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.stake
 
@@ -334,7 +334,7 @@ Parameters:
 - `action` (enum, required): stake | unstake | claim
 - `asset_address` (string, required): Position manager contract address
 - `asset_id` (number, required): NFT token ID
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.close
 
@@ -353,7 +353,7 @@ Parameters:
   - `distribution` (number, optional): Fraction of proceeds (0-1)
 - `close_lp_only` (boolean, default: false): true = only burn LP, false = full close
 - `slippage` (number, default: 100): Basis points, 100 = 1%
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.automations
 
@@ -378,7 +378,7 @@ Parameters:
 - `token0` / `token1` (string, optional): Pool token addresses
 - `reward_tokens` (string[], optional): Staking reward token addresses
 - `owner` (string, optional): Account owner EOA, used to resolve wallet payout targets
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ### write.account.automations_delta
 
@@ -400,7 +400,7 @@ Parameters:
 - `to` (string, required): Target contract address
 - `data` (string, required): Encoded calldata (hex)
 - `value` (string, default: "0"): Value in wei
-- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), or 10 (Optimism)
+- `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
 ## Links
 

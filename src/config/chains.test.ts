@@ -1,8 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { resolveChainId, getChainConfigs } from "./chains.js";
+import { resolveChainId, getChainConfigs, SUPPORTED_CHAIN_IDS } from "./chains.js";
+import { STATE_VIEWERS } from "./addresses.js";
 
 describe("resolveChainId", () => {
-  it.each([8453, 130, 10])("accepts numeric chain ID %d", (id) => {
+  it.each([8453, 130, 10, 4663])("accepts numeric chain ID %d", (id) => {
     expect(resolveChainId(id)).toBe(id);
   });
 
@@ -11,6 +12,7 @@ describe("resolveChainId", () => {
   });
 
   it("throws for unsupported numeric chain ID", () => {
+    // Ethereum is deliberately unsupported: Arcadia is not deployed on mainnet.
     expect(() => resolveChainId(1)).toThrow("Unsupported chain_id: 1");
   });
 
@@ -24,6 +26,7 @@ describe("getChainConfigs", () => {
     RPC_URL_BASE: process.env.RPC_URL_BASE,
     RPC_URL_UNICHAIN: process.env.RPC_URL_UNICHAIN,
     RPC_URL_OPTIMISM: process.env.RPC_URL_OPTIMISM,
+    RPC_URL_ROBINHOOD: process.env.RPC_URL_ROBINHOOD,
   };
 
   afterEach(() => {
@@ -40,10 +43,36 @@ describe("getChainConfigs", () => {
     delete process.env.RPC_URL_BASE;
     delete process.env.RPC_URL_UNICHAIN;
     delete process.env.RPC_URL_OPTIMISM;
+    delete process.env.RPC_URL_ROBINHOOD;
     const configs = getChainConfigs();
     expect(configs[8453].rpcUrl).toBe("https://mainnet.base.org");
     expect(configs[130].rpcUrl).toBe("https://mainnet.unichain.org");
     expect(configs[10].rpcUrl).toBe("https://mainnet.optimism.io");
+    expect(configs[4663].rpcUrl).toBe("https://rpc.mainnet.chain.robinhood.com");
+  });
+
+  it("falls back to Robinhood's public RPC", () => {
+    delete process.env.RPC_URL_ROBINHOOD;
+    expect(getChainConfigs()[4663].rpcUrl).toBe("https://rpc.mainnet.chain.robinhood.com");
+  });
+
+  it("uses RPC_URL_ROBINHOOD when set", () => {
+    process.env.RPC_URL_ROBINHOOD = "https://custom-rh-rpc.example.com";
+    expect(getChainConfigs()[4663].rpcUrl).toBe("https://custom-rh-rpc.example.com");
+  });
+
+  it("gives every supported chain a config with a state viewer", () => {
+    const configs = getChainConfigs();
+    for (const id of SUPPORTED_CHAIN_IDS) {
+      expect(configs[id], `chain ${id} has no config`).toBeDefined();
+      expect(configs[id].chainId).toBe(id);
+      // Compared against STATE_VIEWERS rather than merely truthy: the value is duplicated in two
+      // files, and the checksum test only covers the addresses.ts copy. Asserting equality makes
+      // this one inherit that check instead of accepting any non-empty string.
+      expect(configs[id].stateViewer, `chain ${id} state viewer differs from addresses.ts`).toBe(
+        STATE_VIEWERS[id],
+      );
+    }
   });
 
   it("uses RPC_URL_BASE when set", () => {

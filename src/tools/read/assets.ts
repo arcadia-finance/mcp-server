@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { expectArrayOrWrapped } from "./shapes.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION } from "../../config/chains.js";
@@ -29,11 +30,7 @@ export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
     async ({ search, chain_id }) => {
       try {
         const raw = await api.getAssets(chain_id);
-        const obj = raw as Record<string, unknown>;
-        const allAssets = (Array.isArray(raw) ? raw : (obj.assets ?? obj.data ?? [])) as Record<
-          string,
-          unknown
-        >[];
+        const allAssets = expectArrayOrWrapped(raw, "assets", "assets", "data");
         let assets = allAssets.map((a) => ({
           address: a.address ?? a.asset_address,
           symbol: a.name ?? a.symbol ?? a.asset_symbol,

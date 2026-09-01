@@ -1,6 +1,6 @@
 # Arcadia Contract Addresses
 
-Supported chains: Base (8453), Unichain (130), Optimism (10).
+Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
 
 ## Shared Addresses
 
@@ -10,13 +10,14 @@ Supported chains: Base (8453), Unichain (130), Optimism (10).
 | Registry   | 0xd0690557600eb8Be8391D1d97346e2aab5300d5f |
 | Liquidator | 0xA4B0b9fD1d91fA2De44F6ABFd59cC14bA1E1a7Af |
 
-Lending pools (same CREATE2 addresses on Base and Optimism, Unichain has none):
+Lending pools (same CREATE2 addresses across chains; Unichain has none):
 
-| Pool     | Address                                    | Chains         |
-| -------- | ------------------------------------------ | -------------- |
-| LP_WETH  | 0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2 | Base, Optimism |
-| LP_USDC  | 0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1 | Base, Optimism |
-| LP_CBBTC | 0xa37E9b4369dc20940009030BfbC2088F09645e3B | Base only      |
+| Pool     | Address                                    | Chains                    |
+| -------- | ------------------------------------------ | ------------------------- |
+| LP_WETH  | 0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2 | Base, Optimism, Robinhood |
+| LP_USDC  | 0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1 | Base, Optimism            |
+| LP_CBBTC | 0xa37E9b4369dc20940009030BfbC2088F09645e3B | Base only                 |
+| LP_USDG  | 0xf37c0C5996503Fdd2b5CCCE36E659cD30393AE59 | Robinhood only            |
 
 ## Asset Managers
 
@@ -27,6 +28,7 @@ Protocol availability per chain:
 - **Base**: Slipstream V1, V2, V3, Uniswap V3, V4, CoW Swap
 - **Optimism**: Slipstream V1, V3, Uniswap V3, V4 (no V2, no CoW Swap). V3 uses different AM addresses than Base (exception to the deterministic deployment pattern).
 - **Unichain**: Slipstream V1, Uniswap V3, V4 (no V2/V3, no CoW Swap)
+- **Robinhood**: Uniswap V3, V4 only (no Slipstream or Aerodrome deployment, no CoW Swap). Lending pools are WETH and USDG — there is no USDC on this chain.
 
 Use `read.asset_manager.intents` to discover available automations and their addresses per chain.
 

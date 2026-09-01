@@ -22,7 +22,7 @@ Arcadia is a platform for managing concentrated liquidity positions with automat
 Write tools (`write.*`) return unsigned transaction calldata. This server does NOT sign or broadcast. After receiving a transaction object, you must:
 
 1. **Sign** the transaction with the account owner's private key or wallet
-2. **Broadcast** it to the appropriate chain (Base 8453, Unichain 130, or Optimism 10)
+2. **Broadcast** it to the appropriate chain (Base 8453, Unichain 130, Optimism 10, or Robinhood 4663)
 3. **Wait** for the transaction receipt to confirm success
 
 How you sign depends on your setup:

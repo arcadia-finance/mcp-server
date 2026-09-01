@@ -37,6 +37,12 @@
           "isSecret": true
         },
         {
+          "name": "RPC_URL_ROBINHOOD",
+          "description": "RPC URL for Robinhood (4663). Falls back to public RPC if not set.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
           "name": "PK",
           "description": "Private key for dev-only signing (not for production).",
           "isRequired": false,
