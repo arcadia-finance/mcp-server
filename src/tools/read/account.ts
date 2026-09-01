@@ -13,6 +13,38 @@ import {
 import { validateAddress, validateChainId } from "../../utils/validation.js";
 import { AccountInfoOutput, AccountHistoryOutput, AccountPnlOutput } from "../output-schemas.js";
 
+/**
+ * Normalise `/accounts/historic_account_values` into a time series.
+ *
+ * The endpoint answers `{ values: { "<unix seconds>": <net value>, ... } }` — an
+ * object keyed by timestamp, not an array. Coercing a non-array response to `[]`
+ * therefore discarded every snapshot and reported it as "no history", which is
+ * indistinguishable from an account that genuinely has none.
+ *
+ * Both shapes are accepted so this survives the endpoint changing, and anything
+ * that is neither throws rather than reporting an empty series: a read that did
+ * not work has to look different from a read that found nothing.
+ */
+export function normalizeAccountHistory(raw: unknown): Record<string, unknown>[] {
+  if (Array.isArray(raw)) return raw as Record<string, unknown>[];
+
+  const values = (raw as { values?: unknown } | null | undefined)?.values;
+  if (values && typeof values === "object" && !Array.isArray(values)) {
+    return Object.entries(values as Record<string, unknown>)
+      .map(([timestamp, netValue]) => ({
+        timestamp: Number(timestamp),
+        net_value: netValue,
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }
+
+  if (raw === null || raw === undefined) return [];
+
+  throw new Error(
+    `Unexpected account-history response shape: ${JSON.stringify(raw).slice(0, 200)}`,
+  );
+}
+
 function trimOverview(
   overview: Record<string, unknown>,
   chainId: ChainId,
@@ -273,7 +305,7 @@ export function registerAccountTools(
         openWorldHint: true,
       },
       description:
-        "Get historical collateral and debt values for an Arcadia account over time. Returns a time series of snapshots (timestamp, collateral_value, debt_value, net_value). Each value is the account's net value in USD (human-readable, not raw units). Useful for charting account performance over a period.",
+        "Get an Arcadia account's historical net value over time. Returns a time series of snapshots, oldest first, each `{ timestamp, net_value }` — `timestamp` is unix seconds and `net_value` is USD (human-readable, not raw units). Useful for charting account performance over a period. An empty `history` means the account has no snapshots in the window, not that the read failed.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         days: z.number().default(14).describe("Number of days of history (default 14)"),
@@ -291,7 +323,7 @@ export function registerAccountTools(
           };
         }
         const raw = await api.getAccountHistory(validChainId, account_address, days);
-        const result = { history: Array.isArray(raw) ? raw : [] };
+        const result = { history: normalizeAccountHistory(raw) };
         return {
           content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
           structuredContent: result,
