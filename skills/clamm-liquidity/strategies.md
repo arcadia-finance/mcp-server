@@ -341,3 +341,62 @@ read.strategy.recommendation → check if rebalancing is needed
 ```
 
 **POL monitoring goal:** Ensure sufficient liquidity is deployed and treasury capital is not eroding excessively — not maximizing return.
+
+## Move to Aero (MetadexCL V1)
+
+Aero CL succeeds the Slipstream pools (Aerodrome on Base, Velodrome on Optimism) at the Aero launch. `write.account.aero_migration` (`action: migrate`) moves Slipstream V1, V2 and V3 positions, staked or not, into the Aero CL pool with the same pair and tick spacing, keeping the range, in one flashAction signed by the account owner. Chains: Base and Optimism. Robinhood has no Slipstream positions to move.
+
+The backend decides what can move. Report its statuses and codes as given; never decide eligibility yourself.
+
+### Step-by-step
+
+```
+// 1. Find the Slipstream positions (dex_protocol slipstream, slipstream_v2, slipstream_v3 or staked_*)
+read.account.info(account_address: <account>, chain_id: 8453)
+
+// 2. If automations are enabled, keep their intents and config: the old managers are replaced after the move
+read.asset_manager.current(account_address: <account>, chain_id: 8453)
+
+// 3. Build the move: one position, or omit asset_address + position_id for the whole account
+write.account.aero_migration(action: "migrate", account_address: <account>, asset_address: <slipstream_pm>, position_id: <nft_id>, chain_id: 8453)
+
+// 4. Sign and broadcast as the account owner
+
+// 5. Reconnect automations when managers_to_reconnect is not empty (new position id from read.account.info)
+write.account.automations(account_address: <account>, position_id: <new_aero_id>, intents: [<from step 2>], mode: "save", chain_id: 8453)
+
+// 6. Verify: dex_protocol metadexcl_v1 or staked_metadexcl_v1, automation shows the reconnected managers
+read.account.info(account_address: <account>, chain_id: 8453)
+```
+
+### Responses to handle
+
+| Response                                      | Meaning and next step                                                                                                                                                                                                                                       |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `target_choice_required` with `candidates`    | Aero has no pool at the position's tick spacing (for example CL500, CL2000). Show the alternatives with `selectable: true` (tick spacing, fee, `range_widened`), ask which pool, call again with `target_pool` (one position) or `targets` (whole account). |
+| `migration.skipped[]` with a `code`           | Positions the whole-account move left out: `target_not_onboarded` (no Arcadia strategy for that Aero pool yet), `empty_position`, `deprecated_reward_token_in_pair`.                                                                                        |
+| 422 `deprecated_reward_token_in_pair`         | On Base, a margin account cannot take a pair holding the old AERO. That position cannot move; do not work around it.                                                                                                                                        |
+| 422 `target_price_mismatch`                   | The Aero pool price is more than 3% from the reference price. Do not force it; report it.                                                                                                                                                                   |
+| Aero migration is not live yet                | Not a server failure: the migration opens once Arcadia's Aero contracts are live on that chain. Do not retry in a loop.                                                                                                                                     |
+| `tenderly_sim_status: failure`                | Do NOT broadcast. Rebuild once; report if it fails again.                                                                                                                                                                                                   |
+| `staking_available_later` on a moved position | A staked source landed unstaked because staked Aero is not enabled for it yet.                                                                                                                                                                              |
+| `migration.legacy_reward_to_owner: true`      | Unclaimed old AERO rewards of a staked Base margin position go to the owner's wallet.                                                                                                                                                                       |
+
+`price_tolerance_bps` (default 150) bounds the price the mint accepts. Pass `safe: true` when a multisig signs later (default 500).
+
+### Reconnecting automations
+
+The move mints a new position, so automations on the old Slipstream position stop applying. `managers_to_reconnect` lists the old managers (`kind`, `old_address`) and their Aero replacements (`new_address`). Call `write.account.automations` in `save` mode with the new `position_id` and the intents the account had. Omit `protocol` so the backend resolves `metadexcl_v1` from the position: a stale `slipstream_*` value would compile Slipstream managers. The save disables the old managers in the same transaction. Custom rebalancer settings are not carried over automatically; restate them from `read.asset_manager.current`. On Optimism and Robinhood there is no CoW Swapper, so compounding a staked Aero position's xAERO reward is rejected there; `claim_rewards` works.
+
+### Margin vs spot
+
+Margin accounts hold Aero positions on Base only. On Optimism and Robinhood, Aero positions are spot only. Moving an Optimism margin account's positions therefore fails simulation: do not broadcast it. Staked Aero positions stay spot only until staked margin is enabled.
+
+### Token upgrades
+
+Separate from moving positions, same tool:
+
+- `action: upgrade_aero` (Base): upgrades loose old AERO (`0x940181a94A35A4569E4529A3CDfB74e38FD98631`) held in an account 1:1 into the new AERO (`0x3f5bF3EdAc59d650D8fDf9657a71F2f904A3a4Ee`). It does not change LP positions.
+- `action: upgrade_velo` with `chain_id: 10` and `owner_address`: VELO in the wallet on Optimism becomes 0.044 new AERO per VELO, paid to the same address on Base after the Hyperlane message lands. Returns ordered `transactions` (approve when needed, then the payable deposit). VELO inside an account must be withdrawn first with `write.account.withdraw`. VELO stays usable, so this is optional.
+
+Errors name the reason: `not_open` (with the opening time), `paused`, `budget_exhausted`, `recipient_not_deployed` (a contract wallet that does not exist on Base).

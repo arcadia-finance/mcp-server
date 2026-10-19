@@ -9,7 +9,7 @@
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 [![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
 
-MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
+MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
 Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 
@@ -63,6 +63,7 @@ All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 | `write.account.deleverage`        | Repay debt by selling collateral (swap + repay in one tx).                                                                                         |
 | `write.account.close`             | Atomic close: burn LP + swap + repay debt in one tx.                                                                                               |
 | `write.account.stake`             | Stake, unstake, or claim rewards for LP positions.                                                                                                 |
+| `write.account.aero_migration`    | Move to Aero: migrate Slipstream positions into Aero CL, or upgrade old AERO (account, Base) and VELO (wallet, Optimism).                          |
 | `write.account.automations`       | Configure automations from an intents array (full desired state). Returns the unsigned setAssetManagers tx.                                        |
 | `write.account.automations_delta` | Enable/disable individual automations, leaving the rest untouched.                                                                                 |
 

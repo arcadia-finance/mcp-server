@@ -313,6 +313,15 @@ const fixtures: Record<string, Fixture> = {
   },
 
   // ── Dev ──────────────────────────────────────────────────────────
+  // Needs Slipstream positions in the account; accept rejection.
+  "write.account.aero_migration": {
+    args: (c) => ({
+      action: "migrate",
+      account_address: c.account.accountAddress,
+      chain_id: CHAIN_ID,
+    }),
+    successExpected: false,
+  },
   "dev.send": { args: () => ({ to: WETH, data: "0x" }), successExpected: false },
 };
 

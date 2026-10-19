@@ -1,6 +1,6 @@
 ---
 name: clamm-liquidity
-description: Agent guide for clAMM management on Arcadia Finance. Covers 34 MCP tools (+1 dev), intent-based automation setup (compound fees, claim rewards, add to LP, rebalance, claim Merkl), single-sided liquidity via ERC-4626 tranches, strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
+description: Agent guide for clAMM management on Arcadia Finance. Covers 35 MCP tools (+1 dev), intent-based automation setup (compound fees, claim rewards, add to LP, rebalance, claim Merkl), the Slipstream to Aero migration, single-sided liquidity via ERC-4626 tranches, strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
 user-invocable: true
 ---
 
@@ -98,6 +98,7 @@ These tools batch multiple operations into ONE atomic transaction. Always prefer
 | `write.account.stake`             | Stake, unstake, or claim rewards for an LP position. Direction auto-detected from `asset_address`.                                                                                                                                                                                                                                                        |
 | `write.pool.deposit`              | **Lend to earn yield.** Deposit the pool's underlying asset (USDC / WETH / cbBTC) into the ERC-4626 tranche, receive tranche shares that accrue interest from borrowers. Requires prior `write.wallet.approve` to the tranche. **Different from `write.account.deposit`**: that deposits collateral into your Arcadia account; this deposits as a lender. |
 | `write.pool.redeem`               | **Lender exit.** Burn tranche shares and redeem the underlying asset, including accrued interest. Pass the owner's share balance (or a partial amount) in `shares`.                                                                                                                                                                                       |
+| `write.account.aero_migration`    | Move to Aero (MetadexCL V1). `action: migrate` moves Slipstream positions of an account into Aero CL pools; `upgrade_aero` upgrades loose old AERO in a Base account; `upgrade_velo` upgrades wallet VELO on Optimism to AERO on Base. See strategies.md, "Move to Aero".                                                                                 |
 | `write.account.automations_delta` | Change one automation without restating the rest: `enable` takes intents, `disable` takes asset-manager addresses from `read.asset_manager.current`. Prefer `write.account.automations` when setting the full desired state. See automation.md.                                                                                                           |
 
 ### Dev Tools (only available when `PK` env var is set)
@@ -138,23 +139,28 @@ Standalone AMs (not tied to a DEX protocol, same address on all supported chains
 
 Protocol-specific AMs (rebalancer, compounder, yield claimer). Slipstream V2 is Base-only. All other addresses apply to every chain where the protocol exists:
 
-| Type          | Protocol      | Address                                      |
-| ------------- | ------------- | -------------------------------------------- |
-| Rebalancer    | Slipstream V1 | `0x5802454749cc0c4A6F28D5001B4cD84432e2b79F` |
-| Rebalancer    | Slipstream V2 | `0x953Ff365d0b562ceC658dc46B394E9282338d9Ea` |
-| Rebalancer    | Slipstream V3 | `0x37c6258aEe125d520B6f03fc2cb490955050D557` |
-| Rebalancer    | Uniswap V3    | `0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd` |
-| Rebalancer    | Uniswap V4    | `0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0` |
-| Compounder    | Slipstream V1 | `0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7` |
-| Compounder    | Slipstream V2 | `0x35e59448C7145482E56212510cC689612AB4F61f` |
-| Compounder    | Slipstream V3 | `0xd42A3Ac56456bD5422835B36C35Cacb6448ddCd9` |
-| Compounder    | Uniswap V3    | `0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3` |
-| Compounder    | Uniswap V4    | `0xAA95c9c402b195D8690eCaea2341a76e3266B189` |
-| Yield Claimer | Slipstream V1 | `0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba` |
-| Yield Claimer | Slipstream V2 | `0xc8bF4B2c740FF665864E9494832520f18822871C` |
-| Yield Claimer | Slipstream V3 | `0x8c1Fbf38118fD5A704b6E7babcB7AF1a9A291980` |
-| Yield Claimer | Uniswap V3    | `0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16` |
-| Yield Claimer | Uniswap V4    | `0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4` |
+| Type          | Protocol               | Address                                      |
+| ------------- | ---------------------- | -------------------------------------------- |
+| Rebalancer    | Slipstream V1          | `0x5802454749cc0c4A6F28D5001B4cD84432e2b79F` |
+| Rebalancer    | Slipstream V2          | `0x953Ff365d0b562ceC658dc46B394E9282338d9Ea` |
+| Rebalancer    | Slipstream V3          | `0x37c6258aEe125d520B6f03fc2cb490955050D557` |
+| Rebalancer    | Uniswap V3             | `0xbA1D0c99c261F94b9C8b52465890Cca27dd993Bd` |
+| Rebalancer    | Uniswap V4             | `0x01EDaF0067a10D18c88D2876c0A85Ee0096a5Ac0` |
+| Compounder    | Slipstream V1          | `0x467837f44A71e3eAB90AEcfC995c84DC6B3cfCF7` |
+| Compounder    | Slipstream V2          | `0x35e59448C7145482E56212510cC689612AB4F61f` |
+| Compounder    | Slipstream V3          | `0xd42A3Ac56456bD5422835B36C35Cacb6448ddCd9` |
+| Compounder    | Uniswap V3             | `0x02e1fa043214E51eDf1F0478c6D0d3D5658a2DC3` |
+| Compounder    | Uniswap V4             | `0xAA95c9c402b195D8690eCaea2341a76e3266B189` |
+| Yield Claimer | Slipstream V1          | `0x5a8278D37b7a787574b6Aa7E18d8C02D994f18Ba` |
+| Yield Claimer | Slipstream V2          | `0xc8bF4B2c740FF665864E9494832520f18822871C` |
+| Yield Claimer | Slipstream V3          | `0x8c1Fbf38118fD5A704b6E7babcB7AF1a9A291980` |
+| Yield Claimer | Uniswap V3             | `0x75Ed28EA8601Ce9F5FbcAB1c2428f04A57aFaA16` |
+| Yield Claimer | Uniswap V4             | `0xD8aa21AB7f9B8601CB7d7A776D3AFA1602d5D8D4` |
+| Rebalancer    | Aero CL (MetadexCL V1) | `0x9EA47b9db58970Ab5Ea686a5CaC3e80ec652d755` |
+| Compounder    | Aero CL                | `0xd772812Ba8AeFBd4F2126E82e2D08a66856D0261` |
+| Yield Claimer | Aero CL                | `0x0367C284b58d3531947c182C1aF203177Cc4D6ed` |
+
+Aero CL managers have the same address on Base, Optimism and Robinhood.
 
 Slipstream V3 on Optimism uses different addresses (exception to the deterministic deployment pattern):
 
@@ -164,7 +170,7 @@ Slipstream V3 on Optimism uses different addresses (exception to the determinist
 | Compounder    | `0x3e7b6997399eC402491c4A049e4CD727d3aA1738` |
 | Yield Claimer | `0x3630bDb1Ac7cF8A435411391db75450350814F42` |
 
-**Slipstream V1 vs V2 vs V3:** The pool determines the version, each pool is bound to a specific Slipstream version. `read.account.info` returns a `dex_protocol` field on LP positions (derived from the position manager address), so you can read the protocol directly from the account overview. For automations, prefer passing the position's id as `position_id` to `write.account.automations`, which resolves the protocol and tokens for you. If you have no position id, that value (`slipstream`, `slipstream_v2`, `slipstream_v3`, or their `staked_*` variants) is also accepted directly as the `protocol` param.
+**Slipstream V1 vs V2 vs V3:** The pool determines the version, each pool is bound to a specific Slipstream version. `read.account.info` returns a `dex_protocol` field on LP positions (derived from the position manager address), so you can read the protocol directly from the account overview. For automations, prefer passing the position's id as `position_id` to `write.account.automations`, which resolves the protocol and tokens for you. If you have no position id, that value (`slipstream`, `slipstream_v2`, `slipstream_v3`, or their `staked_*` variants) is also accepted directly as the `protocol` param. MetadexCL V1 is Aero CL (`metadexcl_v1` / `staked_metadexcl_v1`); `staked_metadexcl_v1` covers both the staked module and the wrapper.
 
 ## Account Versions
 
@@ -180,20 +186,21 @@ Spot vs margin is determined by whether a **creditor** (lending pool) is set at 
 
 ### Base (8453)
 
-Protocols: Slipstream V1, Slipstream V2, Slipstream V3, Uniswap V3, Uniswap V4.
+Protocols: Slipstream V1, Slipstream V2, Slipstream V3, Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1). Margin accounts can hold Aero positions on Base only.
 
-| Token | Address                                      | Decimals |
-| ----- | -------------------------------------------- | -------- |
-| WETH  | `0x4200000000000000000000000000000000000006` | 18       |
-| USDC  | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | 6        |
-| cbBTC | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` | 8        |
-| AERO  | `0x940181a94A35A4569E4529A3CDfB74e38FD98631` | 18       |
-| AAA   | `0xaaa843fb2916c0B57454270418E121C626402AAa` | 18       |
-| stAAA | `0xDeA1531d8a1505785eb517C7A28526443df223F3` | 18       |
+| Token         | Address                                      | Decimals |
+| ------------- | -------------------------------------------- | -------- |
+| WETH          | `0x4200000000000000000000000000000000000006` | 18       |
+| USDC          | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | 6        |
+| cbBTC         | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` | 8        |
+| AERO          | `0x3f5bF3EdAc59d650D8fDf9657a71F2f904A3a4Ee` | 18       |
+| AERO (legacy) | `0x940181a94A35A4569E4529A3CDfB74e38FD98631` | 18       |
+| AAA           | `0xaaa843fb2916c0B57454270418E121C626402AAa` | 18       |
+| stAAA         | `0xDeA1531d8a1505785eb517C7A28526443df223F3` | 18       |
 
 ### Optimism (10)
 
-Protocols: Slipstream V1 (Velodrome), Slipstream V3, Uniswap V3, Uniswap V4. No Slipstream V2, no cbBTC pool.
+Protocols: Slipstream V1 (Velodrome), Slipstream V3, Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1). No Slipstream V2, no cbBTC pool. Aero positions are spot only on Optimism.
 
 | Token  | Address                                      | Decimals |
 | ------ | -------------------------------------------- | -------- |
@@ -203,6 +210,7 @@ Protocols: Slipstream V1 (Velodrome), Slipstream V3, Uniswap V3, Uniswap V4. No 
 | VELO   | `0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db` | 18       |
 | WBTC   | `0x68f180fcCe6836688e9084f035309E29Bf0A2095` | 8        |
 | wstETH | `0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb` | 18       |
+| xAERO  | `0xbdEaeA5205d16f34Cb40038052d91235D87B4C54` | 18       |
 
 ### Unichain (130)
 
@@ -216,8 +224,16 @@ Protocols: Slipstream V1, Uniswap V3, Uniswap V4. No Slipstream V2/V3. No lendin
 | UNI   | `0x8f187aA05619a017077f5308904739877ce9eA21` | 18       |
 | VELO  | `0x7f9AdFbd38b669F03d1d11000Bc76b9AaEA28A81` | 18       |
 
+### Robinhood (4663)
+
+Protocols: Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1). No Slipstream V1-V3. Lending pools: WETH and USDG. Aero positions are spot only on Robinhood.
+
+| Token | Address                                      | Decimals |
+| ----- | -------------------------------------------- | -------- |
+| xAERO | `0x9e148C5716b5aAdCFD3B71cEAE9EE7a9e22C29E2` | 18       |
+
 ## Reference Files
 
 - [automation.md](automation.md) — How to enable each automation type
 - [selection.md](selection.md) — How to evaluate pools, choose range width, size leverage, combine automation
-- [strategies.md](strategies.md) — Step-by-step strategy templates: delta neutral LP and protocol-owned liquidity
+- [strategies.md](strategies.md): Step-by-step strategy templates: delta neutral LP, protocol-owned liquidity, and the move to Aero

@@ -119,4 +119,47 @@ export function registerWorkflowPrompts(server: McpServer) {
       ],
     }),
   );
+
+  server.registerPrompt(
+    "migrate-to-aero",
+    {
+      description:
+        "Move Slipstream positions (Aerodrome / Velodrome CL, V1 to V3) into Aero CL (MetadexCL V1), then reconnect automations.",
+      argsSchema: {
+        account_address: z.string().describe("Arcadia account address"),
+        chain_id: z.string().optional().describe("Chain ID: 8453 Base (default) or 10 Optimism"),
+      },
+    },
+    async ({ account_address, chain_id }) => ({
+      messages: [
+        {
+          role: "user" as const,
+          content: {
+            type: "text" as const,
+            text: [
+              `Move the Slipstream positions of Arcadia account ${account_address} on chain ${chain_id ?? "8453"} to Aero CL (MetadexCL V1).`,
+              "",
+              "Steps:",
+              "1. Call read.account.info. Slipstream positions have dex_protocol slipstream, slipstream_v2, slipstream_v3 or a staked_* variant. If there are none, stop.",
+              "2. If automation shows any enabled manager, call read.asset_manager.current now and keep its intents and config: the old managers are replaced after the move.",
+              "3. Call write.account.aero_migration with action migrate and the account (whole account), or asset_address + position_id (one position).",
+              "   - target_choice_required: show the selectable alternatives (tick spacing, fee, range_widened), ask the user which Aero pool to use, and call again with target_pool (one position) or targets (whole account).",
+              "   - migration.skipped and 422 codes: report them as given, never decide eligibility yourself. deprecated_reward_token_in_pair: on Base, a margin account cannot take a pair holding the old AERO, so that position cannot move.",
+              "   - 'not live yet': the migration has not opened on this chain. Stop and say so.",
+              "   - tenderly_sim_status failure: do NOT broadcast. Rebuild once; report if it fails again.",
+              "4. The owner signs and broadcasts the transaction.",
+              "5. If managers_to_reconnect is not empty, reconnect: call write.account.automations (mode save) with the account, the new Aero position_id from read.account.info and the intents from step 2. Omit protocol. The save disables the old Slipstream managers.",
+              "6. Verify with read.account.info: the position shows dex_protocol metadexcl_v1 or staked_metadexcl_v1, and automation lists the reconnected managers.",
+              "",
+              "Token upgrades, separate from the position move, same tool:",
+              "- action upgrade_aero: loose old AERO in a Base account, 1:1 into the new AERO.",
+              "- action upgrade_velo with chain_id 10 and owner_address: wallet VELO on Optimism, new AERO paid on Base. VELO in an account must be withdrawn first.",
+              "",
+              "Margin accounts hold Aero positions on Base only; Optimism and Robinhood Aero positions are spot only.",
+            ].join("\n"),
+          },
+        },
+      ],
+    }),
+  );
 }

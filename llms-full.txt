@@ -1,10 +1,10 @@
 # Arcadia Finance MCP Server
 
-> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
+> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aero CL, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 35 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 36 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -175,7 +175,7 @@ Get Arcadia workflow guides and reference documentation.
 Parameters:
 - `topic` (enum, optional): overview | automation | strategies | selection
 
-## Write Tools (16)
+## Write Tools (17)
 
 All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
@@ -336,6 +336,27 @@ Parameters:
 - `asset_id` (number, required): NFT token ID
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
+### write.account.aero_migration
+
+Move to Aero (MetadexCL V1). Returns unsigned transactions only. Actions:
+- `migrate` (Base, Optimism): one flashAction moving Slipstream V1/V2/V3 positions of an account into the Aero CL pool with the same pair and tick spacing. Whole account: blocked positions come back in `migration.skipped` with a code. One position: a blocked position returns a 422 whose message starts with the code. When Aero has no pool at a position's tick spacing the tool returns `target_choice_required` with the alternatives; call again with `target_pool` or `targets`. After it confirms, reconnect `managers_to_reconnect` with write.account.automations.
+- `upgrade_aero` (Base only): flashAction upgrading loose old AERO in an account 1:1 to the new AERO.
+- `upgrade_velo` (chain_id 10): wallet transactions on Optimism (approve when needed, then depositLiquid with the Hyperlane fee as value); new AERO arrives on Base.
+
+Margin accounts hold Aero positions on Base only; Optimism and Robinhood are spot only, so moving an Optimism margin account's positions fails simulation.
+
+Parameters:
+- `action` (enum, required): migrate | upgrade_aero | upgrade_velo
+- `account_address` (string): migrate, upgrade_aero
+- `owner_address` (string): upgrade_velo
+- `asset_address` / `position_id` (string / number, optional): migrate one position; omit both for the whole account
+- `target_pool` (string, optional): migrate one position, the chosen Aero pool
+- `targets` (object[], optional): migrate whole account, `{asset_address, position_id, target_pool}` per position needing a choice
+- `price_tolerance_bps` (number, optional, 1 to 1000): migrate; default 150, or 500 with `safe`
+- `safe` (boolean, optional): migrate; owner is a multisig that signs later
+- `amount` (string, optional): upgrade_aero, upgrade_velo; raw units, omit for the full balance
+- `chain_id` (number, optional): 8453 (Base), 10 (Optimism) or 4663 (Robinhood); defaults to 8453 for migrate and upgrade_aero, 10 for upgrade_velo
+
 ### write.account.close
 
 Atomic flash-action that closes an Arcadia account position in one transaction.
@@ -373,7 +394,7 @@ Parameters:
 - `intents` (object[], required): Complete desired automation state, at least one intent
 - `mode` (enum, default: "save"): save diffs against on-chain state and returns a signable transaction that also disables anything omitted; preview resolves and validates only, returning a plan and no transaction
 - `position_id` (number, optional): LP position id. Supply it and the backend fetches protocol, staked flag, tokens and reward tokens
-- `protocol` (enum, optional): Only needed without position_id. Accepts slipstream_v1 | slipstream_v2 | slipstream_v3 | uniswap_v3 | uniswap_v4, or the dex_protocol spellings (slipstream, staked_slipstream_v3, uniV3, ...) which imply is_staked
+- `protocol` (enum, optional): Only needed without position_id. Accepts slipstream_v1 | slipstream_v2 | slipstream_v3 | uniswap_v3 | uniswap_v4 | metadexcl_v1, or the dex_protocol spellings (slipstream, staked_slipstream_v3, metadexcl_v1, staked_metadexcl_v1, uniV3, ...) which imply is_staked
 - `is_staked` (boolean, optional): Whether the LP position is staked
 - `token0` / `token1` (string, optional): Pool token addresses
 - `reward_tokens` (string[], optional): Staking reward token addresses

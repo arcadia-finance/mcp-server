@@ -25,6 +25,7 @@ import { registerSwapTool } from "./write/account/swap.js";
 import { registerDeleverageTool } from "./write/account/deleverage.js";
 import { registerStakeTool } from "./write/account/stake.js";
 import { registerCloseTool } from "./write/account/close.js";
+import { registerAeroMigrationTool } from "./write/account/aero-migration.js";
 
 export function registerAllTools(
   server: McpServer,
@@ -53,6 +54,7 @@ export function registerAllTools(
   registerDeleverageTool(server, api);
   registerStakeTool(server, api);
   registerCloseTool(server, api, chains);
+  registerAeroMigrationTool(server, api);
 
   // Write tools — wallet
   registerApproveTool(server, chains);

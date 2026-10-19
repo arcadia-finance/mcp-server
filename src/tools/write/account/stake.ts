@@ -19,7 +19,7 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
       },
       outputSchema: BatchedTransactionOutput,
       description:
-        "Flash-action: stake, unstake, or claim rewards for an LP position in one atomic transaction. Use the `action` parameter to select the operation. `asset_address` is the position manager contract — pass the non-staked PM address when staking, or the staked PM address when unstaking. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Tenderly simulation may not be available for this endpoint — verify the position exists with read.account.info before signing.",
+        "Flash-action: stake, unstake, or claim rewards for an LP position in one atomic transaction. Use the `action` parameter to select the operation. `asset_address` is the position manager contract: pass the non-staked PM address when staking, or the staked PM address when unstaking. The returned calldata is time-sensitive, sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Tenderly simulation may not be available for this endpoint. Verify the position exists with read.account.info before signing. Aero CL (metadexcl_v1): spot accounts stake through the Arcadia wrapper; margin accounts hold Aero positions on Base only and cannot stake them until staked margin is enabled there.",
       inputSchema: {
         account_address: z.string().describe("Arcadia account address"),
         action: z.enum(["stake", "unstake", "claim"]).describe("Action to perform"),

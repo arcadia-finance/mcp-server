@@ -221,6 +221,40 @@ describe("write.account.automations", () => {
     });
   });
 
+  it("translates staked_metadexcl_v1 into metadexcl_v1 + is_staked true", async () => {
+    const { mock, api } = setup();
+    await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      protocol: "staked_metadexcl_v1",
+      chain_id: 8453,
+    });
+
+    expect(api.saveAutomations).toHaveBeenCalledWith(TEST_ACCOUNT, 8453, {
+      intents: [{ kind: "compound_fees" }],
+      protocol: "metadexcl_v1",
+      is_staked: true,
+    });
+  });
+
+  it("posts metadexcl_v1 with is_staked false", async () => {
+    const { mock, api } = setup();
+    await mock.getHandler("write.account.automations")({
+      account_address: TEST_ACCOUNT,
+      intents: [{ kind: "compound_fees" }],
+      mode: "save",
+      protocol: "metadexcl_v1",
+      chain_id: 8453,
+    });
+
+    expect(api.saveAutomations).toHaveBeenCalledWith(TEST_ACCOUNT, 8453, {
+      intents: [{ kind: "compound_fees" }],
+      protocol: "metadexcl_v1",
+      is_staked: false,
+    });
+  });
+
   it("lets an explicit is_staked override the protocol spelling", async () => {
     const { mock, api } = setup();
     await mock.getHandler("write.account.automations")({

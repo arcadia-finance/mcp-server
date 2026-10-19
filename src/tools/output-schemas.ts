@@ -195,3 +195,29 @@ export const IntentsListOutput = z.object({
   shared_params: z.array(z.string()),
   usage: z.string(),
 });
+
+const ManagerToReconnect = z.object({
+  kind: z.string(),
+  old_address: z.string(),
+  new_address: z.string().nullable(),
+  initiator: z.string(),
+});
+
+// migrate and upgrade_aero return one flashAction `transaction`; upgrade_velo returns
+// ordered wallet `transactions` on Optimism.
+export const AeroMigrationOutput = BatchedTransactionOutput.extend({
+  transaction: Transaction.optional(),
+  transactions: z.array(z.object({ description: z.string(), transaction: Transaction })).optional(),
+  gas_estimate: z.number().nullable().optional(),
+  price_tolerance_bps: z.number().optional(),
+  migration: z.record(z.unknown()).optional(),
+  managers_to_reconnect: z.array(ManagerToReconnect).optional(),
+  next_steps: z.array(z.string()).optional(),
+  amount_in: z.string().optional(),
+  expected_amount_out: z.string().optional(),
+  old_token: z.string().optional(),
+  new_token: z.string().optional(),
+  destination_chain_id: z.number().optional(),
+  recipient: z.string().optional(),
+  fee_wei: z.string().optional(),
+});
