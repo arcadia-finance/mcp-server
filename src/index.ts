@@ -33,7 +33,7 @@ function createServer(options?: { httpMode?: boolean }) {
     name: "arcadia-finance",
     version: pkg.version,
     description:
-      "Arcadia Finance. Manage concentrated liquidity positions on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage. Base and Unichain.",
+      "Arcadia Finance. Manage concentrated liquidity positions on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage. Base, Optimism, Unichain and Robinhood.",
   });
   const namingTarget = options?.httpMode ? wrapServerForHttp(server) : server;
   // Outermost, so events carry the canonical dotted tool name in both transports.

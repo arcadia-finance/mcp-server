@@ -1,10 +1,10 @@
 # Arcadia Finance MCP Server
 
-> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
+> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aero CL, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 35 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 36 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -24,7 +24,7 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Tools (35 total)
+## Tools (36 total)
 
 ### Read (18)
 
@@ -47,7 +47,7 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - read.asset_manager.intents: automation intents and their params; pass account_address for live per-account availability
 - read.asset_manager.current: automations enabled on an account, with decoded per-manager config, mapped intents, Merkl state, and superseded managers
 
-### Write (16)
+### Write (17)
 
 - write.wallet.approve: approve ERC20/ERC721 for spending
 - write.pool.deposit: deposit the pool's underlying asset into an ERC-4626 tranche to earn lender yield
@@ -63,6 +63,7 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - write.account.deleverage: repay debt by selling collateral
 - write.account.close: atomic close that burns LP, swaps, and repays in one tx
 - write.account.stake: stake, unstake, or claim LP rewards
+- write.account.aero_migration: move to Aero: migrate Slipstream positions into Aero CL (action migrate), upgrade old AERO in a Base account (upgrade_aero) or wallet VELO on Optimism (upgrade_velo)
 - write.account.automations: configure automations from an intents array (complete desired state), returns the unsigned setAssetManagers tx
 - write.account.automations_delta: switch individual automations on or off, leaving the rest untouched
 

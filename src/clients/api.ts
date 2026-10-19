@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
+  AeroMigrationCalldataResponse,
+  AeroMigrationTarget,
+  AeroUpgradeCalldataResponse,
   ApiResponse,
   ApiListResponse,
   AutomationsAvailableResponse,
@@ -11,6 +14,7 @@ import type {
   BundleCalldataRequest,
   BundleCalldataResponse,
   IntentsBody,
+  VeloUpgradeResponse,
 } from "../types/api.js";
 
 const pkg = JSON.parse(
@@ -20,6 +24,18 @@ const pkg = JSON.parse(
 const DEFAULT_BASE_URL = "https://api.arcadia.finance";
 const API_PREFIX = "/v1/api";
 const DEFAULT_HEADERS = { "User-Agent": `arcadia-mcp/${pkg.version}` };
+
+/** Non-2xx backend response. `body` is the parsed JSON body when there is one, else the raw text. */
+export class ArcadiaApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super(message);
+    this.name = "ArcadiaApiError";
+  }
+}
 
 export class ArcadiaApiClient {
   private baseUrl: string;
@@ -50,19 +66,30 @@ export class ArcadiaApiClient {
     }
 
     const detail = body.length > 500 ? body.slice(0, 500) + "..." : body;
-    throw new Error(
+    let parsed: unknown = body;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      // Not JSON: keep the raw text.
+    }
+    throw new ArcadiaApiError(
       `Arcadia API error (${status} on ${path}): ${detail || resp.statusText}${hint}`,
+      status,
+      parsed,
     );
   }
 
   private async get<T = ApiResponse>(
     path: string,
-    params?: Record<string, string | number>,
+    params?: Record<string, string | number | boolean | string[] | undefined>,
   ): Promise<T> {
     const url = new URL(`${this.baseUrl}${API_PREFIX}${path}`);
     if (params) {
       for (const [k, v] of Object.entries(params)) {
-        if (v !== undefined && v !== null) {
+        if (v === undefined || v === null) continue;
+        if (Array.isArray(v)) {
+          for (const item of v) url.searchParams.append(k, item);
+        } else {
           url.searchParams.set(k, String(v));
         }
       }
@@ -270,6 +297,56 @@ export class ArcadiaApiClient {
       asset: asset_address,
       position_id: asset_id,
     } as Record<string, string | number>);
+  }
+
+  // ── Aero (MetadexCL V1) migration and token upgrades ─────────────
+  // The backend resolves targets, builds the ActionManager flashAction and
+  // simulates it. These return its responses unchanged.
+
+  async getMigrateMetadexclV1Calldata(params: {
+    chain_id: number;
+    account_address: string;
+    asset_address: string;
+    position_id: number;
+    target_pool?: string;
+    price_tolerance_bps?: number;
+    safe?: boolean;
+  }) {
+    const { asset_address, ...rest } = params;
+    return this.get<AeroMigrationCalldataResponse>("/bundles/migrate_metadexcl_v1", {
+      ...rest,
+      asset: asset_address,
+    });
+  }
+
+  async getMigrateMetadexclV1AccountCalldata(params: {
+    chain_id: number;
+    account_address: string;
+    targets?: AeroMigrationTarget[];
+    price_tolerance_bps?: number;
+    safe?: boolean;
+  }) {
+    const { targets, ...rest } = params;
+    return this.get<AeroMigrationCalldataResponse>("/bundles/migrate_metadexcl_v1_account", {
+      ...rest,
+      target: targets?.map((t) => `${t.asset_address}:${t.position_id}:${t.target_pool}`),
+    });
+  }
+
+  async getUpgradeAeroCalldata(params: {
+    chain_id: number;
+    account_address: string;
+    amount?: string;
+  }) {
+    return this.get<AeroUpgradeCalldataResponse>("/bundles/upgrade_aero", params);
+  }
+
+  async getUpgradeVeloCalldata(params: {
+    chain_id: number;
+    owner_address: string;
+    amount?: string;
+  }) {
+    return this.get<VeloUpgradeResponse>("/bundles/upgrade_velo", params);
   }
 
   // ── Automations (intent compiler) ────────────────────────────────

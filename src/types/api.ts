@@ -181,3 +181,77 @@ export interface BundleCalldataResponse {
   total_value_in?: number;
   total_value_out?: number;
 }
+
+// ── Aero (MetadexCL V1) migration and token upgrades ───────────────
+// Mirrors arcadia-be-api-v2 app/controllers/aero_migration.py and the
+// upgrade_aero / upgrade_velo handlers in app/controllers/bundles.py.
+
+/** Old Slipstream manager on the account and the Aero manager that replaces it. */
+export interface AeroManagerToReconnect {
+  kind: string;
+  old_address: string;
+  new_address: string | null;
+  initiator: string;
+}
+
+export interface AeroMigrationTarget {
+  asset_address: string;
+  position_id: number;
+  target_pool: string;
+}
+
+export interface AeroMigrationPreview {
+  positions: Array<Record<string, unknown>>;
+  skipped: Array<{ asset_address: string; position_id: string; code: string; message: string }>;
+  legacy_reward_to_owner: boolean;
+  fee_share_bps: number;
+  fee_collector: string;
+}
+
+export interface AeroMigrationCalldataResponse {
+  fx_call: string;
+  fx_call_to: string;
+  calldata: string;
+  actionHandler: string;
+  actiondata: string;
+  account: string;
+  from_wallet: string;
+  tenderly_sim_url: string | null;
+  tenderly_sim_status: boolean | null;
+  tenderly_sim_error: string | null;
+  gas_estimate: number | null;
+  price_tolerance_bps: number;
+  migration: AeroMigrationPreview;
+  managers_to_reconnect: AeroManagerToReconnect[];
+}
+
+export interface AeroUpgradeCalldataResponse {
+  fx_call: string;
+  fx_call_to: string;
+  calldata: string;
+  tenderly_sim_url: string | null;
+  tenderly_sim_status: boolean | null;
+  tenderly_sim_error: string | null;
+  amount_in: string;
+  expected_amount_out: string;
+  old_token: string;
+  new_token: string;
+}
+
+export interface VeloUpgradeResponse {
+  chain_id: number;
+  destination_chain_id: number;
+  owner: string;
+  recipient: string;
+  migration: string;
+  entrypoint: string;
+  old_token: string;
+  new_token: string;
+  amount_in: string;
+  expected_amount_out: string;
+  fee_quote_wei: string;
+  fee_wei: string;
+  wallet_balance: string;
+  allowance: string;
+  calls: Array<{ to: string; data: string; value: string }>;
+}

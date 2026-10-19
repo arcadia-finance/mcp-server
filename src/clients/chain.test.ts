@@ -71,8 +71,12 @@ describe("Robinhood chain wiring", () => {
     expect(STATE_VIEWERS[4663]).toBe("0xF3334192D15450CdD385c8B70e03f9A6bD9E673b");
   });
 
-  it("maps only Uniswap position managers, since it has no Slipstream deployment", () => {
-    expect(Object.values(CHAIN_POSITION_MANAGERS[4663] ?? {}).sort()).toEqual(["uniV3", "uniV4"]);
+  it("maps Uniswap and Aero CL position managers on Robinhood, no Slipstream V1-V3", () => {
+    expect(Object.values(CHAIN_POSITION_MANAGERS[4663] ?? {}).sort()).toEqual([
+      "metadexcl_v1",
+      "uniV3",
+      "uniV4",
+    ]);
   });
 
   it("keys the position managers lowercase, matching the map's lookup convention", () => {

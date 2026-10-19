@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ArcadiaApiClient } from "./api.js";
+import { ArcadiaApiClient, ArcadiaApiError } from "./api.js";
 
 describe("ArcadiaApiClient error handling", () => {
   const originalFetch = globalThis.fetch;
@@ -98,5 +98,48 @@ describe("ArcadiaApiClient error handling", () => {
         slippage: 100,
       }),
     ).rejects.toThrow(/spot account used where margin required/);
+  });
+
+  it("carries the status and the parsed JSON body", async () => {
+    expect.assertions(3);
+    mockFetch(409, JSON.stringify({ name: "Target Pool Choice Required", candidates: [] }));
+    const api = new ArcadiaApiClient();
+    try {
+      await api.getMigrateMetadexclV1AccountCalldata({ chain_id: 8453, account_address: "0x1" });
+    } catch (err) {
+      expect(err).toBeInstanceOf(ArcadiaApiError);
+      expect((err as ArcadiaApiError).status).toBe(409);
+      expect((err as ArcadiaApiError).body).toEqual({
+        name: "Target Pool Choice Required",
+        candidates: [],
+      });
+    }
+  });
+});
+
+describe("ArcadiaApiClient Aero migration", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("repeats target once per position and drops unset params", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    await new ArcadiaApiClient("https://api.test").getMigrateMetadexclV1AccountCalldata({
+      chain_id: 8453,
+      account_address: "0xacc",
+      targets: [
+        { asset_address: "0xa", position_id: 1, target_pool: "0xp1" },
+        { asset_address: "0xb", position_id: 2, target_pool: "0xp2" },
+      ],
+      safe: true,
+    });
+    const url = new URL((fetchMock.mock.calls[0] as unknown as [string])[0]);
+    expect(url.pathname).toBe("/v1/api/bundles/migrate_metadexcl_v1_account");
+    expect(url.searchParams.getAll("target")).toEqual(["0xa:1:0xp1", "0xb:2:0xp2"]);
+    expect(url.searchParams.get("safe")).toBe("true");
+    expect(url.searchParams.has("price_tolerance_bps")).toBe(false);
   });
 });

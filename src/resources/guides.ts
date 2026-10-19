@@ -17,7 +17,7 @@ const GUIDES = {
   strategies: {
     file: "strategies.md",
     description:
-      "Step-by-step strategy templates: delta neutral leveraged LP, protocol owned liquidity, closing sequences",
+      "Step-by-step strategy templates: delta neutral leveraged LP, protocol owned liquidity, closing sequences, moving Slipstream positions to Aero",
   },
   selection: {
     file: "selection.md",
