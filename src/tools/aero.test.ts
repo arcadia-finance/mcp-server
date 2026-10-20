@@ -388,6 +388,20 @@ describe("write.account.aero_upgrade: one account", () => {
     expect(missing.content[0].text).toContain("not found (404)");
   });
 
+  it("refuses a plan with more than one call instead of signing only the first", async () => {
+    const call = {
+      kind: "flash_action",
+      to: TEST_ACCOUNT,
+      data: "0xabcdef",
+      value: "0",
+      gas: null,
+    };
+    const api = { getAeroUpgradePlan: vi.fn(async () => plan({ calls: [call, call] })) };
+    const result = await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("expected one flashAction");
+  });
+
   it("keeps a generic 503 as a retryable outage", async () => {
     const api = {
       getAeroUpgradePlan: vi.fn(async () => {
