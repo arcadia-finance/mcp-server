@@ -40,15 +40,16 @@ describe("workflow prompts", () => {
     expect(text).toContain("0xabc");
     expect(text).toContain("8453");
     const order = [
+      "read.account.aero_upgrade",
       "read.account.info",
       "read.asset_manager.current",
-      "write.account.aero_migration",
+      "write.account.aero_upgrade",
       "write.account.automations",
     ].map((name) => text.indexOf(name));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    expect(text).toContain("upgrade_aero");
-    expect(text).toContain("upgrade_velo");
+    expect(text).toContain("choices_required");
+    expect(text).toContain("write.wallet.upgrade_velo");
   });
 
   it("analyze-account returns messages with account address", async () => {

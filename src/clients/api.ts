@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
-  AeroMigrationCalldataResponse,
-  AeroMigrationTarget,
-  AeroUpgradeCalldataResponse,
+  AeroUpgradeBatchResponse,
+  AeroUpgradeCandidatesResponse,
+  AeroUpgradePlanResponse,
   ApiResponse,
   ApiListResponse,
   AutomationsAvailableResponse,
@@ -299,46 +299,42 @@ export class ArcadiaApiClient {
     } as Record<string, string | number>);
   }
 
-  // ── Aero (MetadexCL V1) migration and token upgrades ─────────────
-  // The backend resolves targets, builds the ActionManager flashAction and
+  // ── Aero (MetadexCL V1) upgrade ──────────────────────────────────
+  // The backend plans the upgrade, builds the ActionManager flashAction and
   // simulates it. These return its responses unchanged.
 
-  async getMigrateMetadexclV1Calldata(params: {
+  /** Exactly one of owner_address and account_address. */
+  async getAeroUpgradeCandidates(params: {
+    chain_id: number;
+    owner_address?: string;
+    account_address?: string;
+  }) {
+    return this.get<AeroUpgradeCandidatesResponse>("/bundles/aero_migration_candidates", params);
+  }
+
+  /** `choices` are `<position_manager>:<position_id>:<pool>` picks; the endpoint reads them from one comma-separated param. */
+  async getAeroUpgradePlan(params: {
     chain_id: number;
     account_address: string;
-    asset_address: string;
-    position_id: number;
-    target_pool?: string;
-    price_tolerance_bps?: number;
-    safe?: boolean;
+    choices?: string[];
+    slippage?: number;
+    min_block?: number;
   }) {
-    const { asset_address, ...rest } = params;
-    return this.get<AeroMigrationCalldataResponse>("/bundles/migrate_metadexcl_v1", {
+    const { choices, ...rest } = params;
+    return this.get<AeroUpgradePlanResponse>("/bundles/aero_upgrade", {
       ...rest,
-      asset: asset_address,
+      choices: choices && choices.length > 0 ? choices.join(",") : undefined,
     });
   }
 
-  async getMigrateMetadexclV1AccountCalldata(params: {
+  async postAeroUpgradeBatch(body: {
     chain_id: number;
-    account_address: string;
-    targets?: AeroMigrationTarget[];
-    price_tolerance_bps?: number;
-    safe?: boolean;
+    accounts: string[];
+    choices?: string[];
+    slippage?: number;
+    min_block?: number;
   }) {
-    const { targets, ...rest } = params;
-    return this.get<AeroMigrationCalldataResponse>("/bundles/migrate_metadexcl_v1_account", {
-      ...rest,
-      target: targets?.map((t) => `${t.asset_address}:${t.position_id}:${t.target_pool}`),
-    });
-  }
-
-  async getUpgradeAeroCalldata(params: {
-    chain_id: number;
-    account_address: string;
-    amount?: string;
-  }) {
-    return this.get<AeroUpgradeCalldataResponse>("/bundles/upgrade_aero", params);
+    return this.post<AeroUpgradeBatchResponse>("/bundles/aero_upgrade/batch", body);
   }
 
   async getUpgradeVeloCalldata(params: {

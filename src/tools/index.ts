@@ -9,6 +9,7 @@ import { registerPointsTools } from "./read/points.js";
 import { registerGuideTools } from "./read/guides.js";
 import { registerWalletTools } from "./read/wallet.js";
 import { registerAssetManagerTools } from "./read/asset-managers.js";
+import { registerAeroUpgradeReadTool } from "./read/aero-upgrade.js";
 import { registerCreateTool } from "./write/account/create.js";
 import { registerDepositTool } from "./write/account/deposit.js";
 import { registerWithdrawTool } from "./write/account/withdraw.js";
@@ -25,7 +26,8 @@ import { registerSwapTool } from "./write/account/swap.js";
 import { registerDeleverageTool } from "./write/account/deleverage.js";
 import { registerStakeTool } from "./write/account/stake.js";
 import { registerCloseTool } from "./write/account/close.js";
-import { registerAeroMigrationTool } from "./write/account/aero-migration.js";
+import { registerAeroUpgradeTool } from "./write/account/aero-upgrade.js";
+import { registerUpgradeVeloTool } from "./write/wallet/upgrade-velo.js";
 
 export function registerAllTools(
   server: McpServer,
@@ -41,6 +43,7 @@ export function registerAllTools(
   registerGuideTools(server);
   registerWalletTools(server, chains, api);
   registerAssetManagerTools(server, api);
+  registerAeroUpgradeReadTool(server, api);
 
   // Write tools — account
   registerCreateTool(server, chains);
@@ -54,10 +57,11 @@ export function registerAllTools(
   registerDeleverageTool(server, api);
   registerStakeTool(server, api);
   registerCloseTool(server, api, chains);
-  registerAeroMigrationTool(server, api);
+  registerAeroUpgradeTool(server, api);
 
   // Write tools — wallet
   registerApproveTool(server, chains);
+  registerUpgradeVeloTool(server, api);
 
   // Write tools — pool (lending tranches, ERC-4626)
   registerPoolDepositTool(server, chains);

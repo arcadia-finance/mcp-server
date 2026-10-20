@@ -28,6 +28,7 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 | `read.account.history`         | Historical account value over time.                                                                         |
 | `read.account.pnl`             | PnL and yield data for an account.                                                                          |
 | `read.wallet.accounts`         | List all Arcadia accounts owned by a wallet address.                                                        |
+| `read.account.aero_upgrade`    | What a wallet's accounts (or one account) have to upgrade to Aero: status and counts, no calldata.          |
 | `read.wallet.balances`         | On-chain ERC20 balances and native ETH for a wallet address.                                                |
 | `read.wallet.allowances`       | Check ERC20 token allowances for a spender. Use before `write.wallet.approve` to avoid redundant approvals. |
 | `read.wallet.points`           | Points balance for a specific wallet address.                                                               |
@@ -50,6 +51,7 @@ All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 | Tool                              | Description                                                                                                                                        |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `write.wallet.approve`            | Approve an ERC20 token for spending. Required before depositing into an account. Call `read.wallet.allowances` first to check if already approved. |
+| `write.wallet.upgrade_velo`       | Upgrade wallet VELO on Optimism to the new AERO on Base (approve, then the payable deposit).                                                       |
 | `write.pool.deposit`              | Lend the pool's underlying asset into an ERC-4626 tranche to earn interest. Mints tranche shares to the receiver.                                  |
 | `write.pool.redeem`               | Redeem tranche shares back into the underlying asset (lender exit).                                                                                |
 | `write.account.create`            | Create a new Arcadia account via Factory.                                                                                                          |
@@ -63,7 +65,7 @@ All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 | `write.account.deleverage`        | Repay debt by selling collateral (swap + repay in one tx).                                                                                         |
 | `write.account.close`             | Atomic close: burn LP + swap + repay debt in one tx.                                                                                               |
 | `write.account.stake`             | Stake, unstake, or claim rewards for LP positions.                                                                                                 |
-| `write.account.aero_migration`    | Move to Aero: migrate Slipstream positions into Aero CL, or upgrade old AERO (account, Base) and VELO (wallet, Optimism).                          |
+| `write.account.aero_upgrade`      | Upgrade an account to Aero: its Slipstream positions move to Aero CL and its old AERO becomes the new AERO, in one flashAction.                    |
 | `write.account.automations`       | Configure automations from an intents array (full desired state). Returns the unsigned setAssetManagers tx.                                        |
 | `write.account.automations_delta` | Enable/disable individual automations, leaving the rest untouched.                                                                                 |
 

@@ -313,13 +313,19 @@ const fixtures: Record<string, Fixture> = {
   },
 
   // ── Dev ──────────────────────────────────────────────────────────
-  // Needs Slipstream positions in the account; accept rejection.
-  "write.account.aero_migration": {
-    args: (c) => ({
-      action: "migrate",
-      account_address: c.account.accountAddress,
-      chain_id: CHAIN_ID,
-    }),
+  // Answers once be-api serves the Aero upgrade endpoints (be-api #918); until
+  // then the route is missing. Accept rejection.
+  "read.account.aero_upgrade": {
+    args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
+    successExpected: false,
+  },
+  "write.account.aero_upgrade": {
+    args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
+    successExpected: false,
+  },
+  // Needs VELO in the wallet on Optimism; accept rejection.
+  "write.wallet.upgrade_velo": {
+    args: (c) => ({ owner_address: c.account.owner, chain_id: 10 }),
     successExpected: false,
   },
   "dev.send": { args: () => ({ to: WETH, data: "0x" }), successExpected: false },

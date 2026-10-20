@@ -4,7 +4,7 @@
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 36 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 38 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -24,7 +24,7 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Read Tools (18)
+## Read Tools (19)
 
 ### read.account.info
 
@@ -175,7 +175,16 @@ Get Arcadia workflow guides and reference documentation.
 Parameters:
 - `topic` (enum, optional): overview | automation | strategies | selection
 
-## Write Tools (17)
+### read.account.aero_upgrade
+
+Which Arcadia accounts have something to upgrade to Aero (MetadexCL V1): Slipstream V1 to V3 positions (staked or not) and old AERO. Per account: `status` (ready | choices_required | waiting | not_open | nothing_to_upgrade), `positions`, `movable`, `waiting`, `blocked`, `old_aero`. Accounts with nothing to upgrade are left out, so an empty list means nothing to do. No calldata or simulation; call write.account.aero_upgrade for the plan and the transaction.
+
+Parameters:
+- `wallet_address` (string): every account of a wallet; pass this or `account_address`
+- `account_address` (string): one account
+- `chain_id` (number, default: 8453): 8453 (Base) or 10 (Optimism); Robinhood (4663) answers an empty list
+
+## Write Tools (18)
 
 All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
@@ -189,6 +198,15 @@ Parameters:
 - `asset_type` (enum, default: "erc20"): erc20 | erc721 | erc1155
 - `amount` (string, default: "max_uint256"): ERC20 only: amount in raw units
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
+
+### write.wallet.upgrade_velo
+
+Upgrade VELO held in a wallet on Optimism to the new AERO on Base: ordered wallet transactions (`transactions[]`) from `owner_address`, an approve when the allowance is short, then depositLiquid on the Velodrome migration with the Hyperlane fee as value. 0.044 new AERO per VELO arrives at the same address on Base. VELO inside an account must be withdrawn first (write.account.withdraw); VELO stays usable, so this is optional. Errors name the contract's reason: `not_open` (with the opening time), `paused`, `budget_exhausted`, `recipient_not_deployed`.
+
+Parameters:
+- `owner_address` (string, required): wallet holding the VELO; receives the AERO on Base
+- `amount` (string, optional): raw units (18 decimals); omit for the full balance
+- `chain_id` (number, default: 10): Optimism only
 
 ### write.pool.deposit
 
@@ -336,26 +354,22 @@ Parameters:
 - `asset_id` (number, required): NFT token ID
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.aero_migration
+### write.account.aero_upgrade
 
-Move to Aero (MetadexCL V1). Returns unsigned transactions only. Actions:
-- `migrate` (Base, Optimism): one flashAction moving Slipstream V1/V2/V3 positions of an account into the Aero CL pool with the same pair and tick spacing. Whole account: blocked positions come back in `migration.skipped` with a code. One position: a blocked position returns a 422 whose message starts with the code. When Aero has no pool at a position's tick spacing the tool returns `target_choice_required` with the alternatives; call again with `target_pool` or `targets`. After it confirms, reconnect `managers_to_reconnect` with write.account.automations.
-- `upgrade_aero` (Base only): flashAction upgrading loose old AERO in an account 1:1 to the new AERO.
-- `upgrade_velo` (chain_id 10): wallet transactions on Optimism (approve when needed, then depositLiquid with the Hyperlane fee as value); new AERO arrives on Base.
+Upgrade one Arcadia account to Aero (MetadexCL V1) in one flashAction: every Slipstream V1/V2/V3 position (staked or not) moves to the Aero CL pool with the same pair, variant and tick spacing at the same range, and every unit of old AERO (loose, in rewards, in an old-AERO pair) becomes the new AERO. Returns the plan (`items[]` with `status` and `reason`, `managers_to_reconnect`, `old_managers_still_needed`, `simulation`) and, when anything can go now, the unsigned `transaction` with its `gas`. The backend decides what moves; report statuses and reasons as given.
 
-Margin accounts hold Aero positions on Base only; Optimism and Robinhood are spot only, so moving an Optimism margin account's positions fails simulation.
+- `status` ready: sign the transaction. `choices_required`: a position has status `choose` with `options[]` (every Aero pool on its pair with `apy`, `tvl_usd`, `is_new`, `tick_spacing`, `range_widened`, `default`, `disabled_reason`); pick one whose `disabled_reason` is null and call again with `choices`. `waiting`: nothing can move yet, see each item's `reason`. `not_open`: the AERO upgrade opens at `opens_at`.
+- Pass `accounts` (up to 10) instead of `account_address` for one plan per account (`results[]`), for a Safe that bundles them in one MultiSend below `max_gas_per_tx`.
+- After it confirms, reconnect `managers_to_reconnect` with write.account.automations (or write.account.automations_delta when `old_managers_still_needed`) and verify with read.account.info.
+
+Margin accounts hold Aero positions on Base only; on Optimism Aero positions are spot only.
 
 Parameters:
-- `action` (enum, required): migrate | upgrade_aero | upgrade_velo
-- `account_address` (string): migrate, upgrade_aero
-- `owner_address` (string): upgrade_velo
-- `asset_address` / `position_id` (string / number, optional): migrate one position; omit both for the whole account
-- `target_pool` (string, optional): migrate one position, the chosen Aero pool
-- `targets` (object[], optional): migrate whole account, `{asset_address, position_id, target_pool}` per position needing a choice
-- `price_tolerance_bps` (number, optional, 1 to 1000): migrate; default 150, or 500 with `safe`
-- `safe` (boolean, optional): migrate; owner is a multisig that signs later
-- `amount` (string, optional): upgrade_aero, upgrade_velo; raw units, omit for the full balance
-- `chain_id` (number, optional): 8453 (Base), 10 (Optimism) or 4663 (Robinhood); defaults to 8453 for migrate and upgrade_aero, 10 for upgrade_velo
+- `account_address` (string): the account to upgrade; pass this or `accounts`
+- `accounts` (string[], 1 to 10): one plan and transaction per account
+- `choices` (object[], optional): `{position_manager, position_id, pool}` per position with status choose
+- `slippage` (number, optional, 1 to 1000): price band in bps; default 150, or 500 when the owner is a contract
+- `chain_id` (number, default: 8453): 8453 (Base) or 10 (Optimism)
 
 ### write.account.close
 

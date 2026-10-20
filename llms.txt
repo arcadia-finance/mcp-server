@@ -4,7 +4,7 @@
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 36 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 38 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -24,9 +24,9 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Tools (36 total)
+## Tools (38 total)
 
-### Read (18)
+### Read (19)
 
 - read.account.info: account overview with health factor, collateral, debt, positions, liquidation price, automation status
 - read.account.history: historical account value over time
@@ -46,10 +46,12 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - read.guides: reference guides for automation, strategies, addresses
 - read.asset_manager.intents: automation intents and their params; pass account_address for live per-account availability
 - read.asset_manager.current: automations enabled on an account, with decoded per-manager config, mapped intents, Merkl state, and superseded managers
+- read.account.aero_upgrade: what a wallet's accounts (or one account) have to upgrade to Aero, per account status and counts, no calldata
 
-### Write (17)
+### Write (18)
 
 - write.wallet.approve: approve ERC20/ERC721 for spending
+- write.wallet.upgrade_velo: upgrade wallet VELO on Optimism to the new AERO on Base
 - write.pool.deposit: deposit the pool's underlying asset into an ERC-4626 tranche to earn lender yield
 - write.pool.redeem: burn tranche shares and redeem the underlying asset (lender exit)
 - write.account.create: create a new Arcadia account
@@ -63,7 +65,7 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - write.account.deleverage: repay debt by selling collateral
 - write.account.close: atomic close that burns LP, swaps, and repays in one tx
 - write.account.stake: stake, unstake, or claim LP rewards
-- write.account.aero_migration: move to Aero: migrate Slipstream positions into Aero CL (action migrate), upgrade old AERO in a Base account (upgrade_aero) or wallet VELO on Optimism (upgrade_velo)
+- write.account.aero_upgrade: upgrade an account to Aero in one flashAction: Slipstream positions move to Aero CL, old AERO becomes the new AERO; returns the plan and the transaction
 - write.account.automations: configure automations from an intents array (complete desired state), returns the unsigned setAssetManagers tx
 - write.account.automations_delta: switch individual automations on or off, leaving the rest untouched
 
