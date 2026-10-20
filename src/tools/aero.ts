@@ -121,6 +121,13 @@ export function upgradeNextSteps(
 
 /** The plan as the tool returns it: the flashAction as an unsigned transaction, plus what the agent needs to explain it. */
 export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number) {
+  // The planner composes one flashAction per account; a second call would be a
+  // contract change this tool does not know how to order.
+  if (plan.calls.length > 1) {
+    throw new Error(
+      `The backend returned ${plan.calls.length} calls for ${plan.account_address}; expected one flashAction.`,
+    );
+  }
   const call = plan.calls[0];
   const ready = plan.items.filter((i) => i.status === "ready").length;
   const simFailed = isSimulationFailed(plan.simulation.status);
