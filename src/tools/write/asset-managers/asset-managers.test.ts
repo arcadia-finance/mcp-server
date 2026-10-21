@@ -3,6 +3,7 @@ import { decodeFunctionData, encodeFunctionData } from "viem";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { createMockServer, parseToolResponse, TEST_ACCOUNT } from "../../../test-utils.js";
 import { registerAutomationsTools } from "./automations.js";
+import { AUTOMATION_INTENT } from "./intents.js";
 import { registerAssetManagerTools } from "../../read/asset-managers.js";
 import { DATA_SUFFIX } from "../../../utils/attribution.js";
 import { accountAbi } from "../../../abis/index.js";
@@ -715,4 +716,22 @@ describe("read_asset_manager_current", () => {
     expect(parsed.read_ok).toBe(false);
     expect(parsed.warnings).toHaveLength(1);
   });
+});
+
+describe("AUTOMATION_INTENT 1e18-scaled overrides", () => {
+  it("accepts the documented max_tolerance and min_liquidity_ratio values", () => {
+    const parsed = AUTOMATION_INTENT.safeParse({
+      kind: "rebalance",
+      max_tolerance: 50000000000000000,
+      min_liquidity_ratio: 990000000000000000,
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it.each([[{ max_tolerance: 1.5 }], [{ max_tolerance: -1 }], [{ min_liquidity_ratio: 1e19 }]])(
+    "rejects %o",
+    (override) => {
+      expect(AUTOMATION_INTENT.safeParse({ kind: "rebalance", ...override }).success).toBe(false);
+    },
+  );
 });

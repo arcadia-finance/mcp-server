@@ -186,7 +186,7 @@ const RebalanceIntent = z.object({
     ),
   max_tolerance: z
     .number()
-    .int()
+    .multipleOf(1)
     .min(0)
     .max(10 ** 18)
     .optional()
@@ -195,7 +195,7 @@ const RebalanceIntent = z.object({
     ),
   min_liquidity_ratio: z
     .number()
-    .int()
+    .multipleOf(1)
     .min(0)
     .max(10 ** 18)
     .optional()
