@@ -363,7 +363,7 @@ Upgrade one Arcadia account to Aero (MetadexCL V1) in one flashAction: every Sli
 - Pass `accounts` (up to 10) instead of `account_address` for one plan per account (`results[]`). `multisends` groups the accounts that got a transaction, in order: a Safe signs one MultiSend per group, each below `max_gas_per_tx`.
 - After it confirms, reconnect `managers_to_reconnect` with write_account_automations (or write_account_automations_delta when `old_managers_still_needed`) and verify with read_account_info.
 
-Margin accounts hold Aero positions on Base only; on Optimism Aero positions are spot only.
+Spot and margin accounts can hold Aero positions, staked or not, on Base, Optimism and Robinhood.
 
 Parameters:
 - `account_address` (string): the account to upgrade; pass this or `accounts`

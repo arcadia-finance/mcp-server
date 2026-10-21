@@ -188,7 +188,7 @@ Spot vs margin is determined by whether a **creditor** (lending pool) is set at 
 
 ### Base (8453)
 
-Protocols: Slipstream V1, Slipstream V2, Slipstream V3, Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1). Margin accounts can hold Aero positions on Base only.
+Protocols: Slipstream V1, Slipstream V2, Slipstream V3, Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1), for spot and margin accounts.
 
 | Token         | Address                                      | Decimals |
 | ------------- | -------------------------------------------- | -------- |
@@ -202,7 +202,7 @@ Protocols: Slipstream V1, Slipstream V2, Slipstream V3, Uniswap V3, Uniswap V4, 
 
 ### Optimism (10)
 
-Protocols: Slipstream V1 (Velodrome), Slipstream V3, Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1). No Slipstream V2, no cbBTC pool. Aero positions are spot only on Optimism.
+Protocols: Slipstream V1 (Velodrome), Slipstream V3, Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1). No Slipstream V2, no cbBTC pool.
 
 | Token  | Address                                      | Decimals |
 | ------ | -------------------------------------------- | -------- |
@@ -228,7 +228,7 @@ Protocols: Slipstream V1, Uniswap V3, Uniswap V4. No Slipstream V2/V3. No lendin
 
 ### Robinhood (4663)
 
-Protocols: Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1). No Slipstream V1-V3. Lending pools: WETH and USDG. Aero positions are spot only on Robinhood.
+Protocols: Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1). No Slipstream V1-V3. Lending pools: WETH and USDG.
 
 | Token | Address                                      | Decimals |
 | ----- | -------------------------------------------- | -------- |

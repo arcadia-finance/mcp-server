@@ -426,6 +426,25 @@ describe("write_account_aero_upgrade: one account", () => {
     expect(data.asset_changes).toEqual(assetChanges);
   });
 
+  it("returns the transaction unsimulated when Tenderly did not answer", async () => {
+    const api = {
+      getAeroUpgradePlan: vi.fn(async () =>
+        plan({
+          simulation: {
+            status: false,
+            url: null,
+            error: "simulation unavailable (timeout or upstream error)",
+          },
+        }),
+      ),
+    };
+    const result = await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 });
+    expect(result.isError).toBeUndefined();
+    const data = parseToolResponse(result);
+    expect(data.transaction.to).toBe(TEST_ACCOUNT);
+    expect(data.tenderly_sim_status).toBe("unavailable");
+  });
+
   it("refuses to hand out a transaction whose simulation failed", async () => {
     const api = {
       getAeroUpgradePlan: vi.fn(async () =>
@@ -584,7 +603,11 @@ describe("write_account_aero_upgrade: several accounts", () => {
           },
           plan({
             account_address: "0x00000000000000000000000000000000000000cc",
-            simulation: { status: false, url: null, error: "SwapFailed" },
+            simulation: {
+              status: false,
+              url: "https://dashboard.tenderly.co/sim/4",
+              error: "SwapFailed",
+            },
           }),
         ],
       })),
@@ -625,7 +648,11 @@ describe("write_account_aero_upgrade: several accounts", () => {
   it("keeps the backend's MultiSend groups in order and drops a group left without a transaction", async () => {
     const third = "0x00000000000000000000000000000000000000cc";
     const fourth = "0x00000000000000000000000000000000000000dd";
-    const failedSim = { status: false, url: null, error: "PriceOutOfRange" };
+    const failedSim = {
+      status: false,
+      url: "https://dashboard.tenderly.co/sim/5",
+      error: "PriceOutOfRange",
+    };
     const api = {
       postAeroUpgradeBatch: vi.fn(async () => ({
         chain_id: 8453,
@@ -734,7 +761,7 @@ describe("write_wallet_upgrade_velo", () => {
     const api = {
       getUpgradeVeloCalldata: vi.fn(async () => {
         throw apiError(409, {
-          name: "VELO Upgrade Unavailable",
+          name: "AERO Upgrade Unavailable",
           reason: "not_open",
           message: "The VELO migration opens at 1792627200.",
           opens_at: OPENS_AT,

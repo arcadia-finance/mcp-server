@@ -153,7 +153,7 @@ export function registerWorkflowPrompts(server: McpServer) {
               "",
               "VELO in the owner's wallet on Optimism is separate: write_wallet_upgrade_velo (chain_id 10, owner_address) returns wallet transactions; the new AERO is paid on Base. VELO inside an account must be withdrawn first. VELO stays usable, so this is optional.",
               "",
-              "Margin accounts hold Aero positions on Base only; on Optimism and Robinhood Aero positions are spot only.",
+              "Spot and margin accounts can hold Aero positions, staked or not, on Base, Optimism and Robinhood, within each lending pool's limits.",
             ].join("\n"),
           },
         },

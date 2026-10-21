@@ -25,10 +25,10 @@ Rebalancers, compounders, and yield claimers are deployed per DEX protocol. Most
 
 Protocol availability per chain:
 
-- **Base**: Slipstream V1, V2, V3, Uniswap V3, V4, Aero CL (MetadexCL V1), CoW Swap. Margin accounts hold Aero positions on Base only.
-- **Optimism**: Slipstream V1, V3, Uniswap V3, V4, Aero CL (MetadexCL V1, spot only) (no V2, no CoW Swap). V3 uses different AM addresses than Base (exception to the deterministic deployment pattern).
+- **Base**: Slipstream V1, V2, V3, Uniswap V3, V4, Aero CL (MetadexCL V1), CoW Swap.
+- **Optimism**: Slipstream V1, V3, Uniswap V3, V4, Aero CL (MetadexCL V1) (no V2, no CoW Swap). V3 uses different AM addresses than Base (exception to the deterministic deployment pattern).
 - **Unichain**: Slipstream V1, Uniswap V3, V4 (no V2/V3, no CoW Swap)
-- **Robinhood**: Uniswap V3, V4 and Aero CL (spot only) (no Slipstream V1-V3, no Aerodrome V1, no CoW Swap). Lending pools are WETH and USDG, there is no USDC on this chain.
+- **Robinhood**: Uniswap V3, V4 and Aero CL (no Slipstream V1-V3, no Aerodrome V1, no CoW Swap). Lending pools are WETH and USDG, there is no USDC on this chain.
 
 Use `read_asset_manager_intents` to discover available automations and their addresses per chain.
 

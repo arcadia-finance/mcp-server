@@ -5,7 +5,6 @@ import type {
   AeroUpgradePlanResponse,
 } from "../types/api.js";
 import { appendDataSuffix } from "../utils/attribution.js";
-import { isSimulationFailed, normalizeSimStatus } from "./write/account/format-response.js";
 
 /** Chains the Aero upgrade endpoints answer for. Robinhood has no Slipstream positions, so it answers an empty list. */
 export const AERO_UPGRADE_CHAINS = [8453, 10, 4663] as const;
@@ -66,6 +65,16 @@ export function aeroErrorResult(err: unknown): ToolError {
     return toolError(`not found (404): ${message}`);
   }
   return toolError(err.message);
+}
+
+/** Tenderly ran and the transaction reverted. A false status without a url means Tenderly did not answer. */
+export function simulationReverted(simulation: AeroSimulation): boolean {
+  return simulation.status === false && simulation.url !== null;
+}
+
+function simulationStatus(simulation: AeroSimulation): "success" | "failure" | "unavailable" {
+  if (simulation.status === true) return "success";
+  return simulationReverted(simulation) ? "failure" : "unavailable";
 }
 
 /** Tool error when the backend's simulation predicts a revert. */
@@ -141,7 +150,7 @@ export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number
   }
   const call = plan.calls[0];
   const ready = plan.items.filter((i) => i.status === "ready").length;
-  const simFailed = call !== undefined && isSimulationFailed(plan.simulation.status);
+  const simFailed = call !== undefined && simulationReverted(plan.simulation);
   return {
     description: `Upgrade ${plan.account_address} to Aero: ${ready} of ${plan.items.length} item${plan.items.length === 1 ? "" : "s"} ready`,
     account_address: plan.account_address,
@@ -161,7 +170,7 @@ export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number
       : {}),
     ...(simFailed ? { error: simulationFailedText(plan.simulation) } : {}),
     ...(plan.simulation.url ? { tenderly_sim_url: plan.simulation.url } : {}),
-    tenderly_sim_status: normalizeSimStatus(plan.simulation.status),
+    tenderly_sim_status: simulationStatus(plan.simulation),
     asset_changes: plan.simulation.asset_changes ?? [],
     opens_at: plan.opens_at,
     price_tolerance_bps: plan.price_tolerance_bps,
