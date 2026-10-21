@@ -4,14 +4,17 @@ import { PostHog } from "posthog-node";
 
 type Capture = Pick<PostHog, "capture">;
 
-// Unset POSTHOG_KEY = no client, so npm/stdio users are never tracked unless
-// they opt in. Read at call time: index.ts loads .env after static imports run.
-export function createAnalytics(): PostHog | null {
+// Only the hosted HTTP server reports, and only with POSTHOG_KEY set. A local
+// stdio install never does, even when its environment sets POSTHOG_KEY for
+// another app. Read at call time: index.ts loads env files after static imports run.
+export function createAnalytics(transport: string): PostHog | null {
+  if (transport !== "http") return null;
   const key = process.env.POSTHOG_KEY?.trim();
   if (!key) return null;
-  // flushAt 1: a stdio process can exit at any time, so don't hold a batch.
+  // flushAt 1: a process can exit at any time, so don't hold a batch.
   return new PostHog(key, {
-    host: process.env.POSTHOG_HOST ?? "https://eu.i.posthog.com",
+    // An empty POSTHOG_HOST would make posthog-node fall back to the US host.
+    host: process.env.POSTHOG_HOST?.trim() || "https://eu.i.posthog.com",
     flushAt: 1,
     flushInterval: 0,
   });

@@ -7,7 +7,7 @@ export function isSimulationFailed(status: unknown): boolean {
   return status === false || status === "false";
 }
 
-function normalizeSimStatus(status: unknown): "success" | "failure" | "unavailable" {
+export function normalizeSimStatus(status: unknown): "success" | "failure" | "unavailable" {
   if (status === true || status === "true") return "success";
   if (status === false || status === "false") return "failure";
   return "unavailable";

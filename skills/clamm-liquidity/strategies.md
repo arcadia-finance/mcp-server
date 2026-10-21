@@ -341,3 +341,83 @@ read.strategy.recommendation → check if rebalancing is needed
 ```
 
 **POL monitoring goal:** Ensure sufficient liquidity is deployed and treasury capital is not eroding excessively — not maximizing return.
+
+## Upgrade to Aero (MetadexCL V1)
+
+Aero CL succeeds the Slipstream pools (Aerodrome on Base, Velodrome on Optimism) at the Aero launch, and the new AERO token succeeds the old one on Base. `write.account.aero_upgrade` upgrades one account in one flashAction signed by the owner: every Slipstream V1, V2 and V3 position, staked or not, moves into the Aero CL pool with the same pair and variant at the same range and tick spacing (when Aero has no pool at that tick spacing, the user picks another one), and every unit of old AERO (loose in the account, unclaimed rewards, an old-AERO pair) becomes the new AERO. Chains: Base and Optimism. Robinhood has nothing to upgrade.
+
+The backend decides what can move. Report its statuses and reasons as given; never decide eligibility yourself.
+
+### Step-by-step
+
+```
+// 1. The cheap check: status and counts per account, no calldata. Empty accounts and failed_accounts: nothing to do.
+read.account.aero_upgrade(wallet_address: <wallet>, chain_id: 8453)
+
+// 2. If automations are enabled, keep their intents and config: the old managers are replaced after the move
+read.asset_manager.current(account_address: <account>, chain_id: 8453)
+
+// 3. The plan and, when anything can go now, the one transaction
+write.account.aero_upgrade(account_address: <account>, chain_id: 8453)
+
+// 4. Sign and broadcast as the account owner
+
+// 5. Reconnect automations when managers_to_reconnect is not empty (new position id from read.account.info)
+write.account.automations(account_address: <account>, position_id: <new_aero_id>, intents: [<from step 2>], mode: "save", chain_id: 8453)
+
+// 6. Verify: dex_protocol metadexcl_v1 or staked_metadexcl_v1, old AERO shown as the new AERO, automation lists the reconnected managers
+read.account.info(account_address: <account>, chain_id: 8453)
+```
+
+### Plan statuses
+
+| `status`             | Meaning and next step                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ready`              | Sign `transaction` (`gas` is the backend's estimate). Items whose status is `waiting` or `blocked` stay where they are; their `reason` says why.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `choices_required`   | A position has status `choose`: Aero has no pool at its tick spacing, and another tick spacing can take it. It stays where it is until the user picks one of its `options` whose `disabled_reason` is null (`tick_spacing`, `fee`, `apy`, `tvl_usd`, `is_new`, `range_widened`) and you call again with `choices`. When ready items exist the plan still carries a `transaction`, which moves only those. Without one there is nothing to sign yet. Once that transaction is signed, a call made before it confirms is built on the old state: wait for the confirmation, then call again with `choices`. |
+| `waiting`            | Nothing can move yet. Each item's `reason` says why (see below). Do not retry in a loop; tell the user.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `not_open`           | The AERO token upgrade opens at `opens_at` (Thu 22 Oct 2026 00:00 UTC). An upgrade that converts old AERO cannot be built before.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `nothing_to_upgrade` | Nothing can move: no Slipstream position and no old AERO on the account, or every item is `blocked`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+
+### Item reasons
+
+| `reason.code`               | Status  | Meaning                                                                                                                                                                                                       |
+| --------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pool_not_on_aero`          | waiting | Aero has no pool with an Arcadia strategy on this pair yet.                                                                                                                                                   |
+| `staking_not_open`          | waiting | The Aero pool's gauge is not live on Arcadia yet. The position stays staked where it is.                                                                                                                      |
+| `no_reward_feed`            | waiting | The chain has no price feed for the staked Aero reward token yet. The position stays staked where it is.                                                                                                      |
+| `target_price_mismatch`     | waiting | The Aero pool's price is too far from the market price to move safely now.                                                                                                                                    |
+| `range_price_mismatch`      | waiting | The Aero pool's price and the old pool's price sit on different sides of the range edge, so the position's tokens cannot open the same range yet.                                                             |
+| `widened_range_holds_price` | waiting | Only other tick spacings exist, and the widened range there holds the price, which the one-sided position cannot fill. It can move once the price leaves that range.                                          |
+| `old_aero_at_range_edge`    | waiting | The old pool's price is near the range edge where the position holds no old AERO, so the upgrade cannot count on converting it. It can move once the price moves away, or with loose old AERO in the account. |
+| `migration_paused`          | waiting | Aero has paused the AERO token upgrade.                                                                                                                                                                       |
+| `budget_exhausted`          | waiting | The AERO token upgrade has too little new AERO left for this account now.                                                                                                                                     |
+| `new_aero_cap_reached`      | waiting | The account's lending pool is at its limit for the new AERO, so old AERO in this margin account waits until the limit is raised.                                                                              |
+| `account_unhealthy`         | waiting | The account's collateral is below what its debt requires, so the upgrade would revert. Add collateral or repay debt first.                                                                                    |
+| `exposure_limit`            | waiting | A lending pool limit for one of the account's assets is reached, so the upgrade would revert. It can go once the limit is raised.                                                                             |
+| `empty_position`            | blocked | The position holds no liquidity. Close it from the position page.                                                                                                                                             |
+| `dust_position`             | blocked | The position is too small to re-create on Aero. Close it from the position page.                                                                                                                              |
+| `range_not_alignable`       | blocked | The range fits no Aero tick spacing. Close the position and open a new one on Aero.                                                                                                                           |
+| `no_target_pair`            | blocked | The position pairs old AERO with the new AERO, so there is no Aero pair to move it to. Close it from the position page.                                                                                       |
+
+An option's `disabled_reason` uses `staking_not_open`, `no_reward_feed`, `range_price_mismatch`, `price_mismatch` (its pool is too far from the market price) or `range_mismatch` (its tick spacing cannot hold the range).
+
+When the transaction's simulation fails, the tool returns an error and no transaction. Rebuild once and report if it fails again. A plan without a transaction can still show `tenderly_sim_status: failure`: the account's health or a lending pool limit refused the move, and its items wait on `account_unhealthy` or `exposure_limit`. Report those reasons and do not rebuild.
+
+`slippage` (bps, 1 to 1000) bounds the price the mint accepts. Omit it: the backend uses 150, or 500 when the owner is a contract such as a Safe.
+
+### Several accounts
+
+Pass `accounts` (up to 10 of one owner) instead of `account_address` for one plan and transaction per account in `results[]`. `multisends` groups the accounts that got a transaction, in order, so that each group's `gas` adds up to at most `max_gas_per_tx`: a Safe signs one MultiSend per group with those accounts' transactions. The accounts share one AERO upgrade budget, so plan them together. A result with `status: error` keeps its slot.
+
+### Reconnecting automations
+
+The move mints a new position, so automations on the old Slipstream position stop applying. `managers_to_reconnect` lists the old managers (`kind`, `old_address`) and their Aero replacements (`new_address`). Call `write.account.automations` in `save` mode with the new `position_id` and the intents the account had. Omit `protocol` so the backend resolves `metadexcl_v1` from the position: a stale `slipstream_*` value would compile Slipstream managers. The save disables the old managers in the same transaction. When `old_managers_still_needed` is true a Slipstream position stays on the account (it waits for its Aero pool), so keep the old managers: enable the Aero position with `write.account.automations_delta` instead. Custom rebalancer settings are not carried over automatically; restate them from `read.asset_manager.current`. On Optimism and Robinhood there is no CoW Swapper, so compounding a staked Aero position's xAERO reward is rejected there; `claim_rewards` works.
+
+### Margin vs spot
+
+Margin accounts hold Aero positions on Base only. On Optimism and Robinhood, Aero positions are spot only. Staked Aero positions stay spot only until staked margin is enabled; a staked margin position on Base waits with `staking_not_open` or `no_reward_feed` until then; it is never unstaked.
+
+### VELO in the wallet
+
+Separate from the account upgrade: `write.wallet.upgrade_velo` with `owner_address` (Optimism only) upgrades VELO in the wallet to 0.044 new AERO per VELO, paid to the same address on Base after the Hyperlane message lands. It returns ordered `transactions` (an approve when needed, then the payable deposit). VELO inside an account must be withdrawn first with `write.account.withdraw`. VELO stays usable, so this is optional. Errors name the reason: `not_open` (with the opening time), `paused`, `budget_exhausted`, `recipient_not_deployed` (a contract wallet that does not exist on Base).

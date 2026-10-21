@@ -25,15 +25,15 @@ const pkg = require("../package.json") as { version: string };
 
 const apiClient = new ArcadiaApiClient();
 const chainConfigs = getChainConfigs();
-const analytics = createAnalytics();
 const transportMode = process.env.TRANSPORT ?? "stdio";
+const analytics = createAnalytics(transportMode);
 
 function createServer(options?: { httpMode?: boolean }) {
   const server = new McpServer({
     name: "arcadia-finance",
     version: pkg.version,
     description:
-      "Arcadia Finance. Manage concentrated liquidity positions on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage. Base and Unichain.",
+      "Arcadia Finance. Manage concentrated liquidity positions on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage. Base, Optimism, Unichain and Robinhood.",
   });
   const namingTarget = options?.httpMode ? wrapServerForHttp(server) : server;
   // Outermost, so events carry the canonical dotted tool name in both transports.

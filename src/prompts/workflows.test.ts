@@ -28,9 +28,28 @@ function setup() {
 }
 
 describe("workflow prompts", () => {
-  it("registers 3 prompts", () => {
+  it("registers 4 prompts", () => {
     const prompts = setup();
-    expect(prompts).toHaveLength(3);
+    expect(prompts).toHaveLength(4);
+  });
+
+  it("migrate-to-aero walks the move, reconnect and verification in order", async () => {
+    const prompts = setup();
+    const prompt = prompts.find((p) => p.name === "migrate-to-aero")!;
+    const text = (await prompt.callback({ account_address: "0xabc" })).messages[0].content.text;
+    expect(text).toContain("0xabc");
+    expect(text).toContain("8453");
+    const order = [
+      "read.account.aero_upgrade",
+      "read.account.info",
+      "read.asset_manager.current",
+      "write.account.aero_upgrade",
+      "write.account.automations",
+    ].map((name) => text.indexOf(name));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(text).toContain("choices_required");
+    expect(text).toContain("write.wallet.upgrade_velo");
   });
 
   it("analyze-account returns messages with account address", async () => {

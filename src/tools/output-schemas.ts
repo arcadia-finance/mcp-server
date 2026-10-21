@@ -195,3 +195,92 @@ export const IntentsListOutput = z.object({
   shared_params: z.array(z.string()),
   usage: z.string(),
 });
+
+const ManagerToReconnect = z.object({
+  kind: z.string(),
+  old_address: z.string(),
+  new_address: z.string().nullable(),
+  initiator: z.string().nullable(),
+});
+
+const AeroPlanStatus = z.enum([
+  "ready",
+  "choices_required",
+  "waiting",
+  "not_open",
+  "nothing_to_upgrade",
+]);
+
+export const AeroUpgradeCandidatesOutput = z.object({
+  chain_id: z.number(),
+  owner_address: z.string().nullable(),
+  opens_at: z.number().nullable(),
+  checked_at: z.number(),
+  accounts: z.array(
+    z.object({
+      account_address: z.string(),
+      is_spot: z.boolean(),
+      status: AeroPlanStatus,
+      positions: z.number(),
+      old_aero: z.string(),
+      movable: z.number(),
+      waiting: z.number(),
+      blocked: z.number(),
+    }),
+  ),
+  failed_accounts: z.array(z.object({ account_address: z.string(), error: z.string() })),
+});
+
+const AeroUpgradePlanOutput = z.object({
+  description: z.string(),
+  account_address: z.string(),
+  // The account owner: the only address that can send the transaction.
+  owner: z.string(),
+  status: AeroPlanStatus,
+  status_note: z.string(),
+  // Absent while nothing can go now, and when the transaction's simulation failed.
+  transaction: Transaction.optional(),
+  gas: z.string().optional(),
+  error: z.string().optional(),
+  tenderly_sim_url: z.string().optional(),
+  tenderly_sim_status: z.enum(["success", "failure", "unavailable"]),
+  // Net per token, from the simulation: positive into the account, negative out.
+  asset_changes: z.array(
+    z.object({
+      token: z.string(),
+      standard: z.string(),
+      amount: z.string(),
+      decimals: z.number().nullable(),
+      protocol: z.string().nullable(),
+    }),
+  ),
+  opens_at: z.number().nullable(),
+  price_tolerance_bps: z.number(),
+  items: z.array(z.record(z.unknown())),
+  managers_to_reconnect: z.array(ManagerToReconnect),
+  old_managers_still_needed: z.boolean(),
+  next_steps: z.array(z.string()),
+});
+
+// One account: the plan fields. Several accounts: `results`, one plan or
+// `{account_address, status: "error", error}` per account.
+export const AeroUpgradeOutput = AeroUpgradePlanOutput.partial().extend({
+  description: z.string(),
+  chain_id: z.number().optional(),
+  max_gas_per_tx: z.number().optional(),
+  results: z.array(z.record(z.unknown())).optional(),
+  multisends: z.array(z.array(z.string())).optional(),
+  next_steps: z.array(z.string()),
+});
+
+export const VeloUpgradeOutput = z.object({
+  description: z.string(),
+  transactions: z.array(z.object({ description: z.string(), transaction: Transaction })),
+  destination_chain_id: z.number(),
+  recipient: z.string(),
+  old_token: z.string(),
+  new_token: z.string(),
+  amount_in: z.string(),
+  expected_amount_out: z.string(),
+  fee_wei: z.string(),
+});

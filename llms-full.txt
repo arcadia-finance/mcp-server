@@ -1,10 +1,10 @@
 # Arcadia Finance MCP Server
 
-> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
+> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aero CL, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 35 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 38 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -24,7 +24,7 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Read Tools (18)
+## Read Tools (19)
 
 ### read.account.info
 
@@ -175,7 +175,16 @@ Get Arcadia workflow guides and reference documentation.
 Parameters:
 - `topic` (enum, optional): overview | automation | strategies | selection
 
-## Write Tools (16)
+### read.account.aero_upgrade
+
+Which Arcadia accounts have something to upgrade to Aero (MetadexCL V1): Slipstream V1 to V3 positions (staked or not) and old AERO. Per account: `status` (ready | choices_required | waiting | not_open | nothing_to_upgrade), `positions`, `movable`, `waiting`, `blocked`, `old_aero`. Accounts without a Slipstream position or old AERO are left out. `failed_accounts` lists the accounts whose check failed, with the error: an empty `accounts` list means nothing to do only when `failed_accounts` is empty too. Otherwise those accounts could not be checked, so say so and retry later. No calldata or simulation; call write.account.aero_upgrade for the plan and the transaction.
+
+Parameters:
+- `wallet_address` (string): every account of a wallet; pass this or `account_address`
+- `account_address` (string): one account
+- `chain_id` (number, default: 8453): 8453 (Base) or 10 (Optimism); Robinhood (4663) answers an empty list
+
+## Write Tools (18)
 
 All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
@@ -189,6 +198,15 @@ Parameters:
 - `asset_type` (enum, default: "erc20"): erc20 | erc721 | erc1155
 - `amount` (string, default: "max_uint256"): ERC20 only: amount in raw units
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
+
+### write.wallet.upgrade_velo
+
+Upgrade VELO held in a wallet on Optimism to the new AERO on Base: ordered wallet transactions (`transactions[]`) from `owner_address`, an approve when the allowance is short, then depositLiquid on the Velodrome migration with the Hyperlane fee as value. 0.044 new AERO per VELO arrives at the same address on Base. VELO inside an account must be withdrawn first (write.account.withdraw); VELO stays usable, so this is optional. Errors name the contract's reason: `not_open` (with the opening time), `paused`, `budget_exhausted`, `recipient_not_deployed`.
+
+Parameters:
+- `owner_address` (string, required): wallet holding the VELO; receives the AERO on Base
+- `amount` (string, optional): raw units (18 decimals); omit for the full balance
+- `chain_id` (number, default: 10): Optimism only
 
 ### write.pool.deposit
 
@@ -336,6 +354,24 @@ Parameters:
 - `asset_id` (number, required): NFT token ID
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
+### write.account.aero_upgrade
+
+Upgrade one Arcadia account to Aero (MetadexCL V1) in one flashAction: every Slipstream V1/V2/V3 position (staked or not) moves to the Aero CL pool with the same pair and variant at the same range and tick spacing (when Aero has no pool at that tick spacing, the user picks another one), and every unit of old AERO (loose, in rewards, in an old-AERO pair) becomes the new AERO. Returns the plan (`items[]` with `status` and `reason`, `managers_to_reconnect`, `old_managers_still_needed`, `tenderly_sim_status`) and, when anything can go now, the unsigned `transaction` with its `gas`. The backend decides what moves; report statuses and reasons as given.
+
+- `status` ready: sign the transaction. `choices_required`: a position has status `choose` with `options[]` (every Aero pool on its pair with `apy`, `tvl_usd`, `is_new`, `tick_spacing`, `range_widened`, `default`, `disabled_reason`); pick one whose `disabled_reason` is null and call again with `choices`. A `transaction` returned with `choices_required` moves only the ready items, and the choose items stay where they are until the call with `choices`. Once that transaction is signed, a call made before it confirms is built on the old state, so wait for the confirmation before calling again. Without a `transaction` there is nothing to sign yet. `waiting`: nothing can move yet, see each item's `reason` (for example `pool_not_on_aero`, `target_price_mismatch`, `account_unhealthy`, `exposure_limit`). `not_open`: the AERO upgrade opens at `opens_at`.
+- When the transaction's simulation fails, the tool returns an error and no transaction. A plan without a transaction can still show `tenderly_sim_status` failure: the account's health or a lending pool limit refused the move and the items wait on `account_unhealthy` or `exposure_limit`. Report those reasons and do not rebuild.
+- Pass `accounts` (up to 10) instead of `account_address` for one plan per account (`results[]`). `multisends` groups the accounts that got a transaction, in order: a Safe signs one MultiSend per group, each below `max_gas_per_tx`.
+- After it confirms, reconnect `managers_to_reconnect` with write.account.automations (or write.account.automations_delta when `old_managers_still_needed`) and verify with read.account.info.
+
+Margin accounts hold Aero positions on Base only; on Optimism Aero positions are spot only.
+
+Parameters:
+- `account_address` (string): the account to upgrade; pass this or `accounts`
+- `accounts` (string[], 1 to 10): one plan and transaction per account
+- `choices` (object[], optional): `{position_manager, position_id, pool}` per position with status choose
+- `slippage` (number, optional, 1 to 1000): price band in bps; default 150, or 500 when the owner is a contract
+- `chain_id` (number, default: 8453): 8453 (Base) or 10 (Optimism)
+
 ### write.account.close
 
 Atomic flash-action that closes an Arcadia account position in one transaction.
@@ -373,7 +409,7 @@ Parameters:
 - `intents` (object[], required): Complete desired automation state, at least one intent
 - `mode` (enum, default: "save"): save diffs against on-chain state and returns a signable transaction that also disables anything omitted; preview resolves and validates only, returning a plan and no transaction
 - `position_id` (number, optional): LP position id. Supply it and the backend fetches protocol, staked flag, tokens and reward tokens
-- `protocol` (enum, optional): Only needed without position_id. Accepts slipstream_v1 | slipstream_v2 | slipstream_v3 | uniswap_v3 | uniswap_v4, or the dex_protocol spellings (slipstream, staked_slipstream_v3, uniV3, ...) which imply is_staked
+- `protocol` (enum, optional): Only needed without position_id. Accepts slipstream_v1 | slipstream_v2 | slipstream_v3 | uniswap_v3 | uniswap_v4 | metadexcl_v1, or the dex_protocol spellings (slipstream, staked_slipstream_v3, metadexcl_v1, staked_metadexcl_v1, uniV3, ...) which imply is_staked
 - `is_staked` (boolean, optional): Whether the LP position is staked
 - `token0` / `token1` (string, optional): Pool token addresses
 - `reward_tokens` (string[], optional): Staking reward token addresses
