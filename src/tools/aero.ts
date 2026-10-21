@@ -145,6 +145,7 @@ export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number
   return {
     description: `Upgrade ${plan.account_address} to Aero: ${ready} of ${plan.items.length} item${plan.items.length === 1 ? "" : "s"} ready`,
     account_address: plan.account_address,
+    owner: plan.owner,
     status: plan.status,
     status_note: describePlanStatus(plan),
     ...(call && !simFailed
@@ -161,18 +162,20 @@ export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number
     ...(simFailed ? { error: simulationFailedText(plan.simulation) } : {}),
     ...(plan.simulation.url ? { tenderly_sim_url: plan.simulation.url } : {}),
     tenderly_sim_status: normalizeSimStatus(plan.simulation.status),
+    asset_changes: plan.simulation.asset_changes ?? [],
     opens_at: plan.opens_at,
     price_tolerance_bps: plan.price_tolerance_bps,
     items: plan.items,
     managers_to_reconnect: plan.managers_to_reconnect,
     old_managers_still_needed: plan.old_managers_still_needed,
-    next_steps: call
-      ? upgradeNextSteps(
-          plan.account_address,
-          plan.managers_to_reconnect,
-          plan.old_managers_still_needed,
-          plan.status === "choices_required",
-        )
-      : [],
+    next_steps:
+      call && !simFailed
+        ? upgradeNextSteps(
+            plan.account_address,
+            plan.managers_to_reconnect,
+            plan.old_managers_still_needed,
+            plan.status === "choices_required",
+          )
+        : [],
   };
 }

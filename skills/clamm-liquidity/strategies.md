@@ -416,7 +416,7 @@ The move mints a new position, so automations on the old Slipstream position sto
 
 ### Margin vs spot
 
-Margin accounts hold Aero positions on Base only. On Optimism and Robinhood, Aero positions are spot only. Staked Aero positions stay spot only until staked margin is enabled; a staked margin position on Base lands unstaked.
+Margin accounts hold Aero positions on Base only. On Optimism and Robinhood, Aero positions are spot only. Staked Aero positions stay spot only until staked margin is enabled; a staked margin position on Base waits with `staking_not_open` or `no_reward_feed` until then; it is never unstaked.
 
 ### VELO in the wallet
 

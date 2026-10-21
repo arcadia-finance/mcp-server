@@ -102,13 +102,13 @@ export class ArcadiaApiClient {
     return resp.json() as Promise<T>;
   }
 
-  private async post<T = ApiResponse>(path: string, body: unknown): Promise<T> {
+  private async post<T = ApiResponse>(path: string, body: unknown, timeoutMs?: number): Promise<T> {
     const url = `${this.baseUrl}${API_PREFIX}${path}`;
     const resp = await fetch(url, {
       method: "POST",
       headers: { ...DEFAULT_HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(this.timeout),
+      signal: AbortSignal.timeout(timeoutMs ?? this.timeout),
     });
     if (!resp.ok) await this.throwApiError(resp, path);
     return resp.json() as Promise<T>;
@@ -334,7 +334,9 @@ export class ArcadiaApiClient {
     slippage?: number;
     min_block?: number;
   }) {
-    return this.post<AeroUpgradeBatchResponse>("/bundles/aero_upgrade/batch", body);
+    // The backend plans and simulates the accounts one after another, a few seconds each.
+    const timeoutMs = Math.max(this.timeout, 20_000 * body.accounts.length);
+    return this.post<AeroUpgradeBatchResponse>("/bundles/aero_upgrade/batch", body, timeoutMs);
   }
 
   async getUpgradeVeloCalldata(params: {

@@ -234,6 +234,8 @@ export const AeroUpgradeCandidatesOutput = z.object({
 const AeroUpgradePlanOutput = z.object({
   description: z.string(),
   account_address: z.string(),
+  // The account owner: the only address that can send the transaction.
+  owner: z.string(),
   status: AeroPlanStatus,
   status_note: z.string(),
   // Absent while nothing can go now, and when the transaction's simulation failed.
@@ -242,6 +244,16 @@ const AeroUpgradePlanOutput = z.object({
   error: z.string().optional(),
   tenderly_sim_url: z.string().optional(),
   tenderly_sim_status: z.enum(["success", "failure", "unavailable"]),
+  // Net per token, from the simulation: positive into the account, negative out.
+  asset_changes: z.array(
+    z.object({
+      token: z.string(),
+      standard: z.string(),
+      amount: z.string(),
+      decimals: z.number().nullable(),
+      protocol: z.string().nullable(),
+    }),
+  ),
   opens_at: z.number().nullable(),
   price_tolerance_bps: z.number(),
   items: z.array(z.record(z.unknown())),

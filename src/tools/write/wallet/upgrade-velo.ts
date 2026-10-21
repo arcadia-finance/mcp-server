@@ -56,7 +56,7 @@ export function registerUpgradeVeloTool(server: McpServer, api: ArcadiaApiClient
 
         const last = result.calls.length - 1;
         const response = {
-          description: `Upgrade ${result.amount_in} VELO on Optimism to ${result.expected_amount_out} new AERO on Base`,
+          description: `Upgrade ${result.amount_in} VELO on Optimism to ${result.expected_amount_out} new AERO, paid to ${result.recipient} on Base`,
           transactions: result.calls.map((call, i) => ({
             description:
               i === last

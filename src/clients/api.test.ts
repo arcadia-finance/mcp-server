@@ -149,6 +149,19 @@ describe("ArcadiaApiClient Aero upgrade", () => {
     expect(bare.searchParams.has("choices")).toBe(false);
   });
 
+  it("gives the batch 20 seconds per account, never less than the default timeout", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({}),
+    })) as unknown as typeof fetch;
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const api = new ArcadiaApiClient("https://api.test");
+    await api.postAeroUpgradeBatch({ chain_id: 8453, accounts: ["0xa"] });
+    await api.postAeroUpgradeBatch({ chain_id: 8453, accounts: ["0xa", "0xb", "0xc", "0xd"] });
+    expect(timeout.mock.calls.map((c) => c[0])).toEqual([30_000, 80_000]);
+    timeout.mockRestore();
+  });
+
   it("asks for one owner or one account and posts the batch as JSON", async () => {
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
     globalThis.fetch = fetchMock as unknown as typeof fetch;

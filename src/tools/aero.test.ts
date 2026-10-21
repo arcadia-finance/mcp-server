@@ -402,6 +402,30 @@ describe("write.account.aero_upgrade: one account", () => {
     expect(data.next_steps.join(" ")).toContain("automations_delta");
   });
 
+  it("passes the owner and the simulated asset changes through", async () => {
+    const assetChanges = [
+      { token: NEW_AERO, standard: "ERC20", amount: "5000", decimals: 18, protocol: null },
+      { token: OLD_AERO, standard: "ERC20", amount: "-5000", decimals: 18, protocol: null },
+    ];
+    const api = {
+      getAeroUpgradePlan: vi.fn(async () =>
+        plan({
+          simulation: {
+            status: true,
+            url: "https://dashboard.tenderly.co/sim/1",
+            error: null,
+            asset_changes: assetChanges,
+          },
+        }),
+      ),
+    };
+    const data = parseToolResponse(
+      await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 }),
+    );
+    expect(data.owner).toBe(TEST_ADDRESS);
+    expect(data.asset_changes).toEqual(assetChanges);
+  });
+
   it("refuses to hand out a transaction whose simulation failed", async () => {
     const api = {
       getAeroUpgradePlan: vi.fn(async () =>
@@ -594,6 +618,7 @@ describe("write.account.aero_upgrade: several accounts", () => {
     expect(data.results[2].transaction).toBeUndefined();
     expect(data.results[2].error).toContain("do NOT broadcast");
     expect(data.results[2].error).toContain("SwapFailed");
+    expect(data.results[2].next_steps).toEqual([]);
     expect(data.next_steps.join(" ")).toContain("MultiSend");
   });
 

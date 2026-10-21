@@ -293,10 +293,20 @@ export interface AeroManagerToReconnect {
   initiator: string | null;
 }
 
+/** What the simulated upgrade moves into (positive) or out of (negative) the account, net per token. */
+export interface AeroAssetChange {
+  token: string;
+  standard: string;
+  amount: string;
+  decimals: number | null;
+  protocol: string | null;
+}
+
 export interface AeroSimulation {
   status: boolean | null;
   url: string | null;
   error: string | null;
+  asset_changes?: AeroAssetChange[];
 }
 
 export interface AeroUpgradePlanResponse {
