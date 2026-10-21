@@ -312,15 +312,13 @@ const fixtures: Record<string, Fixture> = {
   },
 
   // ── Dev ──────────────────────────────────────────────────────────
-  // Answers once be-api serves the Aero upgrade endpoints (be-api #918); until
-  // then the route is missing. Accept rejection.
   read_account_aero_upgrade: {
     args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
-    successExpected: false,
+    successExpected: true,
   },
   write_account_aero_upgrade: {
     args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
-    successExpected: false,
+    successExpected: true,
   },
   // Needs VELO in the wallet on Optimism; accept rejection.
   write_wallet_upgrade_velo: {

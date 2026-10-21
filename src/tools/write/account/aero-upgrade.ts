@@ -5,7 +5,6 @@ import { validateAddress } from "../../../utils/validation.js";
 import {
   aeroErrorResult,
   formatUpgradePlan,
-  simulationFailedResult,
   simulationReverted,
   validateAeroChain,
 } from "../../aero.js";
@@ -43,9 +42,9 @@ export function registerAeroUpgradeTool(server: McpServer, api: ArcadiaApiClient
       outputSchema: AeroUpgradeOutput,
       description:
         "Upgrade one Arcadia account to Aero (MetadexCL V1) in one flashAction: every Slipstream V1/V2/V3 position (dex_protocol slipstream*, staked or not, see read_account_info) moves to the Aero CL pool with the same pair and variant at the same range and tick spacing (when Aero has no pool at that tick spacing, the user picks another one), and every unit of old AERO (loose, in rewards, in an old-AERO pair) becomes the new AERO. Returns the plan and, when anything can go now, the unsigned transaction. Only the account owner can sign it. " +
-        "The backend decides what moves: report items[].status and items[].reason as given, never decide eligibility yourself. status ready: sign transaction. choices_required: some position has status choose with options[] (every Aero pool on its pair, with apy, tvl_usd, is_new, tick_spacing, range_widened, default and disabled_reason); pick one whose disabled_reason is null, ask the user when unsure, and call again with it in choices. A transaction returned with choices_required moves only the ready items, and the choose items stay where they are until the call with choices. Once that transaction is signed, a call made before it confirms is built on the old state, so wait for the confirmation before calling again. Without a transaction there is nothing to sign yet. waiting: nothing can move yet, each item's reason says why (pool_not_on_aero, staking_not_open, target_price_mismatch, account_unhealthy, ...), do not retry in a loop. not_open: the AERO upgrade opens at opens_at. " +
+        "The backend decides what moves: report items[].status and items[].reason as given, never decide eligibility yourself. status ready: sign transaction. choices_required: some position has status choose with options[] (every Aero pool on its pair, with apy, tvl_usd, is_new, tick_spacing, range_widened, default and disabled_reason); ask the user to pick one whose disabled_reason is null, then call again with it in choices so one transaction moves everything. The transaction returned with choices_required moves only the ready items: sign it alone only when the user wants to leave the choose positions where they are. waiting: each item's reason says why (pool_not_on_aero, staking_not_open, target_price_mismatch, account_unhealthy, ...); a waiting item with an option whose disabled_reason is null can still move with that pick, so ask the user; do not retry in a loop. not_open: the AERO upgrade contract does not accept deposits at the moment. A 422 saying a pool is not selectable: drop that pick, call again without it and ask the user again. " +
         "Pass accounts (up to 10) instead of account_address for one plan per account; the accounts share one AERO upgrade budget. multisends groups the accounts that got a transaction, in order: a Safe signs one MultiSend per group (each below max_gas_per_tx). After it confirms, reconnect managers_to_reconnect with write_account_automations and verify with read_account_info (next_steps). " +
-        "Spot and margin accounts can hold Aero positions, staked or not. Chains: 8453 (Base, default) and 10 (Optimism). Calldata is time-sensitive: sign promptly, rebuild on a price revert. When the transaction's simulation reverts the tool returns an error and no transaction; tenderly_sim_status unavailable means Tenderly did not answer and the transaction is returned unsimulated. A plan without a transaction can still show tenderly_sim_status failure: the account's health or a lending pool limit refused the move, and the items wait on account_unhealthy or exposure_limit; report those reasons and do not rebuild.",
+        "Spot and margin accounts can hold Aero positions, staked or not. Chains: 8453 (Base, default), 10 (Optimism) and 4663 (Robinhood, which has nothing to upgrade). Calldata is time-sensitive: sign promptly, rebuild on a price revert. After a transaction confirms, pass its block as min_block on the next call so the plan is not built on older state. When the transaction's simulation reverts the tool returns the plan with an error and no transaction; tenderly_sim_status unavailable means Tenderly did not answer: call once more before signing. A plan without a transaction can still show tenderly_sim_status failure: the account's health or a lending pool limit refused the move, and the items wait on account_unhealthy or exposure_limit; report those reasons and do not rebuild.",
       inputSchema: z.object({
         account_address: z
           .string()
@@ -63,7 +62,7 @@ export function registerAeroUpgradeTool(server: McpServer, api: ArcadiaApiClient
           .array(choiceSchema)
           .optional()
           .describe(
-            "Pool picks for positions with status choose, from a previous call's options (disabled_reason null)",
+            "Pool picks for positions with status choose (or waiting with a selectable option), from a previous call's options (disabled_reason null)",
           ),
         slippage: z
           .number()
@@ -74,10 +73,21 @@ export function registerAeroUpgradeTool(server: McpServer, api: ArcadiaApiClient
           .describe(
             "Price band the mint accepts, in bps. Omit for the backend default: 150, or 500 when the owner is a contract (a Safe).",
           ),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 10 (Optimism)"),
+        min_block: z
+          .number()
+          .int()
+          .min(0)
+          .optional()
+          .describe(
+            "Block of the transaction you just confirmed, so the plan reads state at or after it",
+          ),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism) or 4663 (Robinhood, nothing to upgrade)"),
       }),
     },
-    async ({ account_address, accounts, choices, slippage, chain_id }) => {
+    async ({ account_address, accounts, choices, slippage, min_block, chain_id }) => {
       try {
         if ((account_address === undefined) === (accounts === undefined)) {
           throw new Error("Pass exactly one of account_address and accounts.");
@@ -98,17 +108,22 @@ export function registerAeroUpgradeTool(server: McpServer, api: ArcadiaApiClient
             account_address: validateAddress(account_address, "account_address"),
             choices: picks,
             slippage,
+            min_block,
           });
-          if (plan.calls.length > 0 && simulationReverted(plan.simulation)) {
-            return simulationFailedResult(plan.simulation);
-          }
           response = formatUpgradePlan(plan, chainId);
+          if (plan.calls.length > 0 && simulationReverted(plan.simulation)) {
+            return {
+              content: [{ type: "text" as const, text: JSON.stringify(response, null, 2) }],
+              isError: true,
+            };
+          }
         } else {
           const batch = await api.postAeroUpgradeBatch({
             chain_id: chainId,
             accounts: accounts!.map((a) => validateAddress(a, "accounts[]")),
             choices: picks,
             slippage,
+            min_block,
           });
           const results = batch.results.map((result) =>
             result.status === "error" ? result : formatUpgradePlan(result, chainId),

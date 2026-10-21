@@ -58,6 +58,8 @@ describe("published catalog", () => {
   it("keeps the parameter descriptions", () => {
     const upgrade = tools.find((t) => t.name === "write_account_aero_upgrade")!;
     const props = upgrade.inputSchema.properties as Record<string, { description?: string }>;
-    expect(props.chain_id.description).toBe("Chain ID: 8453 (Base) or 10 (Optimism)");
+    expect(props.chain_id.description).toBe(
+      "Chain ID: 8453 (Base), 10 (Optimism) or 4663 (Robinhood, nothing to upgrade)",
+    );
   });
 });

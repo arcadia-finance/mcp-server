@@ -18,7 +18,7 @@ export function registerAeroUpgradeReadTool(server: McpServer, api: ArcadiaApiCl
       },
       description:
         "Which Arcadia accounts have something to upgrade to Aero (MetadexCL V1): Slipstream V1 to V3 positions (Aerodrome on Base, Velodrome on Optimism, staked or not) and old AERO. Pass wallet_address for every account of a wallet, or account_address for one. " +
-        "Per account: status (ready | choices_required | waiting | not_open | nothing_to_upgrade), positions (every Slipstream position on it), movable (ready or needing a pool choice), waiting, blocked, old_aero (raw, 18 decimals). Accounts without a Slipstream position or old AERO are left out. failed_accounts lists the accounts whose check failed, with the error: an empty accounts list means nothing to do only when failed_accounts is empty too. Otherwise tell the user those accounts could not be checked and retry later. opens_at is when the AERO token upgrade opens on Base. " +
+        "Per account: status (ready | choices_required | waiting | not_open | nothing_to_upgrade), positions (every Slipstream position on it), movable (ready or needing a pool choice), waiting, blocked, old_aero (raw, 18 decimals). Accounts without a Slipstream position or old AERO are left out, including accounts whose positions already moved but whose automations still run on the old Slipstream managers: when read_asset_manager_current shows Slipstream managers on an account that only holds metadexcl_v1 positions, call write_account_aero_upgrade for it to get managers_to_reconnect. failed_accounts lists the accounts whose check failed, with the error: an empty accounts list means nothing to do only when failed_accounts is empty too. Otherwise tell the user those accounts could not be checked and retry later. opens_at is when the AERO token upgrade opens on Base. " +
         "No calldata, prices or simulation: this is the cheap check. For the plan and the transaction call write_account_aero_upgrade. Chains: Base (8453), Optimism (10); Robinhood (4663) has no Slipstream positions and answers an empty list.",
       inputSchema: z.object({
         wallet_address: z
@@ -26,7 +26,10 @@ export function registerAeroUpgradeReadTool(server: McpServer, api: ArcadiaApiCl
           .optional()
           .describe("Wallet whose accounts to check. Pass this or account_address, not both."),
         account_address: z.string().optional().describe("One Arcadia account to check"),
-        chain_id: z.number().default(8453).describe("Chain ID: 8453 (Base) or 10 (Optimism)"),
+        chain_id: z
+          .number()
+          .default(8453)
+          .describe("Chain ID: 8453 (Base), 10 (Optimism) or 4663 (Robinhood, nothing to upgrade)"),
       }),
       outputSchema: AeroUpgradeCandidatesOutput,
     },

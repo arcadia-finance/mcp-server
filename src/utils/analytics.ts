@@ -4,6 +4,8 @@ import { PostHog } from "posthog-node";
 
 type Capture = Pick<PostHog, "capture">;
 
+const processId = randomUUID();
+
 // Only the hosted HTTP server reports, and only with POSTHOG_KEY set. A local
 // stdio install never does, even when its environment sets POSTHOG_KEY for
 // another app. Read at call time: index.ts loads env files after static imports run.
@@ -28,7 +30,6 @@ export function withAnalytics(
   analytics: Capture,
   meta: { transport: string; serverVersion: string },
 ): McpServer {
-  const processId = randomUUID();
   return new Proxy(target, {
     get(t, prop, receiver) {
       if (prop !== "registerTool") return Reflect.get(t, prop, receiver);

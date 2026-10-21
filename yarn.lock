@@ -18,7 +18,6 @@ __metadata:
   dependencies:
     "@eslint/js": "npm:^9.0.0"
     "@modelcontextprotocol/client": "npm:^2.3.1"
-    "@modelcontextprotocol/express": "npm:^2.0.2"
     "@modelcontextprotocol/node": "npm:^2.1.1"
     "@modelcontextprotocol/server": "npm:^2.3.1"
     "@types/express": "npm:^5.0.6"
@@ -398,18 +397,6 @@ __metadata:
   dependencies:
     zod: "npm:^4.2.0"
   checksum: 10c0/73b5b0b0b58cdb6b1cc59cdc702004ff881d00e065c182473a9e69507ec499ce5705ff494aa08b076e2151ba6bc039ecc514162ccb9d7a20d2fa98f2df7afedc
-  languageName: node
-  linkType: hard
-
-"@modelcontextprotocol/express@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "@modelcontextprotocol/express@npm:2.0.2"
-  dependencies:
-    cors: "npm:^2.8.5"
-  peerDependencies:
-    "@modelcontextprotocol/server": ^2.3.0
-    express: ^4.18.0 || ^5.0.0
-  checksum: 10c0/c19362591169478e957fc61e869ad15fe82ca053f4907d0471be6a2465d11bbab2193b535b310f587f0b129696c7b1be2591353524ec5e2b58ffc0a0a974af5d
   languageName: node
   linkType: hard
 
@@ -1358,16 +1345,6 @@ __metadata:
   version: 0.7.2
   resolution: "cookie@npm:0.7.2"
   checksum: 10c0/9596e8ccdbf1a3a88ae02cf5ee80c1c50959423e1022e4e60b91dd87c622af1da309253d8abdb258fb5e3eacb4f08e579dc58b4897b8087574eee0fd35dfa5d2
-  languageName: node
-  linkType: hard
-
-"cors@npm:^2.8.5":
-  version: 2.8.6
-  resolution: "cors@npm:2.8.6"
-  dependencies:
-    object-assign: "npm:^4"
-    vary: "npm:^1"
-  checksum: 10c0/ab2bc57b8af8ef8476682a59647f7c55c1a7d406b559ac06119aa1c5f70b96d35036864d197b24cf86e228e4547231088f1f94ca05061dbb14d89cc0bc9d4cab
   languageName: node
   linkType: hard
 
@@ -2533,13 +2510,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"object-assign@npm:^4":
-  version: 4.1.1
-  resolution: "object-assign@npm:4.1.1"
-  checksum: 10c0/1f4df9945120325d041ccf7b86f31e8bcc14e73d29171e37a7903050e96b81323784ec59f93f102ec635bcf6fa8034ba3ea0a8c7e69fa202b87ae3b6cec5a414
-  languageName: node
-  linkType: hard
-
 "object-inspect@npm:^1.13.3":
   version: 1.13.4
   resolution: "object-inspect@npm:1.13.4"
@@ -3335,7 +3305,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vary@npm:^1, vary@npm:^1.1.2":
+"vary@npm:^1.1.2":
   version: 1.1.2
   resolution: "vary@npm:1.1.2"
   checksum: 10c0/f15d588d79f3675135ba783c91a4083dcd290a2a5be9fcb6514220a1634e23df116847b1cc51f66bfb0644cf9353b2abb7815ae499bab06e46dd33c1a6bf1f4f

@@ -238,6 +238,7 @@ const AeroUpgradePlanOutput = z.object({
   error: z.string().optional(),
   tenderly_sim_url: z.string().optional(),
   tenderly_sim_status: z.enum(["success", "failure", "unavailable"]),
+  simulation_note: z.string().optional(),
   // Net per token, from the simulation: positive into the account, negative out.
   asset_changes: z.array(
     z.object({
