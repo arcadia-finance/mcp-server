@@ -46,6 +46,7 @@ Supporting code:
 - `src/config/chains.ts` — Chain resolution and config
 - `src/abis/` — Contract ABIs (JSON, copied to dist/ at build time)
 - `src/utils/attribution.ts` — ERC-8021 builder code suffix (`bc_u3g3444p`), appended to all transaction calldata via `appendDataSuffix()`
+- `src/utils/analytics.ts` — PostHog `mcp_tool_called` event per tool call (name, args, outcome, client). Only active when `POSTHOG_KEY` is set
 - `src/resources/` — MCP resources (guides)
 - `src/prompts/` — MCP prompt workflows
 - `skills/` — Claude Code skills for guided workflows (shipped in npm package)
