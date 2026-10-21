@@ -3,7 +3,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { withAnalytics } from "./analytics.js";
+import { createAnalytics, withAnalytics } from "./analytics.js";
 import { wrapServerForHttp } from "./tool-naming.js";
 
 async function setup(httpMode: boolean) {
@@ -62,5 +62,16 @@ describe("withAnalytics", () => {
       error: "kaboom",
       args: undefined,
     });
+  });
+});
+
+describe("createAnalytics", () => {
+  it("reports only from the HTTP server with a key set", () => {
+    vi.stubEnv("POSTHOG_KEY", "phc_test");
+    expect(createAnalytics("stdio")).toBeNull();
+    expect(createAnalytics("http")).not.toBeNull();
+    vi.stubEnv("POSTHOG_KEY", " ");
+    expect(createAnalytics("http")).toBeNull();
+    vi.unstubAllEnvs();
   });
 });

@@ -25,8 +25,8 @@ const pkg = require("../package.json") as { version: string };
 
 const apiClient = new ArcadiaApiClient();
 const chainConfigs = getChainConfigs();
-const analytics = createAnalytics();
 const transportMode = process.env.TRANSPORT ?? "stdio";
+const analytics = createAnalytics(transportMode);
 
 function createServer(options?: { httpMode?: boolean }) {
   const server = new McpServer({
