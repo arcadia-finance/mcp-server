@@ -17,6 +17,7 @@ import { registerAllTools } from "./tools/index.js";
 import { registerAllResources } from "./resources/index.js";
 import { registerAllPrompts } from "./prompts/index.js";
 import { wrapServerForHttp, convertToolNames } from "./utils/tool-naming.js";
+import { createAnalytics, withAnalytics } from "./utils/analytics.js";
 import { applyTrustProxyFromEnv, parseListenPort, parseRateLimitRpm } from "./utils/http-config.js";
 
 const require = createRequire(import.meta.url);
@@ -24,6 +25,8 @@ const pkg = require("../package.json") as { version: string };
 
 const apiClient = new ArcadiaApiClient();
 const chainConfigs = getChainConfigs();
+const analytics = createAnalytics();
+const transportMode = process.env.TRANSPORT ?? "stdio";
 
 function createServer(options?: { httpMode?: boolean }) {
   const server = new McpServer({
@@ -32,14 +35,19 @@ function createServer(options?: { httpMode?: boolean }) {
     description:
       "Arcadia Finance. Manage concentrated liquidity positions on Uniswap and Aerodrome with automated rebalancing, compounding, yield optimization, and leverage. Base and Unichain.",
   });
-  const registrationTarget = options?.httpMode ? wrapServerForHttp(server) : server;
+  const namingTarget = options?.httpMode ? wrapServerForHttp(server) : server;
+  // Outermost, so events carry the canonical dotted tool name in both transports.
+  const registrationTarget = analytics
+    ? withAnalytics(namingTarget, server, analytics, {
+        transport: transportMode,
+        serverVersion: pkg.version,
+      })
+    : namingTarget;
   registerAllTools(registrationTarget, apiClient, chainConfigs);
   registerAllResources(registrationTarget);
   registerAllPrompts(registrationTarget);
   return server;
 }
-
-const transportMode = process.env.TRANSPORT ?? "stdio";
 
 if (transportMode === "http") {
   const { StreamableHTTPServerTransport } =

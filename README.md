@@ -142,6 +142,8 @@ yarn build
 | `PORT`              | No       | `3000`                        | HTTP      | Listen port for HTTP transport.                                |
 | `ALLOWED_ORIGINS`   | No       | `https://mcp.arcadia.finance` | HTTP      | Comma-separated allowed Origin headers (CORS / DNS rebinding). |
 | `RATE_LIMIT_RPM`    | No       | `60`                          | HTTP      | Max requests per minute per session.                           |
+| `POSTHOG_KEY`       | No       | —                             | Both      | PostHog project key. Unset = no analytics are sent.            |
+| `POSTHOG_HOST`      | No       | `https://eu.i.posthog.com`    | Both      | PostHog ingestion host.                                        |
 
 **Supported chains:** Base (8453), Unichain (130), Optimism (10), Robinhood (4663)
 
