@@ -1,4 +1,4 @@
-FROM node:22-slim AS build
+FROM node:22.23.4-slim AS build
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ COPY tsconfig.json ./
 COPY src/ src/
 RUN yarn build
 
-FROM node:22-slim
+FROM node:22.23.4-slim
 
 WORKDIR /app
 

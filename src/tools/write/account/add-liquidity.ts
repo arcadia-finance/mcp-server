@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { getPublicClient } from "../../../clients/chain.js";
@@ -47,7 +47,7 @@ export function registerAddLiquidityTool(
   chains: Record<ChainId, ChainConfig>,
 ) {
   server.registerTool(
-    "write.account.add_liquidity",
+    "write_account_add_liquidity",
     {
       annotations: {
         title: "Build Add Liquidity Transaction",
@@ -58,8 +58,8 @@ export function registerAddLiquidityTool(
       },
       outputSchema: BatchedTransactionOutput,
       description:
-        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call write.account.deposit separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (read.wallet.allowances), then approve if needed (write.wallet.approve). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call read.guides('strategies'). The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation. expected_value_change is in raw units of the account's numeraire token (6 decimals for USDC, 18 for WETH). Negative = cost to open, positive = value gained. Compare before.total_account_value and after.total_account_value for the full picture.",
-      inputSchema: {
+        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call write_account_deposit separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (read_wallet_allowances), then approve if needed (write_wallet_approve). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call read_guides('strategies'). The returned calldata is time-sensitive: sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation. expected_value_change is in raw units of the account's numeraire token (6 decimals for USDC, 18 for WETH). Negative = cost to open, positive = value gained. Compare before.total_account_value and after.total_account_value for the full picture.",
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         wallet_address: z.string().describe("Wallet address of the account owner"),
         positions: z
@@ -67,7 +67,7 @@ export function registerAddLiquidityTool(
             z.object({
               strategy_id: z
                 .number()
-                .describe("From read.strategy.list (or read.strategy.info for full range detail)"),
+                .describe("From read_strategy_list (or read_strategy_info for full range detail)"),
               tick_lower: z
                 .number()
                 .optional()
@@ -92,7 +92,7 @@ export function registerAddLiquidityTool(
           )
           .optional()
           .describe(
-            "Wallet tokens to deposit. Approve each token first (write.wallet.approve). Omit to use only account collateral.",
+            "Wallet tokens to deposit. Approve each token first (write_wallet_approve). Omit to use only account collateral.",
           ),
         use_account_assets: z
           .boolean()
@@ -108,7 +108,7 @@ export function registerAddLiquidityTool(
           .describe("0 = no borrow, 2 = 2x leverage. Margin accounts only."),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async ({
       account_address,
@@ -193,7 +193,7 @@ export function registerAddLiquidityTool(
             content: [
               {
                 type: "text" as const,
-                text: "Error: Spot accounts cannot borrow. Set leverage to 0, or create a margin account (V3) with a creditor (lending pool) using write.account.create.",
+                text: "Error: Spot accounts cannot borrow. Set leverage to 0, or create a margin account (V3) with a creditor (lending pool) using write_account_create.",
               },
             ],
             isError: true,
@@ -300,7 +300,7 @@ export function registerAddLiquidityTool(
               content: [
                 {
                   type: "text" as const,
-                  text: "Error: use_account_assets=true but account overview is unavailable and no wallet deposits were provided. Provide deposits or deposit assets first via write.account.deposit.",
+                  text: "Error: use_account_assets=true but account overview is unavailable and no wallet deposits were provided. Provide deposits or deposit assets first via write_account_deposit.",
                 },
               ],
               isError: true,
@@ -312,7 +312,7 @@ export function registerAddLiquidityTool(
               content: [
                 {
                   type: "text" as const,
-                  text: "Error: use_account_assets=true but the account has no deposited assets, and no wallet deposits were provided. Deposit assets first via write.account.deposit or provide deposits.",
+                  text: "Error: use_account_assets=true but the account has no deposited assets, and no wallet deposits were provided. Deposit assets first via write_account_deposit or provide deposits.",
                 },
               ],
               isError: true,

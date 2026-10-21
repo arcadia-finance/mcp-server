@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.arcadia-finance/mcp-server",
   "title": "Arcadia Finance",
-  "description": "Concentrated liquidity on Uniswap/Aerodrome (rebalance, compound, leverage) or single-sided lending.",
-  "version": "0.5.2",
+  "description": "Concentrated liquidity on Uniswap/Aero (rebalance, compound, leverage) or single-sided lending.",
+  "version": "0.6.0",
   "websiteUrl": "https://arcadia.finance",
   "repository": {
     "url": "https://github.com/arcadia-finance/mcp-server",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "@arcadia-finance/mcp-server",
-      "version": "0.5.2",
+      "version": "0.6.0",
       "transport": {
         "type": "stdio"
       },
@@ -68,7 +68,7 @@
         },
         {
           "name": "RATE_LIMIT_RPM",
-          "description": "Max requests per minute per session (default 60). Only used when TRANSPORT=http.",
+          "description": "Max requests per minute per client IP (default 600). Only used when TRANSPORT=http.",
           "isRequired": false,
           "isSecret": false
         }

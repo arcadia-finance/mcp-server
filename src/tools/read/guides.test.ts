@@ -5,10 +5,10 @@ import { registerGuideTools } from "./guides.js";
 function setup() {
   const mock = createMockServer();
   registerGuideTools(mock.server);
-  return mock.getHandler("read.guides");
+  return mock.getHandler("read_guides");
 }
 
-describe("read.guides", () => {
+describe("read_guides", () => {
   it("returns overview guide content", async () => {
     const handler = setup();
     const result = await handler({ topic: "overview" });
@@ -22,14 +22,14 @@ describe("read.guides", () => {
     const result = await handler({ topic: "automation" });
     expect(result.content[0].text).toContain("compound_fees");
     expect(result.content[0].text).toContain("rebalance");
-    expect(result.content[0].text).toContain("write.account.automations");
+    expect(result.content[0].text).toContain("write_account_automations");
   });
 
   it("returns strategies guide content", async () => {
     const handler = setup();
     const result = await handler({ topic: "strategies" });
     expect(result.content[0].text).toContain("Delta Neutral");
-    expect(result.content[0].text).toContain("write.account.add_liquidity");
+    expect(result.content[0].text).toContain("write_account_add_liquidity");
   });
 
   it("returns selection guide content", async () => {

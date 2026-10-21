@@ -46,10 +46,10 @@ function setup(apiOverrides?: Record<string, unknown>) {
   const mock = createMockServer();
   const api = mockApi(apiOverrides);
   registerCloseTool(mock.server, api as never, createMockChains());
-  return { handler: mock.getHandler("write.account.close"), api };
+  return { handler: mock.getHandler("write_account_close"), api };
 }
 
-describe("write.account.close", () => {
+describe("write_account_close", () => {
   it("returns calldata for full close", async () => {
     const { handler } = setup();
     const result = await handler({
@@ -118,7 +118,7 @@ describe("write.account.close", () => {
       tenderly_sim_error: "execution reverted",
     });
     registerCloseTool(mock.server, api as never, createMockChains());
-    const handler = mock.getHandler("write.account.close");
+    const handler = mock.getHandler("write_account_close");
 
     const result = await handler({
       account_address: TEST_ACCOUNT,

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION } from "../../../config/chains.js";
 import { formatBatchedResponse, isSimulationFailed } from "./format-response.js";
@@ -8,7 +8,7 @@ import { BatchedTransactionOutput } from "../../output-schemas.js";
 
 export function registerSwapTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "write.account.swap",
+    "write_account_swap",
     {
       annotations: {
         title: "Build Swap Transaction",
@@ -19,15 +19,15 @@ export function registerSwapTool(server: McpServer, api: ArcadiaApiClient) {
       },
       outputSchema: BatchedTransactionOutput,
       description:
-        "Flash-action: swaps assets within an Arcadia account in one atomic transaction. The backend finds the optimal swap route. NOTE: If you are closing a position (swap + repay + withdraw), prefer write.account.close which batches everything atomically. Only use this tool for standalone swaps within an active position. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation — if tenderly_sim_status is 'false', do NOT broadcast the transaction.",
-      inputSchema: {
+        "Flash-action: swaps assets within an Arcadia account in one atomic transaction. The backend finds the optimal swap route. NOTE: If you are closing a position (swap + repay + withdraw), prefer write_account_close which batches everything atomically. Only use this tool for standalone swaps within an active position. The returned calldata is time-sensitive: sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation: if tenderly_sim_status is 'false', do NOT broadcast the transaction.",
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         asset_from: z.string().describe("Token address to swap from"),
         asset_to: z.string().describe("Token address to swap to"),
         amount_in: z.string().describe("Raw units"),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async ({ account_address, asset_from, asset_to, amount_in, slippage, chain_id }) => {
       try {

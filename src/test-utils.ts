@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ChainId, ChainConfig } from "./config/chains.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { poolAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
@@ -9,7 +9,7 @@ import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 export function registerRepayTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "write.account.repay",
+    "write_account_repay",
     {
       annotations: {
         title: "Build Repay Transaction",
@@ -20,8 +20,8 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
       },
       outputSchema: SimpleTransactionOutput,
       description:
-        "Repay debt to an Arcadia lending pool using tokens from the wallet (requires ERC20 allowance). To repay using account collateral instead (no wallet tokens needed), use write.account.deleverage. Check allowance first (read.wallet.allowances), then approve the pool if needed (write.wallet.approve). Check outstanding debt with read.account.info.",
-      inputSchema: {
+        "Repay debt to an Arcadia lending pool using tokens from the wallet (requires ERC20 allowance). To repay using account collateral instead (no wallet tokens needed), use write_account_deleverage. Check allowance first (read_wallet_allowances), then approve the pool if needed (write_wallet_approve). Check outstanding debt with read_account_info.",
+      inputSchema: z.object({
         pool_address: z
           .string()
           .describe(
@@ -32,7 +32,7 @@ export function registerRepayTool(server: McpServer, _chains: Record<ChainId, Ch
           .string()
           .describe("Amount in raw units, or 'max_uint256' to repay all debt in full"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async (params) => {
       try {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION } from "../../../config/chains.js";
 import { formatBatchedResponse, isSimulationFailed } from "./format-response.js";
@@ -8,7 +8,7 @@ import { BatchedTransactionOutput } from "../../output-schemas.js";
 
 export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "write.account.stake",
+    "write_account_stake",
     {
       annotations: {
         title: "Build Position Action Transaction",
@@ -19,14 +19,14 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
       },
       outputSchema: BatchedTransactionOutput,
       description:
-        "Flash-action: stake, unstake, or claim rewards for an LP position in one atomic transaction. Use the `action` parameter to select the operation. `asset_address` is the position manager contract — pass the non-staked PM address when staking, or the staked PM address when unstaking. The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Tenderly simulation may not be available for this endpoint — verify the position exists with read.account.info before signing.",
-      inputSchema: {
+        "Flash-action: stake, unstake, or claim rewards for an LP position in one atomic transaction. Use the `action` parameter to select the operation. `asset_address` is the position manager contract: pass the non-staked PM address when staking, or the staked PM address when unstaking. The returned calldata is time-sensitive, sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Tenderly simulation may not be available for this endpoint. Verify the position exists with read_account_info before signing. Aero CL (metadexcl_v1): spot accounts stake through the Arcadia wrapper, margin accounts through the staked module, on Base, Optimism and Robinhood.",
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         action: z.enum(["stake", "unstake", "claim"]).describe("Action to perform"),
         asset_address: z.string().describe("Position manager contract address"),
         asset_id: z.number().describe("NFT token ID of the LP position"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async ({ account_address, action, asset_address, asset_id, chain_id }) => {
       try {
@@ -111,7 +111,7 @@ export function registerStakeTool(server: McpServer, api: ArcadiaApiClient) {
         const msg = err instanceof Error ? err.message : String(err);
         const hint =
           msg.includes("500") || msg.includes("Web3")
-            ? " This usually means the position (asset_id) does not exist in the account. Verify with read.account.info first."
+            ? " This usually means the position (asset_id) does not exist in the account. Verify with read_account_info first."
             : "";
         return {
           content: [{ type: "text" as const, text: `Error: ${msg}${hint}` }],

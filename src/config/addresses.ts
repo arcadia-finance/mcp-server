@@ -1,5 +1,13 @@
 import type { ChainId } from "./chains.js";
 
+// Aero CL (MetadexCL V1). EIP-55 values from team-tooling _SHARED/aero-migration/addresses.md.
+export const AERO_NPM_BASE = "0x4857DB576eE0e45F10525eC59527BfD10beeC60b" as const;
+export const AERO_NPM_OP = "0x4857DB576eE0e45F10525eC59527BfD10beeC60b" as const;
+export const AERO_NPM_ROBINHOOD = "0x4857DB576eE0e45F10525eC59527BfD10beeC60b" as const;
+// Arcadia Metadex CL modules (identical on Base, Optimism and Robinhood).
+export const ARC_STAKED_METADEX_CL_AM = "0x0f34F7F7B558F43a821AF4181f0F8e5bC4B74892" as const;
+export const ARC_WRAPPED_STAKED_METADEX_CL = "0x323808A037628F2BaF4F42784E011FCf9C49A88b" as const;
+
 // Protocol contracts — same addresses on all chains
 export const PROTOCOL = {
   factory: "0xDa14Fdd72345c4d2511357214c5B89A919768e59",
@@ -61,7 +69,8 @@ export const TOKENS: Partial<Record<ChainId, Record<string, TokenInfo>>> = {
     WETH: { address: "0x4200000000000000000000000000000000000006", decimals: 18 },
     USDC: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", decimals: 6 },
     cbBTC: { address: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", decimals: 8 },
-    AERO: { address: "0x940181a94A35A4569E4529A3CDfB74e38FD98631", decimals: 18 },
+    AERO: { address: "0x3f5bF3EdAc59d650D8fDf9657a71F2f904A3a4Ee", decimals: 18 },
+    "AERO (legacy)": { address: "0x940181a94A35A4569E4529A3CDfB74e38FD98631", decimals: 18 },
     AAA: { address: "0xaaa843fb2916c0B57454270418E121C626402AAa", decimals: 18 },
     stAAA: { address: "0xDeA1531d8a1505785eb517C7A28526443df223F3", decimals: 18 },
   },
@@ -101,6 +110,7 @@ const BACKEND_PROTOCOL_TO_DEX_PROTOCOL: Record<string, string> = {
   slipstream_v2: "slipstream_v2",
   slipstream_v3: "slipstream_v3",
   slipstream_v3_op: "slipstream_v3",
+  metadexcl_v1: "metadexcl_v1",
   uniswap_v3: "uniV3",
   uniswap_v4: "uniV4",
 };
@@ -131,6 +141,7 @@ export const CHAIN_POSITION_MANAGERS: Partial<Record<ChainId, Record<string, str
     "0xe1f8cd9ac4e4a65f54f38a5cdafca44f6dd68b53": "slipstream_v3",
     "0x03a520b32c04bf3beef7beb72e919cf822ed34f1": "uniV3",
     "0x7c5f5a4bbd8fd63184577525326123b519429bdc": "uniV4",
+    [AERO_NPM_BASE.toLowerCase()]: "metadexcl_v1",
   },
   130: {
     "0x991d5546c4b442b4c5fdc4c8b8b8d131deb24702": "slipstream",
@@ -142,12 +153,13 @@ export const CHAIN_POSITION_MANAGERS: Partial<Record<ChainId, Record<string, str
     "0xf7f8ccce99ca2896ec75d3a399d152db96808399": "slipstream_v3",
     "0xc36442b4a4522e871399cd717abdd847ab11fe88": "uniV3",
     "0x3c3ea4b57a46241e54610e5f022e5c45859a1017": "uniV4",
+    [AERO_NPM_OP.toLowerCase()]: "metadexcl_v1",
   },
-  // Uniswap only. Aerodrome, Velodrome and Slipstream have no deployment on Robinhood, so there is
-  // no position manager for them to name.
+  // Uniswap V3/V4 and Aero CL. No Slipstream V1-V3 or Aerodrome deployment on Robinhood.
   4663: {
     "0x73991a25c818bf1f1128deaab1492d45638de0d3": "uniV3",
     "0x58daec3116aae6d93017baaea7749052e8a04fa7": "uniV4",
+    [AERO_NPM_ROBINHOOD.toLowerCase()]: "metadexcl_v1",
   },
 };
 
@@ -161,6 +173,8 @@ export const UNIVERSAL_POSITION_MANAGERS: Record<string, string> = {
   "0xd74339e0f10fce96894916b93e5cc7de89c98272": "staked_slipstream", // WrappedStakedSlipstream V1
   "0x147a2ccbaf4521ad209a2875ae0b3c496f4b25a4": "staked_slipstream_v2", // WrappedStakedSlipstream V2
   "0x9189bc25f8fac157b4d87b0b3c14f56ba1477d53": "staked_slipstream_v3", // WrappedStakedSlipstream V3
+  [ARC_STAKED_METADEX_CL_AM.toLowerCase()]: "staked_metadexcl_v1", // StakedMetadex03CLAM
+  [ARC_WRAPPED_STAKED_METADEX_CL.toLowerCase()]: "staked_metadexcl_v1", // WrappedStakedMetadexCL
 };
 
 export const CHAIN_STAKED_POSITION_MANAGERS: Partial<Record<ChainId, Record<string, string>>> = {

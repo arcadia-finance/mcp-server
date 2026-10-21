@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { accountAbi, getAccountAbi } from "../../../abis/index.js";
 import { getPublicClient } from "../../../clients/chain.js";
@@ -10,7 +10,7 @@ import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 export function registerDepositTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "write.account.deposit",
+    "write_account_deposit",
     {
       annotations: {
         title: "Build Deposit Transaction",
@@ -21,8 +21,8 @@ export function registerDepositTool(server: McpServer, chains: Record<ChainId, C
       },
       outputSchema: SimpleTransactionOutput,
       description:
-        "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before write.account.add_liquidity — that tool deposits from wallet atomically. Ensure the account is approved first (call read.wallet.allowances to check, then write.wallet.approve if needed). Account version is auto-detected on-chain (override with account_version if needed).",
-      inputSchema: {
+        "Build an unsigned transaction to deposit assets into an Arcadia account as collateral. Supports ERC20 tokens and ERC721 NFTs (LP positions). NOT needed before write_account_add_liquidity: that tool deposits from wallet atomically. Ensure the account is approved first (call read_wallet_allowances to check, then write_wallet_approve if needed). Account version is auto-detected on-chain (override with account_version if needed).",
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         asset_addresses: z.array(z.string()).describe("Token contract addresses to deposit"),
         asset_amounts: z.array(z.string()).describe("Amounts in raw units/wei, one per asset"),
@@ -41,7 +41,7 @@ export function registerDepositTool(server: McpServer, chains: Record<ChainId, C
           .optional()
           .describe("Override account version (3 or 4). Auto-detected on-chain if omitted."),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async (params) => {
       try {

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 
 const GUIDES = {
   overview: {
@@ -17,7 +17,7 @@ const GUIDES = {
   strategies: {
     file: "strategies.md",
     description:
-      "Step-by-step strategy templates: delta neutral leveraged LP, protocol owned liquidity, closing sequences",
+      "Step-by-step strategy templates: delta neutral leveraged LP, protocol owned liquidity, closing sequences, moving Slipstream positions to Aero",
   },
   selection: {
     file: "selection.md",

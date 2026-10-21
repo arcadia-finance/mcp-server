@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
+  AeroUpgradeBatchResponse,
+  AeroUpgradeCandidatesResponse,
+  AeroUpgradePlanResponse,
   ApiResponse,
   ApiListResponse,
   AutomationsAvailableResponse,
@@ -11,6 +14,7 @@ import type {
   BundleCalldataRequest,
   BundleCalldataResponse,
   IntentsBody,
+  VeloUpgradeResponse,
 } from "../types/api.js";
 
 const pkg = JSON.parse(
@@ -20,6 +24,18 @@ const pkg = JSON.parse(
 const DEFAULT_BASE_URL = "https://api.arcadia.finance";
 const API_PREFIX = "/v1/api";
 const DEFAULT_HEADERS = { "User-Agent": `arcadia-mcp/${pkg.version}` };
+
+/** Non-2xx backend response. `body` is the parsed JSON body when there is one, else the raw text. */
+export class ArcadiaApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super(message);
+    this.name = "ArcadiaApiError";
+  }
+}
 
 export class ArcadiaApiClient {
   private baseUrl: string;
@@ -44,25 +60,36 @@ export class ArcadiaApiClient {
       hint = " Invalid input. The API rejected the request parameters.";
     } else if (status === 500) {
       hint =
-        " Internal backend error. Common causes: account has no creditor (spot account used where margin required), position does not exist in the account, unsupported asset type, or transient issue. Verify account and position details with read.account.info, then retry once.";
+        " Internal backend error. Common causes: account has no creditor (spot account used where margin required), position does not exist in the account, unsupported asset type, or transient issue. Verify account and position details with read_account_info, then retry once.";
     } else if (status === 502 || status === 503 || status === 504) {
       hint = " Backend is temporarily unavailable. Retry after a few seconds.";
     }
 
     const detail = body.length > 500 ? body.slice(0, 500) + "..." : body;
-    throw new Error(
+    let parsed: unknown = body;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      // Not JSON: keep the raw text.
+    }
+    throw new ArcadiaApiError(
       `Arcadia API error (${status} on ${path}): ${detail || resp.statusText}${hint}`,
+      status,
+      parsed,
     );
   }
 
   private async get<T = ApiResponse>(
     path: string,
-    params?: Record<string, string | number>,
+    params?: Record<string, string | number | boolean | string[] | undefined>,
   ): Promise<T> {
     const url = new URL(`${this.baseUrl}${API_PREFIX}${path}`);
     if (params) {
       for (const [k, v] of Object.entries(params)) {
-        if (v !== undefined && v !== null) {
+        if (v === undefined || v === null) continue;
+        if (Array.isArray(v)) {
+          for (const item of v) url.searchParams.append(k, item);
+        } else {
           url.searchParams.set(k, String(v));
         }
       }
@@ -75,13 +102,13 @@ export class ArcadiaApiClient {
     return resp.json() as Promise<T>;
   }
 
-  private async post<T = ApiResponse>(path: string, body: unknown): Promise<T> {
+  private async post<T = ApiResponse>(path: string, body: unknown, timeoutMs?: number): Promise<T> {
     const url = `${this.baseUrl}${API_PREFIX}${path}`;
     const resp = await fetch(url, {
       method: "POST",
       headers: { ...DEFAULT_HEADERS, "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(this.timeout),
+      signal: AbortSignal.timeout(timeoutMs ?? this.timeout),
     });
     if (!resp.ok) await this.throwApiError(resp, path);
     return resp.json() as Promise<T>;
@@ -270,6 +297,54 @@ export class ArcadiaApiClient {
       asset: asset_address,
       position_id: asset_id,
     } as Record<string, string | number>);
+  }
+
+  // ── Aero (MetadexCL V1) upgrade ──────────────────────────────────
+  // The backend plans the upgrade, builds the ActionManager flashAction and
+  // simulates it. These return its responses unchanged.
+
+  /** Exactly one of owner_address and account_address. */
+  async getAeroUpgradeCandidates(params: {
+    chain_id: number;
+    owner_address?: string;
+    account_address?: string;
+  }) {
+    return this.get<AeroUpgradeCandidatesResponse>("/bundles/aero_migration_candidates", params);
+  }
+
+  /** `choices` are `<position_manager>:<position_id>:<pool>` picks; the endpoint reads them from one comma-separated param. */
+  async getAeroUpgradePlan(params: {
+    chain_id: number;
+    account_address: string;
+    choices?: string[];
+    slippage?: number;
+    min_block?: number;
+  }) {
+    const { choices, ...rest } = params;
+    return this.get<AeroUpgradePlanResponse>("/bundles/aero_upgrade", {
+      ...rest,
+      choices: choices && choices.length > 0 ? choices.join(",") : undefined,
+    });
+  }
+
+  async postAeroUpgradeBatch(body: {
+    chain_id: number;
+    accounts: string[];
+    choices?: string[];
+    slippage?: number;
+    min_block?: number;
+  }) {
+    // The backend plans and simulates the accounts one after another, a few seconds each.
+    const timeoutMs = Math.max(this.timeout, 20_000 * body.accounts.length);
+    return this.post<AeroUpgradeBatchResponse>("/bundles/aero_upgrade/batch", body, timeoutMs);
+  }
+
+  async getUpgradeVeloCalldata(params: {
+    chain_id: number;
+    owner_address: string;
+    amount?: string;
+  }) {
+    return this.get<VeloUpgradeResponse>("/bundles/upgrade_velo", params);
   }
 
   // ── Automations (intent compiler) ────────────────────────────────

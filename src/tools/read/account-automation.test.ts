@@ -47,14 +47,14 @@ function setup(state: Partial<Record<string, unknown>> = {}, currentImpl?: () =>
       })),
   } as unknown as ArcadiaApiClient;
   registerAccountTools(mock.server, api, createMockChains());
-  return mock.getHandler("read.account.info");
+  return mock.getHandler("read_account_info");
 }
 
 function manager(over: Manager): Manager {
   return { protocol: "", enabled: true, deprecated: false, ...over };
 }
 
-describe("read.account.info automation", () => {
+describe("read_account_info automation", () => {
   beforeEach(() => {
     gasRelayerEnabled = false;
   });
@@ -92,6 +92,21 @@ describe("read.account.info automation", () => {
 
     expect(data.automation.compounder).toBe("uniV4");
     expect(data.automation.rebalancer).toBe("slipstream_v3");
+  });
+
+  it("maps an Aero CL (metadexcl_v1) manager without the unrecognised-protocol note", async () => {
+    const handler = setup({
+      enabled: [
+        manager({ manager: "rebalancer", protocol: "metadexcl_v1", address: BASE_ACCOUNT }),
+      ],
+    });
+    const data = parseToolResponse(
+      await handler({ account_address: BASE_ACCOUNT, chain_id: 8453 }),
+    );
+
+    expect(data.automation.rebalancer).toBe("metadexcl_v1");
+    expect(data.automation.dex_protocol).toBe("metadexcl_v1");
+    expect(JSON.stringify(data.context_notes ?? [])).not.toContain("unrecognised protocol");
   });
 
   it("reports an unrecognised protocol verbatim, not as account-level", async () => {
@@ -171,7 +186,7 @@ describe("read.account.info automation", () => {
     );
 
     expect(data.context_notes.join(" ")).toContain("could not be confirmed on-chain");
-    expect(data.context_notes.join(" ")).toContain("read.asset_manager.current");
+    expect(data.context_notes.join(" ")).toContain("read_asset_manager_current");
   });
 
   it("reports gas_relayer separately, since no intent configures it", async () => {

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client } from "@modelcontextprotocol/client";
+import { McpServer, InMemoryTransport } from "@modelcontextprotocol/server";
 import { ArcadiaApiClient } from "../clients/api.js";
 import { getChainConfigs } from "../config/chains.js";
 import { registerAllTools } from "./index.js";
@@ -11,7 +10,7 @@ import { discoverTestAccounts, type TestAccount } from "./test-fixtures.js";
  * End-to-end QA harness: drives every registered tool through the *real* MCP SDK
  * (server + client linked via InMemoryTransport). Unlike the mock-based unit
  * tests, this exercises `validateToolOutput`, which is where the `_zod`
- * regression (bare `z.record(...)` outputSchema) surfaced.
+ * regression (bare `z.record(z.string(), ...)` outputSchema) surfaced.
  *
  * Hits live Arcadia APIs. Not for CI — run with:
  *   npx vitest run src/tools/qa-all-tools.integration.test.ts
@@ -35,12 +34,12 @@ interface Fixture {
    * Field of `structuredContent` that must be a non-empty array.
    *
    * `successExpected` only checks that a response arrived. That is what let
-   * `read.account.history` report `{"history":[]}` for a populated account and
+   * `read_account_history` report `{"history":[]}` for a populated account and
    * still pass: no error, structuredContent defined, nothing in it. Any tool
    * whose fixture targets state that definitely exists should name the field
    * here, so "answered with nothing" fails instead of passing.
    *
-   * Deliberately NOT applied to `read.account.history`, the case that motivated
+   * Deliberately NOT applied to `read_account_history`, the case that motivated
    * it: the fixture's account rotates and may legitimately have no snapshots,
    * which would make this flaky. The handler tests in
    * `read/account-history.test.ts` are what guard that one.
@@ -57,42 +56,42 @@ interface Ctx {
 
 const fixtures: Record<string, Fixture> = {
   // ── Reads ────────────────────────────────────────────────────────
-  "read.pool.list": {
+  read_pool_list: {
     args: () => ({ chain_id: CHAIN_ID }),
     successExpected: true,
     nonEmpty: "pools",
   },
-  "read.pool.info": {
+  read_pool_info: {
     args: () => ({ pool_address: CBBTC_POOL, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.asset.list": {
+  read_asset_list: {
     args: () => ({ chain_id: CHAIN_ID }),
     successExpected: true,
     nonEmpty: "assets",
   },
-  "read.asset.prices": {
+  read_asset_prices: {
     args: () => ({ asset_addresses: `${USDC},${WETH}`, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.strategy.list": {
+  read_strategy_list: {
     args: () => ({ featured_only: true, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.strategy.info": {
+  read_strategy_info: {
     args: (c) => ({ strategy_id: c.strategyId, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.strategy.recommendation": {
+  read_strategy_recommendation: {
     args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.point_leaderboard": { args: () => ({}), successExpected: true },
-  "read.wallet.points": {
+  read_point_leaderboard: { args: () => ({}), successExpected: true },
+  read_wallet_points: {
     args: (c) => ({ wallet_address: c.account.owner }),
     successExpected: true,
   },
-  "read.wallet.balances": {
+  read_wallet_balances: {
     args: (c) => ({
       wallet_address: c.account.owner,
       token_addresses: [USDC, WETH],
@@ -100,7 +99,7 @@ const fixtures: Record<string, Fixture> = {
     }),
     successExpected: true,
   },
-  "read.wallet.allowances": {
+  read_wallet_allowances: {
     args: (c) => ({
       owner_address: c.account.owner,
       spender_address: c.account.accountAddress,
@@ -109,34 +108,34 @@ const fixtures: Record<string, Fixture> = {
     }),
     successExpected: true,
   },
-  "read.wallet.accounts": {
+  read_wallet_accounts: {
     args: (c) => ({ wallet_address: c.account.owner, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.account.info": {
+  read_account_info: {
     args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.account.history": {
+  read_account_history: {
     args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.account.pnl": {
+  read_account_pnl: {
     args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.asset_manager.intents": {
+  read_asset_manager_intents: {
     args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.asset_manager.current": {
+  read_asset_manager_current: {
     args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
     successExpected: true,
   },
-  "read.guides": { args: () => ({ topic: "overview" }), successExpected: true },
+  read_guides: { args: () => ({ topic: "overview" }), successExpected: true },
 
   // ── Writes (unsigned tx builders) ────────────────────────────────
-  "write.wallet.approve": {
+  write_wallet_approve: {
     args: (c) => ({
       token_address: USDC,
       spender_address: c.account.accountAddress,
@@ -145,7 +144,7 @@ const fixtures: Record<string, Fixture> = {
     }),
     successExpected: true,
   },
-  "write.account.create": {
+  write_account_create: {
     args: (c) => ({
       salt: 1,
       wallet_address: c.account.owner,
@@ -153,7 +152,7 @@ const fixtures: Record<string, Fixture> = {
     }),
     successExpected: true,
   },
-  "write.account.deposit": {
+  write_account_deposit: {
     args: (c) => ({
       account_address: c.account.accountAddress,
       asset_addresses: [USDC],
@@ -163,7 +162,7 @@ const fixtures: Record<string, Fixture> = {
     // Does an on-chain allowance read via public RPC; flaky under load. Accept either.
     successExpected: false,
   },
-  "write.account.withdraw": {
+  write_account_withdraw: {
     args: (c) => ({
       account_address: c.account.accountAddress,
       asset_addresses: [USDC],
@@ -173,7 +172,7 @@ const fixtures: Record<string, Fixture> = {
     // Withdraw requires on-chain asset presence — accept failure.
     successExpected: false,
   },
-  "write.account.borrow": {
+  write_account_borrow: {
     args: (c) => ({
       account_address: c.account.accountAddress,
       amount: "1000000",
@@ -183,7 +182,7 @@ const fixtures: Record<string, Fixture> = {
     // Borrow requires margin account with creditor — accept backend rejection.
     successExpected: false,
   },
-  "write.account.repay": {
+  write_account_repay: {
     args: (c) => ({
       account_address: c.account.accountAddress,
       amount: "1000000",
@@ -191,7 +190,7 @@ const fixtures: Record<string, Fixture> = {
     }),
     successExpected: false,
   },
-  "write.account.add_liquidity": {
+  write_account_add_liquidity: {
     args: (c) => ({
       account_address: c.account.accountAddress,
       strategy_id: c.strategyId,
@@ -204,7 +203,7 @@ const fixtures: Record<string, Fixture> = {
   // Batched writes: driven with a discovered LP position so BatchedTransactionOutput
   // is exercised end-to-end. `stake` with action "claim" is the most forgiving
   // because it builds claim calldata even when pending yield is zero.
-  "write.account.stake": {
+  write_account_stake: {
     args: (c) => {
       const lp = c.account.lpPositions[0];
       if (!lp) throw new Error("fixture requires discovered account with LP position");
@@ -218,7 +217,7 @@ const fixtures: Record<string, Fixture> = {
     },
     successExpected: true,
   },
-  "write.account.remove_liquidity": {
+  write_account_remove_liquidity: {
     args: (c) => {
       const lp = c.account.lpPositions[0];
       if (!lp) throw new Error("fixture requires discovered account with LP position");
@@ -233,7 +232,7 @@ const fixtures: Record<string, Fixture> = {
     // Backend may reject adjustment=1 as below minimum; accept either outcome.
     successExpected: false,
   },
-  "write.account.swap": {
+  write_account_swap: {
     args: (c) => ({
       account_address: c.account.accountAddress,
       asset_from: USDC,
@@ -244,7 +243,7 @@ const fixtures: Record<string, Fixture> = {
     // Needs the account to hold `asset_from`; almost certainly errors on a random account.
     successExpected: false,
   },
-  "write.account.deleverage": {
+  write_account_deleverage: {
     args: (c) => ({
       account_address: c.account.accountAddress,
       amount_in: "1000000",
@@ -256,7 +255,7 @@ const fixtures: Record<string, Fixture> = {
     // Needs debt + collateral; expect backend rejection on most discovered accounts.
     successExpected: false,
   },
-  "write.account.close": {
+  write_account_close: {
     args: (c) => {
       const lp = c.account.lpPositions[0];
       if (!lp) throw new Error("fixture requires discovered account with LP position");
@@ -270,7 +269,7 @@ const fixtures: Record<string, Fixture> = {
     // Needs on-chain LP position ownership; backend rejects on read-only discovered accounts.
     successExpected: false,
   },
-  "write.pool.deposit": {
+  write_pool_deposit: {
     args: (c) => ({
       tranche_address: CBBTC_TRANCHE,
       assets: "1000000",
@@ -279,7 +278,7 @@ const fixtures: Record<string, Fixture> = {
     }),
     successExpected: true,
   },
-  "write.pool.redeem": {
+  write_pool_redeem: {
     args: (c) => ({
       tranche_address: CBBTC_TRANCHE,
       shares: "1",
@@ -293,7 +292,7 @@ const fixtures: Record<string, Fixture> = {
   // live account without depending on a specific LP position existing. Uses save
   // rather than preview so this covers the path that actually returns a signable
   // transaction (save only builds unsigned calldata, it broadcasts nothing).
-  "write.account.automations": {
+  write_account_automations: {
     args: (c) => ({
       account_address: c.account.accountAddress,
       intents: [{ kind: "claim_merkl" }],
@@ -302,7 +301,7 @@ const fixtures: Record<string, Fixture> = {
     }),
     successExpected: true,
   },
-  "write.account.automations_delta": {
+  write_account_automations_delta: {
     args: (c) => ({
       account_address: c.account.accountAddress,
       enable: [{ kind: "claim_merkl" }],
@@ -313,7 +312,20 @@ const fixtures: Record<string, Fixture> = {
   },
 
   // ── Dev ──────────────────────────────────────────────────────────
-  "dev.send": { args: () => ({ to: WETH, data: "0x" }), successExpected: false },
+  read_account_aero_upgrade: {
+    args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
+    successExpected: true,
+  },
+  write_account_aero_upgrade: {
+    args: (c) => ({ account_address: c.account.accountAddress, chain_id: CHAIN_ID }),
+    successExpected: true,
+  },
+  // Needs VELO in the wallet on Optimism; accept rejection.
+  write_wallet_upgrade_velo: {
+    args: (c) => ({ owner_address: c.account.owner, chain_id: 10 }),
+    successExpected: false,
+  },
+  dev_send: { args: () => ({ to: WETH, data: "0x" }), successExpected: false },
 };
 
 describe("QA: every tool via real MCP SDK", { timeout: 60_000 }, () => {
@@ -378,9 +390,9 @@ describe("QA: every tool via real MCP SDK", { timeout: 60_000 }, () => {
   // an account that definitely holds no WETH must produce the explicit
   // "simulation FAILED — do NOT broadcast" guard, not a passthrough success or
   // an MCP output-validation error.
-  it("write.account.swap: sim-failure surfaces the do-not-broadcast guard", async () => {
+  it("write_account_swap: sim-failure surfaces the do-not-broadcast guard", async () => {
     const resp = await client.callTool({
-      name: "write.account.swap",
+      name: "write_account_swap",
       arguments: {
         account_address: ctx.account.accountAddress,
         asset_from: WETH,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ArcadiaApiClient } from "./api.js";
+import { ArcadiaApiClient, ArcadiaApiError } from "./api.js";
 
 describe("ArcadiaApiClient error handling", () => {
   const originalFetch = globalThis.fetch;
@@ -98,5 +98,88 @@ describe("ArcadiaApiClient error handling", () => {
         slippage: 100,
       }),
     ).rejects.toThrow(/spot account used where margin required/);
+  });
+
+  it("carries the status and the parsed JSON body", async () => {
+    expect.assertions(3);
+    mockFetch(
+      422,
+      JSON.stringify({
+        name: "Incomplete Request",
+        message: "choice must be <position_manager>:<position_id>:<pool>",
+      }),
+    );
+    const api = new ArcadiaApiClient();
+    try {
+      await api.getAeroUpgradePlan({ chain_id: 8453, account_address: "0x1" });
+    } catch (err) {
+      expect(err).toBeInstanceOf(ArcadiaApiError);
+      expect((err as ArcadiaApiError).status).toBe(422);
+      expect((err as ArcadiaApiError).body).toEqual({
+        name: "Incomplete Request",
+        message: "choice must be <position_manager>:<position_id>:<pool>",
+      });
+    }
+  });
+});
+
+describe("ArcadiaApiClient Aero upgrade", () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("joins the pool picks into one choices param and drops unset params", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const api = new ArcadiaApiClient("https://api.test");
+    await api.getAeroUpgradePlan({
+      chain_id: 8453,
+      account_address: "0xacc",
+      choices: ["0xa:1:0xp1", "0xb:2:0xp2"],
+    });
+    const url = new URL((fetchMock.mock.calls[0] as unknown as [string])[0]);
+    expect(url.pathname).toBe("/v1/api/bundles/aero_upgrade");
+    expect(url.searchParams.get("choices")).toBe("0xa:1:0xp1,0xb:2:0xp2");
+    expect(url.searchParams.has("slippage")).toBe(false);
+
+    await api.getAeroUpgradePlan({ chain_id: 8453, account_address: "0xacc", choices: [] });
+    const bare = new URL((fetchMock.mock.calls[1] as unknown as [string])[0]);
+    expect(bare.searchParams.has("choices")).toBe(false);
+  });
+
+  it("gives the batch 20 seconds per account, never less than the default timeout", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({}),
+    })) as unknown as typeof fetch;
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const api = new ArcadiaApiClient("https://api.test");
+    await api.postAeroUpgradeBatch({ chain_id: 8453, accounts: ["0xa"] });
+    await api.postAeroUpgradeBatch({ chain_id: 8453, accounts: ["0xa", "0xb", "0xc", "0xd"] });
+    expect(timeout.mock.calls.map((c) => c[0])).toEqual([30_000, 80_000]);
+    timeout.mockRestore();
+  });
+
+  it("asks for one owner or one account and posts the batch as JSON", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({}) }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    const api = new ArcadiaApiClient("https://api.test");
+    await api.getAeroUpgradeCandidates({ chain_id: 10, owner_address: "0xowner" });
+    const url = new URL((fetchMock.mock.calls[0] as unknown as [string])[0]);
+    expect(url.pathname).toBe("/v1/api/bundles/aero_migration_candidates");
+    expect(url.searchParams.get("owner_address")).toBe("0xowner");
+    expect(url.searchParams.has("account_address")).toBe(false);
+
+    await api.postAeroUpgradeBatch({ chain_id: 8453, accounts: ["0xa", "0xb"], slippage: 500 });
+    const [batchUrl, init] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
+    expect(new URL(batchUrl).pathname).toBe("/v1/api/bundles/aero_upgrade/batch");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({
+      chain_id: 8453,
+      accounts: ["0xa", "0xb"],
+      slippage: 500,
+    });
   });
 });

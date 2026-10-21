@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { erc20Abi, nftmanagerAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
@@ -11,7 +11,7 @@ const MAX_UINT256 = 2n ** 256n - 1n;
 
 export function registerApproveTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "write.wallet.approve",
+    "write_wallet_approve",
     {
       annotations: {
         title: "Build Approve Transaction",
@@ -22,8 +22,8 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
       },
       outputSchema: SimpleTransactionOutput,
       description:
-        "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before write.account.deposit or write.account.add_liquidity (when depositing from wallet). Tip: call read.wallet.allowances first to check if approval already exists — skip this if the current allowance is sufficient.",
-      inputSchema: {
+        "Build an unsigned approval transaction. For ERC20 tokens: generates approve(spender, amount). For ERC721/ERC1155 NFTs (e.g. LP positions): generates setApprovalForAll(operator, true). Required before write_account_deposit or write_account_add_liquidity (when depositing from wallet). Tip: call read_wallet_allowances first to check if approval already exists: skip this if the current allowance is sufficient.",
+      inputSchema: z.object({
         token_address: z.string().describe("Token contract address to approve"),
         spender_address: z
           .string()
@@ -41,7 +41,7 @@ export function registerApproveTool(server: McpServer, _chains: Record<ChainId, 
             "ERC20 only: amount in raw units, or 'max_uint256' for unlimited. Ignored for NFTs.",
           ),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async (params) => {
       try {

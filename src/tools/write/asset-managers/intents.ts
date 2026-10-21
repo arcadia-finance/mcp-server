@@ -81,7 +81,7 @@ const ClaimRewardsIntent = z.object({
             "Omit to defer to mode (convert_to converts all claimed tokens, as_earned converts none). Use this for a partial convert, e.g. tokens: ['token0','reward'] with convert_tokens: ['reward'] swaps only the reward and claims token0 as-is.",
         ),
     })
-    .default({}),
+    .prefault({}),
 });
 
 const AddToLpIntent = z.object({
@@ -108,7 +108,7 @@ const ClaimMerklIntent = z.object({
         .optional()
         .describe("Explicit recipient address. Overrides destination when set."),
     })
-    .default({}),
+    .prefault({}),
 });
 
 const OutOfRangeStrategy = z.object({
@@ -180,13 +180,13 @@ const RebalanceIntent = z.object({
   position_id: POSITION_ID,
   strategy: z
     .discriminatedUnion("kind", [OutOfRangeStrategy, POLStrategy, TakeProfitStrategy])
-    .default({ kind: "out_of_range" })
+    .prefault({ kind: "out_of_range" })
     .describe(
       "out_of_range repositions when price leaves the range; take_profit runs on the dedicated profit-taker contract; protocol_owned_liquidity is the POL strategy.",
     ),
   max_tolerance: z
     .number()
-    .int()
+    .multipleOf(1)
     .min(0)
     .max(10 ** 18)
     .optional()
@@ -195,7 +195,7 @@ const RebalanceIntent = z.object({
     ),
   min_liquidity_ratio: z
     .number()
-    .int()
+    .multipleOf(1)
     .min(0)
     .max(10 ** 18)
     .optional()
@@ -227,6 +227,8 @@ const DEX_PROTOCOL_TO_CONTEXT: Record<string, { protocol: string; is_staked: boo
   staked_slipstream_v3: { protocol: "slipstream_v3", is_staked: true },
   uniV3: { protocol: "uniswap_v3", is_staked: false },
   uniV4: { protocol: "uniswap_v4", is_staked: false },
+  metadexcl_v1: { protocol: "metadexcl_v1", is_staked: false },
+  staked_metadexcl_v1: { protocol: "metadexcl_v1", is_staked: true },
 };
 
 // The canonical names plus the dex_protocol spellings, deduped: slipstream_v2 and
@@ -239,6 +241,7 @@ const PROTOCOL_VALUES = [
     "slipstream_v3",
     "uniswap_v3",
     "uniswap_v4",
+    "metadexcl_v1",
     ...Object.keys(DEX_PROTOCOL_TO_CONTEXT),
   ]),
 ] as [string, ...string[]];
@@ -251,13 +254,13 @@ export const POSITION_CONTEXT_SCHEMA = {
     .int()
     .optional()
     .describe(
-      "LP position (NFT) id, as listed in assets[] by read.account.info. Supply this and the backend fetches protocol, staked flag, tokens and reward tokens for you. Strongly preferred over passing the position fields by hand.",
+      "LP position (NFT) id, as listed in assets[] by read_account_info. Supply this and the backend fetches protocol, staked flag, tokens and reward tokens for you. Strongly preferred over passing the position fields by hand.",
     ),
   protocol: z
     .enum(PROTOCOL_VALUES)
     .optional()
     .describe(
-      "Position's DEX protocol. Only needed when position_id is omitted. Accepts the dex_protocol values the read tools return (slipstream, staked_slipstream_v3, uniV3, ...), which imply is_staked, as well as the canonical slipstream_v1 / uniswap_v3 spellings.",
+      "Position's DEX protocol. Only needed when position_id is omitted. Accepts the dex_protocol values the read tools return (slipstream, staked_slipstream_v3, uniV3, metadexcl_v1, staked_metadexcl_v1, ...), which imply is_staked, as well as the canonical slipstream_v1 / uniswap_v3 spellings. metadexcl_v1 is Aero CL; staked_metadexcl_v1 covers both the staked module and the wrapper.",
     ),
   is_staked: z
     .boolean()

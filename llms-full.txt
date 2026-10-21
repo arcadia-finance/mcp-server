@@ -1,10 +1,10 @@
 # Arcadia Finance MCP Server
 
-> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
+> MCP server for Arcadia Finance, a DeFi protocol for concentrated liquidity (Uniswap v3/v4, Aero CL, Aerodrome/Slipstream, Velodrome) with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Supported chains: Base (8453), Unichain (130), Optimism (10), Robinhood (4663).
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 35 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 38 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -24,9 +24,9 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Read Tools (18)
+## Read Tools (19)
 
-### read.account.info
+### read_account_info
 
 Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status.
 
@@ -34,7 +34,7 @@ Parameters:
 - `account_address` (string, required): Arcadia account address
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.account.history
+### read_account_history
 
 Get historical collateral and debt values for an Arcadia account over time.
 
@@ -43,7 +43,7 @@ Parameters:
 - `days` (number, default: 14): Number of days of history
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.account.pnl
+### read_account_pnl
 
 Get PnL (cost basis) and yield earned for an Arcadia account.
 
@@ -51,7 +51,7 @@ Parameters:
 - `account_address` (string, required): Arcadia account address
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.wallet.balances
+### read_wallet_balances
 
 Get native ETH and ERC20 token balances for a wallet address.
 
@@ -60,7 +60,7 @@ Parameters:
 - `token_addresses` (string[], required): ERC20 token contract addresses to check
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.wallet.allowances
+### read_wallet_allowances
 
 Check ERC20 token allowances for a spender address.
 
@@ -70,7 +70,7 @@ Parameters:
 - `token_addresses` (string[], required): ERC20 token contract addresses to check
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.wallet.accounts
+### read_wallet_accounts
 
 List all Arcadia accounts owned by a wallet address.
 
@@ -78,14 +78,14 @@ Parameters:
 - `wallet_address` (string, required): Wallet address to list accounts for
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.wallet.points
+### read_wallet_points
 
 Get Arcadia points balance for a specific wallet address.
 
 Parameters:
 - `wallet_address` (string, required): Wallet address to get points for
 
-### read.asset.list
+### read_asset_list
 
 List supported collateral assets on Arcadia.
 
@@ -93,7 +93,7 @@ Parameters:
 - `search` (string, optional): Filter assets by symbol (case-insensitive substring match)
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.asset.prices
+### read_asset_prices
 
 Get USD prices for one or more asset addresses.
 
@@ -101,14 +101,14 @@ Parameters:
 - `asset_addresses` (string, required): Single address or comma-separated addresses
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.pool.list
+### read_pool_list
 
 List all Arcadia lending pools: TVL, utilization, available liquidity.
 
 Parameters:
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.pool.info
+### read_pool_info
 
 Get detailed info for a single lending pool including APY history over time.
 
@@ -117,7 +117,7 @@ Parameters:
 - `days` (number, default: 14): Number of days of APY history
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.point_leaderboard
+### read_point_leaderboard
 
 Get the Arcadia points leaderboard (paginated).
 
@@ -125,7 +125,7 @@ Parameters:
 - `limit` (number, default: 25): Max entries to return
 - `offset` (number, default: 0): Skip first N entries for pagination
 
-### read.strategy.list
+### read_strategy_list
 
 Get Arcadia LP strategies with 7d avg APY for each strategy's default range.
 
@@ -135,7 +135,7 @@ Parameters:
 - `offset` (number, default: 0): Skip first N strategies for pagination
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.strategy.info
+### read_strategy_info
 
 Get full detail for a specific LP strategy by ID.
 
@@ -143,7 +143,7 @@ Parameters:
 - `strategy_id` (number, required): Strategy ID
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.strategy.recommendation
+### read_strategy_recommendation
 
 Get a rebalancing recommendation for an Arcadia account.
 
@@ -151,7 +151,7 @@ Parameters:
 - `account_address` (string, required): Arcadia account address
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.asset_manager.intents
+### read_asset_manager_intents
 
 List the automation intents Arcadia supports with the parameters each accepts. Pass `account_address` to also get live per-account availability, including the compatibility rule blocking anything unavailable.
 
@@ -160,7 +160,7 @@ Parameters:
 - `position_id` (number, optional): Scope availability to one LP position. Requires account_address
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.asset_manager.current
+### read_asset_manager_current
 
 Read which asset managers are enabled on an account, with their decoded on-chain configuration, the intents they map to, Merkl claim state, and any superseded managers that should be cleared.
 
@@ -168,18 +168,27 @@ Parameters:
 - `account_address` (string, required): Arcadia account address
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### read.guides
+### read_guides
 
 Get Arcadia workflow guides and reference documentation.
 
 Parameters:
 - `topic` (enum, optional): overview | automation | strategies | selection
 
-## Write Tools (16)
+### read_account_aero_upgrade
+
+Which Arcadia accounts have something to upgrade to Aero (MetadexCL V1): Slipstream V1 to V3 positions (staked or not) and old AERO. Per account: `status` (ready | choices_required | waiting | not_open | nothing_to_upgrade), `positions`, `movable`, `waiting`, `blocked`, `old_aero`. Accounts without a Slipstream position or old AERO are left out. `failed_accounts` lists the accounts whose check failed, with the error: an empty `accounts` list means nothing to do only when `failed_accounts` is empty too. Otherwise those accounts could not be checked, so say so and retry later. No calldata or simulation; call write_account_aero_upgrade for the plan and the transaction.
+
+Parameters:
+- `wallet_address` (string): every account of a wallet; pass this or `account_address`
+- `account_address` (string): one account
+- `chain_id` (number, default: 8453): 8453 (Base) or 10 (Optimism); Robinhood (4663) answers an empty list
+
+## Write Tools (18)
 
 All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
-### write.wallet.approve
+### write_wallet_approve
 
 Build an unsigned approval transaction for ERC20 tokens or ERC721/ERC1155 NFTs.
 
@@ -190,17 +199,26 @@ Parameters:
 - `amount` (string, default: "max_uint256"): ERC20 only: amount in raw units
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.pool.deposit
+### write_wallet_upgrade_velo
 
-Build an unsigned deposit transaction into an Arcadia lending tranche (ERC-4626). Lenders deposit the pool's underlying asset (USDC / WETH / cbBTC) and receive tranche shares that accrue interest from borrowers. Requires prior ERC-20 approval to the tranche via `write.wallet.approve`.
+Upgrade VELO held in a wallet on Optimism to the new AERO on Base: ordered wallet transactions (`transactions[]`) from `owner_address`, an approve when the allowance is short, then depositLiquid on the Velodrome migration with the Hyperlane fee as value. 0.044 new AERO per VELO arrives at the same address on Base. VELO inside an account must be withdrawn first (write_account_withdraw); VELO stays usable, so this is optional. Errors name the contract's reason: `not_open` (with the opening time), `paused`, `budget_exhausted`, `recipient_not_deployed`.
 
 Parameters:
-- `tranche_address` (string, required): Tranche contract address (get from `read.pool.list`, each pool's `tranches[0].address`)
+- `owner_address` (string, required): wallet holding the VELO; receives the AERO on Base
+- `amount` (string, optional): raw units (18 decimals); omit for the full balance
+- `chain_id` (number, default: 10): Optimism only
+
+### write_pool_deposit
+
+Build an unsigned deposit transaction into an Arcadia lending tranche (ERC-4626). Lenders deposit the pool's underlying asset (USDC / WETH / cbBTC) and receive tranche shares that accrue interest from borrowers. Requires prior ERC-20 approval to the tranche via `write_wallet_approve`.
+
+Parameters:
+- `tranche_address` (string, required): Tranche contract address (get from `read_pool_list`, each pool's `tranches[0].address`)
 - `assets` (string, required): Amount of underlying asset to deposit in raw units
 - `receiver` (string, required): Address that receives the minted tranche shares
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.pool.redeem
+### write_pool_redeem
 
 Build an unsigned redeem transaction to withdraw from an Arcadia lending tranche (ERC-4626). Burns tranche shares and returns the corresponding amount of underlying asset, including accrued interest. The owner must be the shares holder; receiver is where the underlying is sent.
 
@@ -211,7 +229,7 @@ Parameters:
 - `owner` (string, required): Address that owns the tranche shares being burned
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.create
+### write_account_create
 
 Build an unsigned transaction to create a new Arcadia account via the Factory contract.
 
@@ -222,7 +240,7 @@ Parameters:
 - `creditor` (string, optional): Lending pool address for V3 margin account
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.deposit
+### write_account_deposit
 
 Build an unsigned transaction to deposit assets into an Arcadia account as collateral.
 
@@ -235,7 +253,7 @@ Parameters:
 - `account_version` (number, optional): Override account version (auto-detected if omitted)
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.withdraw
+### write_account_withdraw
 
 Build an unsigned transaction to withdraw assets from an Arcadia account.
 
@@ -248,7 +266,7 @@ Parameters:
 - `account_version` (number, optional): Override account version (auto-detected if omitted)
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.borrow
+### write_account_borrow
 
 Build an unsigned transaction to borrow from an Arcadia lending pool.
 
@@ -259,7 +277,7 @@ Parameters:
 - `to` (string, required): Address to receive borrowed tokens
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.repay
+### write_account_repay
 
 Repay debt to an Arcadia lending pool using tokens from the wallet.
 
@@ -269,7 +287,7 @@ Parameters:
 - `amount` (string, required): Amount in raw units, or "max_uint256" to repay all
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.add_liquidity
+### write_account_add_liquidity
 
 Flash-action: atomically deposits from wallet + uses account collateral + swaps to optimal ratio + mints LP + borrows if leveraged, in one transaction.
 
@@ -277,7 +295,7 @@ Parameters:
 - `account_address` (string, required): Arcadia account address
 - `wallet_address` (string, required): Wallet address of the account owner
 - `positions` (object[], required): LP positions to mint. Each object:
-  - `strategy_id` (number, required): From read.strategy.list
+  - `strategy_id` (number, required): From read_strategy_list
   - `tick_lower` (number, optional): Lower tick. Omit for full range.
   - `tick_upper` (number, optional): Upper tick. Omit for full range.
 - `deposits` (object[], optional): Wallet tokens to deposit. Each object:
@@ -289,7 +307,7 @@ Parameters:
 - `slippage` (number, default: 100): Basis points, 100 = 1%
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.remove_liquidity
+### write_account_remove_liquidity
 
 Flash-action: partially decreases liquidity from an LP position.
 
@@ -300,7 +318,7 @@ Parameters:
 - `adjustment` (string, required): Liquidity amount to remove (raw uint128)
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.swap
+### write_account_swap
 
 Flash-action: swaps assets within an Arcadia account atomically.
 
@@ -312,7 +330,7 @@ Parameters:
 - `slippage` (number, default: 100): Basis points, 100 = 1%
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.deleverage
+### write_account_deleverage
 
 Flash-action: sells account collateral to the debt token and repays atomically.
 
@@ -325,7 +343,7 @@ Parameters:
 - `slippage` (number, default: 100): Basis points, 100 = 1%
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.stake
+### write_account_stake
 
 Flash-action: stake, unstake, or claim rewards for an LP position.
 
@@ -336,7 +354,26 @@ Parameters:
 - `asset_id` (number, required): NFT token ID
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.close
+### write_account_aero_upgrade
+
+Upgrade one Arcadia account to Aero (MetadexCL V1) in one flashAction: every Slipstream V1/V2/V3 position (staked or not) moves to the Aero CL pool with the same pair and variant at the same range and tick spacing (when Aero has no pool at that tick spacing, the user picks another one), and every unit of old AERO (loose, in rewards, in an old-AERO pair) becomes the new AERO. Returns the plan (`items[]` with `status` and `reason`, `managers_to_reconnect`, `old_managers_still_needed`, `tenderly_sim_status`) and, when anything can go now, the unsigned `transaction` with its `gas`. The backend decides what moves; report statuses and reasons as given.
+
+- `status` ready: sign the transaction. `choices_required`: a position has status `choose` with `options[]` (every Aero pool on its pair with `apy`, `tvl_usd`, `is_new`, `tick_spacing`, `range_widened`, `default`, `disabled_reason`); ask the user to pick one whose `disabled_reason` is null and call again with `choices`, so one transaction moves everything. A `transaction` returned with `choices_required` moves only the ready items: sign it alone only when the user wants to leave the choose positions where they are. `waiting`: see each item's `reason` (for example `pool_not_on_aero`, `target_price_mismatch`, `account_unhealthy`, `exposure_limit`); a waiting item with an option whose `disabled_reason` is null can still move with that pick. `not_open`: the AERO upgrade contract does not accept deposits at the moment.
+- When the transaction's simulation fails, the tool returns an error and no transaction. A plan without a transaction can still show `tenderly_sim_status` failure: the account's health or a lending pool limit refused the move and the items wait on `account_unhealthy` or `exposure_limit`. Report those reasons and do not rebuild.
+- Pass `accounts` (up to 10) instead of `account_address` for one plan per account (`results[]`). `multisends` groups the accounts that got a transaction, in order: a Safe signs one MultiSend per group, each below `max_gas_per_tx`.
+- After it confirms, reconnect `managers_to_reconnect` with write_account_automations (or write_account_automations_delta when `old_managers_still_needed`) and verify with read_account_info.
+
+Spot and margin accounts can hold Aero positions, staked or not, on Base, Optimism and Robinhood.
+
+Parameters:
+- `account_address` (string): the account to upgrade; pass this or `accounts`
+- `accounts` (string[], 1 to 10): one plan and transaction per account
+- `choices` (object[], optional): `{position_manager, position_id, pool}` per position with status choose, or waiting with a selectable option
+- `slippage` (number, optional, 1 to 1000): price band in bps; default 150, or 500 when the owner is a contract
+- `min_block` (number, optional): block of the transaction you just confirmed, so the plan reads state at or after it
+- `chain_id` (number, default: 8453): 8453 (Base), 10 (Optimism) or 4663 (Robinhood, nothing to upgrade)
+
+### write_account_close
 
 Atomic flash-action that closes an Arcadia account position in one transaction.
 
@@ -355,7 +392,7 @@ Parameters:
 - `slippage` (number, default: 100): Basis points, 100 = 1%
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.automations
+### write_account_automations
 
 Configure an account's automations from a list of intents and return the unsigned setAssetManagers transaction. The backend resolves which asset managers each intent needs, validates the combination, encodes the metadata and builds the calldata, so you describe the desired outcome rather than the contracts.
 
@@ -373,26 +410,26 @@ Parameters:
 - `intents` (object[], required): Complete desired automation state, at least one intent
 - `mode` (enum, default: "save"): save diffs against on-chain state and returns a signable transaction that also disables anything omitted; preview resolves and validates only, returning a plan and no transaction
 - `position_id` (number, optional): LP position id. Supply it and the backend fetches protocol, staked flag, tokens and reward tokens
-- `protocol` (enum, optional): Only needed without position_id. Accepts slipstream_v1 | slipstream_v2 | slipstream_v3 | uniswap_v3 | uniswap_v4, or the dex_protocol spellings (slipstream, staked_slipstream_v3, uniV3, ...) which imply is_staked
+- `protocol` (enum, optional): Only needed without position_id. Accepts slipstream_v1 | slipstream_v2 | slipstream_v3 | uniswap_v3 | uniswap_v4 | metadexcl_v1, or the dex_protocol spellings (slipstream, staked_slipstream_v3, metadexcl_v1, staked_metadexcl_v1, uniV3, ...) which imply is_staked
 - `is_staked` (boolean, optional): Whether the LP position is staked
 - `token0` / `token1` (string, optional): Pool token addresses
 - `reward_tokens` (string[], optional): Staking reward token addresses
 - `owner` (string, optional): Account owner EOA, used to resolve wallet payout targets
 - `chain_id` (number, default: 8453): Chain ID: 8453 (Base), 130 (Unichain), 10 (Optimism), or 4663 (Robinhood)
 
-### write.account.automations_delta
+### write_account_automations_delta
 
 Apply an explicit change to an account's automations and return the unsigned setAssetManagers transaction. A delta, not a full desired state: automations not mentioned are left untouched. Superseded managers still set on the account are force-disabled regardless.
 
 Parameters:
 - `account_address` (string, required): Arcadia account address
-- `enable` (object[], default: []): Intents to switch on, same shapes as write.account.automations
-- `disable` (string[], default: []): Asset-manager addresses to switch off, as returned by read.asset_manager.current
-- position context params and `chain_id`: same as write.account.automations
+- `enable` (object[], default: []): Intents to switch on, same shapes as write_account_automations
+- `disable` (string[], default: []): Asset-manager addresses to switch off, as returned by read_asset_manager_current
+- position context params and `chain_id`: same as write_account_automations
 
 ## Dev Tools (1)
 
-### dev.send
+### dev_send
 
 Sign and broadcast an unsigned transaction using a local private key (PK env var). Dev only.
 

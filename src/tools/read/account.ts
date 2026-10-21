@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../config/chains.js";
 import { accountAbi } from "../../abis/index.js";
@@ -116,7 +116,7 @@ export function registerAccountTools(
   chains: Record<ChainId, ChainConfig>,
 ) {
   server.registerTool(
-    "read.account.info",
+    "read_account_info",
     {
       annotations: {
         title: "Get Account Info",
@@ -127,13 +127,13 @@ export function registerAccountTools(
       },
       description:
         "Get full overview of an Arcadia account: health factor, collateral value, debt, deposited assets, liquidation price, and automation status. Health factor = 1 - (used_margin / liquidation_value): 1 = no debt (safest), >0 = healthy, 0 = liquidation threshold, <0 = past liquidation. Higher is safer. " +
-        "The `automation` object reports which asset managers are enabled (rebalancer, compounder, yield_claimer, cow_swapper, merkl_operator, gas_relayer), each as the position's dex_protocol when protocol-specific or true when account-level, plus `inferred_intents` (the automations those managers add up to), `merkl` claim state, and `deprecated_managers` for any superseded deployment still set on the account. Superseded managers should be cleared: write.account.automations disables them as part of a save. For the full decoded per-manager config use read.asset_manager.current. " +
-        "LP positions in assets[] include a dex_protocol field (slipstream, slipstream_v2, slipstream_v3, staked_slipstream, staked_slipstream_v2, staked_slipstream_v3, uniV3, uniV4). To configure automations, prefer passing the position's id as position_id to write.account.automations, which resolves the protocol and tokens for you; the dex_protocol value is also accepted directly as its `protocol` param. Slipstream V2 is Base-only. V3 is available on Base and Optimism. Unichain supports only Slipstream V1, uniV3, and uniV4. " +
-        "Numeric fields without a _usd suffix are in the account's numeraire token raw units (divide by 10^decimals: 6 for USDC, 18 for WETH, 8 for cbBTC). Fields ending in _usd are in USD with 18 decimals (divide by 1e18). health_factor is unitless. Asset amounts are raw token units. To list all accounts for a wallet, use read.wallet.accounts.",
-      inputSchema: {
+        "The `automation` object reports which asset managers are enabled (rebalancer, compounder, yield_claimer, cow_swapper, merkl_operator, gas_relayer), each as the position's dex_protocol when protocol-specific or true when account-level, plus `inferred_intents` (the automations those managers add up to), `merkl` claim state, and `deprecated_managers` for any superseded deployment still set on the account. Superseded managers should be cleared: write_account_automations disables them as part of a save. For the full decoded per-manager config use read_asset_manager_current. " +
+        "LP positions in assets[] include a dex_protocol field (slipstream, slipstream_v2, slipstream_v3, metadexcl_v1, staked_slipstream, staked_slipstream_v2, staked_slipstream_v3, staked_metadexcl_v1, uniV3, uniV4). metadexcl_v1 is Aero CL, live on Base, Optimism and Robinhood for spot and margin accounts. Slipstream V2 is Base-only. V3 is available on Base and Optimism. Unichain supports Slipstream V1, uniV3 and uniV4. To configure automations, prefer passing the position's id as position_id to write_account_automations, which resolves the protocol and tokens for you; the dex_protocol value is also accepted directly as its `protocol` param. " +
+        "Numeric fields without a _usd suffix are in the account's numeraire token raw units (divide by 10^decimals: 6 for USDC, 18 for WETH, 8 for cbBTC). Fields ending in _usd are in USD with 18 decimals (divide by 1e18). health_factor is unitless. Asset amounts are raw token units. To list all accounts for a wallet, use read_wallet_accounts.",
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: AccountInfoOutput,
     },
     async ({ account_address, chain_id }) => {
@@ -267,7 +267,7 @@ export function registerAccountTools(
 
           if (!state.read_ok) {
             notes.push(
-              "Automation state could not be confirmed on-chain, so the automation object may be incomplete. Retry, or read it directly with read.asset_manager.current.",
+              "Automation state could not be confirmed on-chain, so the automation object may be incomplete. Retry, or read it directly with read_asset_manager_current.",
             );
           }
           for (const w of state.warnings ?? []) notes.push(`Automation state: ${w}`);
@@ -308,7 +308,7 @@ export function registerAccountTools(
   );
 
   server.registerTool(
-    "read.account.history",
+    "read_account_history",
     {
       annotations: {
         title: "Get Account History",
@@ -319,11 +319,11 @@ export function registerAccountTools(
       },
       description:
         "Get an Arcadia account's historical net value over time. Returns a time series of snapshots, oldest first, each `{ timestamp, net_value }` — `timestamp` is unix seconds and `net_value` is USD (human-readable, not raw units). Useful for charting account performance over a period. An empty `history` means the account has no snapshots in the window, not that the read failed.",
-      inputSchema: {
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         days: z.number().default(14).describe("Number of days of history (default 14)"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: AccountHistoryOutput,
     },
     async ({ account_address, days, chain_id }) => {
@@ -356,7 +356,7 @@ export function registerAccountTools(
   );
 
   server.registerTool(
-    "read.account.pnl",
+    "read_account_pnl",
     {
       annotations: {
         title: "Get Account PnL",
@@ -367,10 +367,10 @@ export function registerAccountTools(
       },
       description:
         "Get PnL (cost basis) and yield earned for an Arcadia account. Returns lifetime totals: cost basis vs current value (negative cost_basis = net profit withdrawn), net transfers per token, total yield earned in USD and per token. cost_basis, current_value, cost_diff are in USD (human-readable). Per-token fields (net_transfers, summed_yields_earned) are in raw token units.",
-      inputSchema: {
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: AccountPnlOutput,
     },
     async ({ account_address, chain_id }) => {

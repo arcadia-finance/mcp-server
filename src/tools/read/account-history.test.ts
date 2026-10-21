@@ -71,14 +71,14 @@ describe("normalizeAccountHistory", () => {
 
 /**
  * The tests above cover the extracted helper. These cover the WIRING, because
- * the bug was in the call site: reverting `read.account.history` to
+ * the bug was in the call site: reverting `read_account_history` to
  * `Array.isArray(raw) ? raw : []` left every helper test passing while
  * reproducing the exact reported symptom, `{"history":[]}`.
  *
  * So these drive the registered handler and assert on what the tool actually
  * emits.
  */
-describe("read.account.history (the handler, not the helper)", () => {
+describe("read_account_history (the handler, not the helper)", () => {
   const ACCOUNT = "0x09B2d66174550e8C9b80DEf70C2B7AdA4EaF8928";
   const LIVE_RESPONSE = {
     values: {
@@ -97,7 +97,7 @@ describe("read.account.history (the handler, not the helper)", () => {
       getAccountHistory: vi.fn(async () => raw),
     } as unknown as ArcadiaApiClient;
     registerAccountTools(mock.server, api, createMockChains());
-    return mock.getHandler("read.account.history");
+    return mock.getHandler("read_account_history");
   }
 
   it("emits every snapshot for a populated account", async () => {
