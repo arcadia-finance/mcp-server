@@ -1,9 +1,9 @@
 import type { ChainId } from "./chains.js";
 
 // Aero CL (MetadexCL V1). EIP-55 values from team-tooling _SHARED/aero-migration/addresses.md.
-export const AERO_NPM_BASE = "0xc84bB45D43CD25D02b83B4C085eaA4e08da8f473" as const;
-export const AERO_NPM_OP = "0xc84bB45D43CD25D02b83B4C085eaA4e08da8f473" as const;
-export const AERO_NPM_ROBINHOOD = "0xc84bB45D43CD25D02b83B4C085eaA4e08da8f473" as const;
+export const AERO_NPM_BASE = "0x4857DB576eE0e45F10525eC59527BfD10beeC60b" as const;
+export const AERO_NPM_OP = "0x4857DB576eE0e45F10525eC59527BfD10beeC60b" as const;
+export const AERO_NPM_ROBINHOOD = "0x4857DB576eE0e45F10525eC59527BfD10beeC60b" as const;
 // Arcadia Metadex CL modules (identical on Base, Optimism and Robinhood).
 export const ARC_STAKED_METADEX_CL_AM = "0x0f34F7F7B558F43a821AF4181f0F8e5bC4B74892" as const;
 export const ARC_WRAPPED_STAKED_METADEX_CL = "0x323808A037628F2BaF4F42784E011FCf9C49A88b" as const;
