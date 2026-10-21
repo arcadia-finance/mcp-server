@@ -65,7 +65,7 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - write.account.deleverage: repay debt by selling collateral
 - write.account.close: atomic close that burns LP, swaps, and repays in one tx
 - write.account.stake: stake, unstake, or claim LP rewards
-- write.account.aero_upgrade: upgrade an account to Aero in one flashAction: Slipstream positions move to Aero CL, old AERO becomes the new AERO; returns the plan and the transaction
+- write.account.aero_upgrade: upgrade an account to Aero in one flashAction: Slipstream positions move to Aero CL, old AERO becomes the new AERO; returns the plan and the transaction for the items that are ready
 - write.account.automations: configure automations from an intents array (complete desired state), returns the unsigned setAssetManagers tx
 - write.account.automations_delta: switch individual automations on or off, leaving the rest untouched
 
