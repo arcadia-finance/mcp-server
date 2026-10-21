@@ -42,10 +42,10 @@ export function registerAeroUpgradeTool(server: McpServer, api: ArcadiaApiClient
       },
       outputSchema: AeroUpgradeOutput,
       description:
-        "Upgrade one Arcadia account to Aero (MetadexCL V1) in one flashAction: every Slipstream V1/V2/V3 position (dex_protocol slipstream*, staked or not, see read.account.info) moves to the Aero CL pool with the same pair, variant and tick spacing at the same range, and every unit of old AERO (loose, in rewards, in an old-AERO pair) becomes the new AERO. Returns the plan and, when anything can go now, the unsigned transaction. Only the account owner can sign it. " +
-        "The backend decides what moves: report items[].status and items[].reason as given, never decide eligibility yourself. status ready: sign transaction. choices_required: some position has status choose with options[] (every Aero pool on its pair, with apy, tvl_usd, is_new, tick_spacing, range_widened, default and disabled_reason); pick one whose disabled_reason is null, ask the user when unsure, and call again with it in choices. waiting: nothing can move yet, each item's reason says why (aero_not_live, pool_not_on_aero, staking_not_open, ...), do not retry in a loop. not_open: the AERO upgrade opens at opens_at. " +
-        "Pass accounts (up to 10) instead of account_address for one plan per account, for a Safe that bundles the transactions in one MultiSend below max_gas_per_tx; the accounts share one AERO upgrade budget. After it confirms, reconnect managers_to_reconnect with write.account.automations and verify with read.account.info (next_steps). " +
-        "Margin accounts hold Aero positions on Base only; on Optimism Aero positions are spot only. Chains: 8453 (Base, default) and 10 (Optimism). Calldata is time-sensitive: sign promptly, rebuild on a price revert. If tenderly_sim_status is failure the tool returns no transaction.",
+        "Upgrade one Arcadia account to Aero (MetadexCL V1) in one flashAction: every Slipstream V1/V2/V3 position (dex_protocol slipstream*, staked or not, see read.account.info) moves to the Aero CL pool with the same pair and variant at the same range and tick spacing (when Aero has no pool at that tick spacing, the user picks another one), and every unit of old AERO (loose, in rewards, in an old-AERO pair) becomes the new AERO. Returns the plan and, when anything can go now, the unsigned transaction. Only the account owner can sign it. " +
+        "The backend decides what moves: report items[].status and items[].reason as given, never decide eligibility yourself. status ready: sign transaction. choices_required: some position has status choose with options[] (every Aero pool on its pair, with apy, tvl_usd, is_new, tick_spacing, range_widened, default and disabled_reason); pick one whose disabled_reason is null, ask the user when unsure, and call again with it in choices. A transaction returned with choices_required moves only the ready items, and the choose items stay where they are until the call with choices. Once that transaction is signed, a call made before it confirms is built on the old state, so wait for the confirmation before calling again. Without a transaction there is nothing to sign yet. waiting: nothing can move yet, each item's reason says why (pool_not_on_aero, staking_not_open, target_price_mismatch, account_unhealthy, ...), do not retry in a loop. not_open: the AERO upgrade opens at opens_at. " +
+        "Pass accounts (up to 10) instead of account_address for one plan per account; the accounts share one AERO upgrade budget. multisends groups the accounts that got a transaction, in order: a Safe signs one MultiSend per group (each below max_gas_per_tx). After it confirms, reconnect managers_to_reconnect with write.account.automations and verify with read.account.info (next_steps). " +
+        "Margin accounts hold Aero positions on Base only; on Optimism Aero positions are spot only. Chains: 8453 (Base, default) and 10 (Optimism). Calldata is time-sensitive: sign promptly, rebuild on a price revert. When the transaction's simulation fails the tool returns an error and no transaction. A plan without a transaction can still show tenderly_sim_status failure: the account's health or a lending pool limit refused the move, and the items wait on account_unhealthy or exposure_limit; report those reasons and do not rebuild.",
       inputSchema: {
         account_address: z
           .string()
@@ -99,7 +99,7 @@ export function registerAeroUpgradeTool(server: McpServer, api: ArcadiaApiClient
             choices: picks,
             slippage,
           });
-          if (isSimulationFailed(plan.simulation.status)) {
+          if (plan.calls.length > 0 && isSimulationFailed(plan.simulation.status)) {
             return simulationFailedResult(plan.simulation);
           }
           response = formatUpgradePlan(plan, chainId);
@@ -113,14 +113,20 @@ export function registerAeroUpgradeTool(server: McpServer, api: ArcadiaApiClient
           const results = batch.results.map((result) =>
             result.status === "error" ? result : formatUpgradePlan(result, chainId),
           );
-          const withTx = results.filter((r) => "transaction" in r).length;
+          const withTx = new Set(
+            results.filter((r) => "transaction" in r).map((r) => r.account_address),
+          );
+          const multisends = batch.multisends
+            .map((group) => group.filter((account) => withTx.has(account)))
+            .filter((group) => group.length > 0);
           response = {
-            description: `Upgrade ${accounts!.length} account${accounts!.length === 1 ? "" : "s"} to Aero: ${withTx} transaction${withTx === 1 ? "" : "s"} to sign`,
+            description: `Upgrade ${accounts!.length} account${accounts!.length === 1 ? "" : "s"} to Aero: ${withTx.size} transaction${withTx.size === 1 ? "" : "s"} to sign`,
             chain_id: batch.chain_id,
             max_gas_per_tx: batch.max_gas_per_tx,
+            multisends,
             results,
             next_steps: [
-              "Each result's transaction is a flashAction on its own account. A Safe can bundle them in one MultiSend while their gas adds up to less than max_gas_per_tx; otherwise sign them one by one. A result with status error or without a transaction is reported as is.",
+              "Each result's transaction is a flashAction on its own account. multisends lists the accounts with a transaction in groups: a Safe signs one MultiSend per group, in order, with the transactions of that group's accounts. A result with status error or without a transaction is reported as is.",
             ],
           };
         }

@@ -134,6 +134,7 @@ describe("read.account.aero_upgrade", () => {
         blocked: 0,
       },
     ],
+    failed_accounts: [],
   };
 
   it("checks every account of a wallet and returns the summary unchanged", async () => {
@@ -146,6 +147,25 @@ describe("read.account.aero_upgrade", () => {
       account_address: undefined,
     });
     expect(parseToolResponse(result)).toEqual(candidates);
+  });
+
+  it("returns the accounts whose check failed next to an empty accounts list", async () => {
+    const failed = {
+      ...candidates,
+      accounts: [],
+      failed_accounts: [{ account_address: OTHER_ACCOUNT, error: "the plan could not be built" }],
+    };
+    const result = await readTool({ getAeroUpgradeCandidates: vi.fn(async () => failed) })({
+      wallet_address: TEST_ADDRESS,
+      chain_id: 8453,
+    });
+    expect(result.isError).toBeUndefined();
+    const data = parseToolResponse(result);
+    expect(data.accounts).toEqual([]);
+    expect(data.failed_accounts).toEqual([
+      { account_address: OTHER_ACCOUNT, error: "the plan could not be built" },
+    ]);
+    expect(result.structuredContent).toEqual(failed);
   });
 
   it("checks one account", async () => {
@@ -271,9 +291,46 @@ describe("write.account.aero_upgrade: one account", () => {
     expect(data.transaction).toBeUndefined();
     expect(data.status_note).toContain("disabled_reason is null");
     expect(data.status_note).toContain("choices");
+    expect(data.status_note).toContain("There is no transaction yet");
     expect(data.items[0].options).toHaveLength(2);
     expect(data.tenderly_sim_status).toBe("unavailable");
     expect(data.next_steps).toEqual([]);
+  });
+
+  it("returns the transaction for the ready items while another item waits for its choice", async () => {
+    const api = {
+      getAeroUpgradePlan: vi.fn(async () =>
+        plan({
+          status: "choices_required",
+          old_managers_still_needed: true,
+          items: [
+            positionItem(),
+            positionItem({
+              id: `${SLIPSTREAM_PM}:8`,
+              status: "choose",
+              target: null,
+              options: [option(OTHER_POOL, { default: false, tick_spacing: 200 })],
+            }),
+          ],
+        }),
+      ),
+    };
+    const data = parseToolResponse(
+      await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 }),
+    );
+    expect(data.status).toBe("choices_required");
+    expect(data.transaction).toEqual({
+      to: TEST_ACCOUNT,
+      data: `0xabcdef${SUFFIX}`,
+      value: "0",
+      chainId: 8453,
+    });
+    expect(data.status_note).toContain("moves only the items whose status is ready");
+    expect(data.status_note).toContain("wait for the confirmation");
+    expect(data.status_note).not.toContain("no transaction");
+    expect(data.description).toContain("1 of 2 items ready");
+    expect(data.next_steps.join(" ")).toContain("choices");
+    expect(data.next_steps.join(" ")).toContain("automations_delta");
   });
 
   it("explains waiting and not_open plans instead of inventing a transaction", async () => {
@@ -286,7 +343,7 @@ describe("write.account.aero_upgrade: one account", () => {
             items: [
               positionItem({
                 status: "waiting",
-                reason: { code: "aero_not_live", message: "Aero upgrades open once ..." },
+                reason: { code: "pool_not_on_aero", message: "Your pool isn't on Aero yet." },
               }),
             ],
             simulation: { status: null, url: null, error: null },
@@ -363,6 +420,51 @@ describe("write.account.aero_upgrade: one account", () => {
     expect(result.content[0].text).toContain("PriceOutOfRange");
     expect(result.content[0].text).toContain("https://dashboard.tenderly.co/sim/2");
   });
+
+  it.each(["account_unhealthy", "exposure_limit"])(
+    "reports a plan whose simulation reverted on %s as waiting, without the failed-simulation error",
+    async (code) => {
+      const reason = { code, message: "the upgrade would revert" };
+      const api = {
+        getAeroUpgradePlan: vi.fn(async () =>
+          plan({
+            status: "waiting",
+            calls: [],
+            items: [
+              positionItem({ status: "waiting", target: null, reason }),
+              {
+                kind: "token",
+                id: OLD_AERO,
+                status: "waiting",
+                amount: "5",
+                becomes: NEW_AERO,
+                reason,
+              },
+            ],
+            simulation: {
+              status: false,
+              url: "https://dashboard.tenderly.co/sim/3",
+              error: "execution reverted",
+            },
+          }),
+        ),
+      };
+      const result = await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 });
+      expect(result.isError).toBeUndefined();
+      const data = parseToolResponse(result);
+      expect(data.status).toBe("waiting");
+      expect(data.status_note).toContain("Do not retry in a loop");
+      expect(data.items.map((i: { reason: { code: string } }) => i.reason.code)).toEqual([
+        code,
+        code,
+      ]);
+      expect(data.transaction).toBeUndefined();
+      expect(data.error).toBeUndefined();
+      expect(data.tenderly_sim_status).toBe("failure");
+      expect(data.tenderly_sim_url).toBe("https://dashboard.tenderly.co/sim/3");
+      expect(data.next_steps).toEqual([]);
+    },
+  );
 
   it("passes 422 and 404 through with the backend's message", async () => {
     const rejected = await writeTool({
@@ -448,6 +550,7 @@ describe("write.account.aero_upgrade: several accounts", () => {
       postAeroUpgradeBatch: vi.fn(async () => ({
         chain_id: 8453,
         max_gas_per_tx: 12_000_000,
+        multisends: [[TEST_ACCOUNT, "0x00000000000000000000000000000000000000cc"]],
         results: [
           plan(),
           {
@@ -480,6 +583,7 @@ describe("write.account.aero_upgrade: several accounts", () => {
     expect(data.description).toContain("3 accounts");
     expect(data.description).toContain("1 transaction");
     expect(data.max_gas_per_tx).toBe(12_000_000);
+    expect(data.multisends).toEqual([[TEST_ACCOUNT]]);
     expect(data.results).toHaveLength(3);
     expect(data.results[0].transaction.data).toBe(`0xabcdef${SUFFIX}`);
     expect(data.results[1]).toEqual({
@@ -491,6 +595,33 @@ describe("write.account.aero_upgrade: several accounts", () => {
     expect(data.results[2].error).toContain("do NOT broadcast");
     expect(data.results[2].error).toContain("SwapFailed");
     expect(data.next_steps.join(" ")).toContain("MultiSend");
+  });
+
+  it("keeps the backend's MultiSend groups in order and drops a group left without a transaction", async () => {
+    const third = "0x00000000000000000000000000000000000000cc";
+    const fourth = "0x00000000000000000000000000000000000000dd";
+    const failedSim = { status: false, url: null, error: "PriceOutOfRange" };
+    const api = {
+      postAeroUpgradeBatch: vi.fn(async () => ({
+        chain_id: 8453,
+        max_gas_per_tx: 12_000_000,
+        multisends: [[TEST_ACCOUNT], [OTHER_ACCOUNT, third], [fourth]],
+        results: [
+          plan(),
+          plan({ account_address: OTHER_ACCOUNT, simulation: failedSim }),
+          plan({ account_address: third }),
+          plan({ account_address: fourth, simulation: failedSim }),
+        ],
+      })),
+    };
+    const data = parseToolResponse(
+      await writeTool(api)({
+        accounts: [TEST_ACCOUNT, OTHER_ACCOUNT, third, fourth],
+        chain_id: 8453,
+      }),
+    );
+    expect(data.multisends).toEqual([[TEST_ACCOUNT], [third]]);
+    expect(data.description).toContain("2 transactions");
   });
 
   it("rejects more than ten accounts before calling the backend", async () => {

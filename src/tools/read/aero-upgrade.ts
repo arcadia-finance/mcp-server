@@ -18,7 +18,7 @@ export function registerAeroUpgradeReadTool(server: McpServer, api: ArcadiaApiCl
       },
       description:
         "Which Arcadia accounts have something to upgrade to Aero (MetadexCL V1): Slipstream V1 to V3 positions (Aerodrome on Base, Velodrome on Optimism, staked or not) and old AERO. Pass wallet_address for every account of a wallet, or account_address for one. " +
-        "Per account: status (ready | choices_required | waiting | not_open | nothing_to_upgrade), positions (every Slipstream position on it), movable (ready or needing a pool choice), waiting, blocked, old_aero (raw, 18 decimals). Accounts with nothing to upgrade are left out, so an empty accounts list means nothing to do. opens_at is when the AERO token upgrade opens on Base. " +
+        "Per account: status (ready | choices_required | waiting | not_open | nothing_to_upgrade), positions (every Slipstream position on it), movable (ready or needing a pool choice), waiting, blocked, old_aero (raw, 18 decimals). Accounts without a Slipstream position or old AERO are left out. failed_accounts lists the accounts whose check failed, with the error: an empty accounts list means nothing to do only when failed_accounts is empty too. Otherwise tell the user those accounts could not be checked and retry later. opens_at is when the AERO token upgrade opens on Base. " +
         "No calldata, prices or simulation: this is the cheap check. For the plan and the transaction call write.account.aero_upgrade. Chains: Base (8453), Optimism (10); Robinhood (4663) has no Slipstream positions and answers an empty list.",
       inputSchema: {
         wallet_address: z

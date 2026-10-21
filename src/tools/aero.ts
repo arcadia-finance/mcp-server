@@ -87,14 +87,19 @@ export function describePlanStatus(plan: AeroUpgradePlanResponse): string {
   switch (plan.status) {
     case "ready":
       return "The transaction moves every item whose status is ready; items that wait or are blocked stay where they are, see each item's reason.";
-    case "choices_required":
-      return "At least one position has status choose: pick one of its options whose disabled_reason is null (ask the user when unsure; tick_spacing, fee, apy, tvl_usd and range_widened differ per pool) and call again with it in choices. There is no transaction until every choose item has a pick.";
+    case "choices_required": {
+      const pick =
+        "At least one position has status choose and stays where it is until the user picks one of its options whose disabled_reason is null (ask the user when unsure; tick_spacing, fee, apy, tvl_usd and range_widened differ per pool) and the tool is called again with the pick in choices.";
+      return plan.calls.length > 0
+        ? `${pick} The transaction moves only the items whose status is ready. Once it is signed, a call made before it confirms is built on the old state, so wait for the confirmation, then call again with choices.`
+        : `${pick} There is no transaction yet.`;
+    }
     case "waiting":
-      return "Nothing can move yet. Each item's reason says what it waits for (aero_not_live, pool_not_on_aero, staking_not_open, new_aero_not_listed, ...). Do not retry in a loop; tell the user.";
+      return "Nothing can move yet. Each item's reason says what it waits for (pool_not_on_aero, staking_not_open, target_price_mismatch, account_unhealthy, ...). Do not retry in a loop; tell the user.";
     case "not_open":
       return `The AERO upgrade opens at ${isoTime(plan.opens_at)}; until then an upgrade that converts old AERO cannot be built. Tell the user when to come back.`;
     case "nothing_to_upgrade":
-      return "This account holds no Slipstream position and no old AERO, so there is nothing to do.";
+      return "Nothing on this account can move: it holds no Slipstream position and no old AERO, or every item is blocked (each blocked item's reason says what to do instead).";
   }
 }
 
@@ -103,10 +108,16 @@ export function upgradeNextSteps(
   accountAddress: string,
   managers: AeroManagerToReconnect[],
   oldManagersStillNeeded: boolean,
+  choicesPending: boolean,
 ): string[] {
   const steps = [
     `After the transaction confirms, call read.account.info for ${accountAddress}: every moved position now shows dex_protocol metadexcl_v1 (or staked_metadexcl_v1) with a new position id, and old AERO shows as the new AERO.`,
   ];
+  if (choicesPending) {
+    steps.push(
+      `Only then call write.account.aero_upgrade again for ${accountAddress} with the user's picks in choices for the items whose status is choose.`,
+    );
+  }
   if (managers.length > 0) {
     const kinds = [...new Set(managers.map((m) => m.kind))].join(", ");
     steps.push(
@@ -130,7 +141,7 @@ export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number
   }
   const call = plan.calls[0];
   const ready = plan.items.filter((i) => i.status === "ready").length;
-  const simFailed = isSimulationFailed(plan.simulation.status);
+  const simFailed = call !== undefined && isSimulationFailed(plan.simulation.status);
   return {
     description: `Upgrade ${plan.account_address} to Aero: ${ready} of ${plan.items.length} item${plan.items.length === 1 ? "" : "s"} ready`,
     account_address: plan.account_address,
@@ -160,6 +171,7 @@ export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number
           plan.account_address,
           plan.managers_to_reconnect,
           plan.old_managers_still_needed,
+          plan.status === "choices_required",
         )
       : [],
   };

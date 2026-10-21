@@ -228,6 +228,7 @@ export const AeroUpgradeCandidatesOutput = z.object({
       blocked: z.number(),
     }),
   ),
+  failed_accounts: z.array(z.object({ account_address: z.string(), error: z.string() })),
 });
 
 const AeroUpgradePlanOutput = z.object({
@@ -235,7 +236,7 @@ const AeroUpgradePlanOutput = z.object({
   account_address: z.string(),
   status: AeroPlanStatus,
   status_note: z.string(),
-  // Absent while nothing can go now, and when the simulation failed.
+  // Absent while nothing can go now, and when the transaction's simulation failed.
   transaction: Transaction.optional(),
   gas: z.string().optional(),
   error: z.string().optional(),
@@ -256,6 +257,7 @@ export const AeroUpgradeOutput = AeroUpgradePlanOutput.partial().extend({
   chain_id: z.number().optional(),
   max_gas_per_tx: z.number().optional(),
   results: z.array(z.record(z.unknown())).optional(),
+  multisends: z.array(z.array(z.string())).optional(),
   next_steps: z.array(z.string()),
 });
 

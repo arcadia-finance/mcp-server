@@ -255,10 +255,13 @@ export interface AeroPositionItem {
     strategy_id: number | null;
     range_widened: boolean;
     tokens_flipped: boolean;
+    /** How far, in bps, the pool's price may fall and rise before the mint's price check reverts. */
+    price_band_bps: { below: number; above: number };
   } | null;
   options: AeroPoolOption[];
   rewards: { token: string; amount: string; becomes: string | null } | null;
-  old_aero_leg: { amount: string; becomes: string } | null;
+  /** `converted` false: this upgrade returns the leg to the account as old AERO. */
+  old_aero_leg: { amount: string; becomes: string; converted: boolean } | null;
   reason: AeroReason | null;
 }
 
@@ -323,6 +326,8 @@ export interface AeroUpgradeBatchResponse {
   chain_id: number;
   results: Array<AeroUpgradePlanResponse | AeroUpgradeBatchError>;
   max_gas_per_tx: number;
+  /** Accounts with a call, in request order, grouped so each group's summed gas stays at most max_gas_per_tx. */
+  multisends: string[][];
 }
 
 export interface AeroUpgradeCandidateAccount {
@@ -340,13 +345,15 @@ export interface AeroUpgradeCandidateAccount {
   blocked: number;
 }
 
-/** Accounts with nothing to upgrade are left out. */
+/** Accounts without a Slipstream position or old AERO are left out. */
 export interface AeroUpgradeCandidatesResponse {
   chain_id: number;
   owner_address: string | null;
   opens_at: number | null;
   checked_at: number;
   accounts: AeroUpgradeCandidateAccount[];
+  /** Accounts whose plan could not be built. */
+  failed_accounts: Array<{ account_address: string; error: string }>;
 }
 
 export interface VeloUpgradeResponse {
