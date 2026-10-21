@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { formatUnits } from "viem";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../config/chains.js";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { erc20Abi } from "../../abis/index.js";
@@ -21,7 +21,7 @@ export function registerWalletTools(
   api: ArcadiaApiClient,
 ) {
   server.registerTool(
-    "read.wallet.balances",
+    "read_wallet_balances",
     {
       annotations: {
         title: "Get Wallet Balances",
@@ -31,12 +31,12 @@ export function registerWalletTools(
         openWorldHint: true,
       },
       description:
-        "Get native ETH and ERC20 token balances for a wallet address. Reads directly from chain via RPC multicall. Use before write.account.add_liquidity or write.account.deposit to verify the wallet has sufficient tokens. Returns both raw balance (smallest unit/wei) and formatted (human-readable) per token.",
-      inputSchema: {
+        "Get native ETH and ERC20 token balances for a wallet address. Reads directly from chain via RPC multicall. Use before write_account_add_liquidity or write_account_deposit to verify the wallet has sufficient tokens. Returns both raw balance (smallest unit/wei) and formatted (human-readable) per token.",
+      inputSchema: z.object({
         wallet_address: z.string().describe("Wallet address to check balances for"),
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: WalletBalancesOutput,
     },
     async ({ wallet_address, token_addresses, chain_id }) => {
@@ -109,7 +109,7 @@ export function registerWalletTools(
   );
 
   server.registerTool(
-    "read.wallet.allowances",
+    "read_wallet_allowances",
     {
       annotations: {
         title: "Get Token Allowances",
@@ -119,15 +119,15 @@ export function registerWalletTools(
         openWorldHint: true,
       },
       description:
-        "Check ERC20 token allowances for a spender address. Use before write.wallet.approve to avoid redundant approvals — skip approving if the current allowance is already sufficient.",
-      inputSchema: {
+        "Check ERC20 token allowances for a spender address. Use before write_wallet_approve to avoid redundant approvals: skip approving if the current allowance is already sufficient.",
+      inputSchema: z.object({
         owner_address: z.string().describe("Token owner address (the wallet granting approval)"),
         spender_address: z
           .string()
           .describe("Spender address to check allowance for (e.g. Arcadia account address)"),
         token_addresses: z.array(z.string()).describe("ERC20 token contract addresses to check"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: WalletAllowanceOutput,
     },
     async ({ owner_address, spender_address, token_addresses, chain_id }) => {
@@ -191,7 +191,7 @@ export function registerWalletTools(
   );
 
   server.registerTool(
-    "read.wallet.accounts",
+    "read_wallet_accounts",
     {
       annotations: {
         title: "List Wallet Accounts",
@@ -201,11 +201,11 @@ export function registerWalletTools(
         openWorldHint: true,
       },
       description:
-        "List all Arcadia accounts owned by a wallet address. Returns a summary of each account (address, name). Call read.account.info with a specific account_address for full details like health factor, collateral, and debt.",
-      inputSchema: {
+        "List all Arcadia accounts owned by a wallet address. Returns a summary of each account (address, name). Call read_account_info with a specific account_address for full details like health factor, collateral, and debt.",
+      inputSchema: z.object({
         wallet_address: z.string().describe("Wallet address to list accounts for"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: AccountListOutput,
     },
     async ({ wallet_address, chain_id }) => {
@@ -232,7 +232,7 @@ export function registerWalletTools(
   );
 
   server.registerTool(
-    "read.wallet.points",
+    "read_wallet_points",
     {
       annotations: {
         title: "Get Wallet Points",
@@ -242,9 +242,9 @@ export function registerWalletTools(
         openWorldHint: true,
       },
       description: "Get Arcadia points balance for a specific wallet address.",
-      inputSchema: {
+      inputSchema: z.object({
         wallet_address: z.string().describe("Wallet address to get points for"),
-      },
+      }),
       outputSchema: PointsWalletOutput,
     },
     async ({ wallet_address }) => {

@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { PostHog } from "posthog-node";
 
 type Capture = Pick<PostHog, "capture">;
@@ -21,8 +21,7 @@ export function createAnalytics(transport: string): PostHog | null {
 }
 
 // Captures one `mcp_tool_called` event per tool invocation: name, arguments,
-// outcome and the calling client. HTTP sessions are keyed by MCP session id,
-// stdio by a per-process id.
+// outcome and the calling client, keyed by the per-process id.
 export function withAnalytics(
   target: McpServer,
   mcp: McpServer,

@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { createMockServer, createMockChains } from "../../test-utils.js";
 import { registerSendTool } from "./send.js";
 
-describe("dev.send", () => {
+describe("dev_send", () => {
   const originalEnv = process.env.PK;
 
   afterEach(() => {
@@ -17,14 +17,14 @@ describe("dev.send", () => {
     delete process.env.PK;
     const mock = createMockServer();
     registerSendTool(mock.server, createMockChains());
-    expect(mock.tools.find((t) => t.name === "dev.send")).toBeDefined();
+    expect(mock.tools.find((t) => t.name === "dev_send")).toBeDefined();
   });
 
   it("returns error when PK env var is unset", async () => {
     delete process.env.PK;
     const mock = createMockServer();
     registerSendTool(mock.server, createMockChains());
-    const handler = mock.getHandler("dev.send");
+    const handler = mock.getHandler("dev_send");
 
     const result = await handler({
       to: "0x1234567890abcdef1234567890abcdef12345678",
@@ -42,7 +42,7 @@ describe("dev.send", () => {
     process.env.PK = "0x0000000000000000000000000000000000000000000000000000000000000001";
     const mock = createMockServer();
     registerSendTool(mock.server, createMockChains());
-    const handler = mock.getHandler("dev.send");
+    const handler = mock.getHandler("dev_send");
 
     const result = await handler({
       to: "0x1234567890abcdef1234567890abcdef12345678",
@@ -59,7 +59,7 @@ describe("dev.send", () => {
     process.env.PK = "0x0000000000000000000000000000000000000000000000000000000000000001";
     const mock = createMockServer();
     registerSendTool(mock.server, createMockChains());
-    const handler = mock.getHandler("dev.send");
+    const handler = mock.getHandler("dev_send");
 
     const result = await handler({
       to: "0x1234567890abcdef1234567890abcdef12345678",
@@ -76,7 +76,7 @@ describe("dev.send", () => {
     process.env.PK = "0x0000000000000000000000000000000000000000000000000000000000000001";
     const mock = createMockServer();
     registerSendTool(mock.server, createMockChains());
-    const handler = mock.getHandler("dev.send");
+    const handler = mock.getHandler("dev_send");
 
     const result = await handler({
       to: "0x1234567890abcdef1234567890abcdef12345678",

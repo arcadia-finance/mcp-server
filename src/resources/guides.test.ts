@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { registerGuideResources } from "./guides.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 
 interface RegisteredResource {
   name: string;

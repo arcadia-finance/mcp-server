@@ -19,14 +19,8 @@ export const BatchedTransactionOutput = z.object({
   tenderly_sim_url: z.string().optional(),
   tenderly_sim_status: z.enum(["success", "failure", "unavailable"]).optional(),
   expected_value_change: z.string().optional(),
-  before: z
-    .object({ total_account_value: z.string(), used_margin: z.string() })
-    .passthrough()
-    .optional(),
-  after: z
-    .object({ total_account_value: z.string(), used_margin: z.string() })
-    .passthrough()
-    .optional(),
+  before: z.object({ total_account_value: z.string(), used_margin: z.string() }).loose().optional(),
+  after: z.object({ total_account_value: z.string(), used_margin: z.string() }).loose().optional(),
 });
 
 const ResolvedManager = z.object({
@@ -69,9 +63,9 @@ export const AutomationsStateOutput = z.object({
   chain_id: z.number(),
   read_ok: z.boolean(),
   inferred_intents: z.array(z.string()),
-  enabled: z.array(z.record(z.unknown())),
-  deprecated: z.array(z.record(z.unknown())),
-  merkl: z.record(z.unknown()).nullish(),
+  enabled: z.array(z.record(z.string(), z.unknown())),
+  deprecated: z.array(z.record(z.string(), z.unknown())),
+  merkl: z.record(z.string(), z.unknown()).nullish(),
   warnings: z.array(z.string()),
 });
 
@@ -117,24 +111,24 @@ export const DevSendOutput = z.object({
 export const AccountInfoOutput = z
   .object({
     account_version: z.number().nullable(),
-    overview: z.record(z.unknown()).nullable(),
-    liquidation_price: z.record(z.unknown()).nullable(),
-    automation: z.record(z.unknown()).optional(),
+    overview: z.record(z.string(), z.unknown()).nullable(),
+    liquidation_price: z.record(z.string(), z.unknown()).nullable(),
+    automation: z.record(z.string(), z.unknown()).optional(),
     context_notes: z.array(z.string()).optional(),
   })
-  .passthrough();
+  .loose();
 
 export const AccountListOutput = z.object({
-  accounts: z.array(z.record(z.unknown())),
+  accounts: z.array(z.record(z.string(), z.unknown())),
 });
 
 export const AccountHistoryOutput = z.object({
-  history: z.array(z.record(z.unknown())),
+  history: z.array(z.record(z.string(), z.unknown())),
 });
 
 export const AccountPnlOutput = z.object({
-  pnl_cost_basis: z.record(z.unknown()),
-  yield_earned: z.record(z.unknown()),
+  pnl_cost_basis: z.record(z.string(), z.unknown()),
+  yield_earned: z.record(z.string(), z.unknown()),
 });
 
 export const AssetListOutput = z.object({
@@ -150,39 +144,39 @@ export const AssetListOutput = z.object({
 });
 
 export const AssetPricesOutput = z.object({
-  prices: z.record(z.number()),
+  prices: z.record(z.string(), z.number()),
 });
 
 export const PoolListOutput = z.object({
-  pools: z.array(z.record(z.unknown())),
+  pools: z.array(z.record(z.string(), z.unknown())),
   context_notes: z.array(z.string()).optional(),
 });
 
 export const PoolDetailOutput = z.object({
-  pool: z.record(z.unknown()),
-  apy_history: z.array(z.record(z.unknown())),
+  pool: z.record(z.string(), z.unknown()),
+  apy_history: z.array(z.record(z.string(), z.unknown())),
 });
 
-export const PointsWalletOutput = z.object({}).passthrough();
+export const PointsWalletOutput = z.object({}).loose();
 
 export const PointsLeaderboardOutput = z.object({
   total: z.number(),
   offset: z.number(),
   limit: z.number(),
-  leaderboard: z.array(z.record(z.unknown())),
+  leaderboard: z.array(z.record(z.string(), z.unknown())),
 });
 
 export const StrategyListOutput = z.object({
   total: z.number(),
   offset: z.number(),
   limit: z.number(),
-  strategies: z.array(z.record(z.unknown())),
+  strategies: z.array(z.record(z.string(), z.unknown())),
   context_notes: z.array(z.string()).optional(),
 });
 
-export const StrategyDetailOutput = z.object({}).passthrough();
+export const StrategyDetailOutput = z.object({}).loose();
 
-export const StrategyRecommendationOutput = z.object({}).passthrough();
+export const StrategyRecommendationOutput = z.object({}).loose();
 
 export const GuideOutput = z.object({
   topic: z.string(),
@@ -190,7 +184,7 @@ export const GuideOutput = z.object({
 });
 
 export const IntentsListOutput = z.object({
-  automations: z.array(z.record(z.unknown())),
+  automations: z.array(z.record(z.string(), z.unknown())),
   availability_error: z.string().optional(),
   shared_params: z.array(z.string()),
   usage: z.string(),
@@ -256,7 +250,7 @@ const AeroUpgradePlanOutput = z.object({
   ),
   opens_at: z.number().nullable(),
   price_tolerance_bps: z.number(),
-  items: z.array(z.record(z.unknown())),
+  items: z.array(z.record(z.string(), z.unknown())),
   managers_to_reconnect: z.array(ManagerToReconnect),
   old_managers_still_needed: z.boolean(),
   next_steps: z.array(z.string()),
@@ -268,7 +262,7 @@ export const AeroUpgradeOutput = AeroUpgradePlanOutput.partial().extend({
   description: z.string(),
   chain_id: z.number().optional(),
   max_gas_per_tx: z.number().optional(),
-  results: z.array(z.record(z.unknown())).optional(),
+  results: z.array(z.record(z.string(), z.unknown())).optional(),
   multisends: z.array(z.array(z.string())).optional(),
   next_steps: z.array(z.string()),
 });

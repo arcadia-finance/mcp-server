@@ -47,14 +47,14 @@ function setup(state: Partial<Record<string, unknown>> = {}, currentImpl?: () =>
       })),
   } as unknown as ArcadiaApiClient;
   registerAccountTools(mock.server, api, createMockChains());
-  return mock.getHandler("read.account.info");
+  return mock.getHandler("read_account_info");
 }
 
 function manager(over: Manager): Manager {
   return { protocol: "", enabled: true, deprecated: false, ...over };
 }
 
-describe("read.account.info automation", () => {
+describe("read_account_info automation", () => {
   beforeEach(() => {
     gasRelayerEnabled = false;
   });
@@ -186,7 +186,7 @@ describe("read.account.info automation", () => {
     );
 
     expect(data.context_notes.join(" ")).toContain("could not be confirmed on-chain");
-    expect(data.context_notes.join(" ")).toContain("read.asset_manager.current");
+    expect(data.context_notes.join(" ")).toContain("read_asset_manager_current");
   });
 
   it("reports gas_relayer separately, since no intent configures it", async () => {

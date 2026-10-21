@@ -1,6 +1,6 @@
 ---
 name: arcadia-finance
-version: 1.3.0
+version: 1.4.0
 description: "DeFi liquidity management on Uniswap and Aero, live on Base, Optimism, Unichain and Robinhood. Deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools."
 metadata:
   openclaw:

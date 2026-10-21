@@ -1,13 +1,13 @@
 import { expectArray } from "./shapes.js";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION } from "../../config/chains.js";
 import { PoolListOutput, PoolDetailOutput } from "../output-schemas.js";
 
 export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "read.pool.list",
+    "read_pool_list",
     {
       annotations: {
         title: "List Lending Pools",
@@ -17,10 +17,10 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
         openWorldHint: true,
       },
       description:
-        "List all Arcadia lending pools: TVL, utilization, available liquidity. Key fields: interest_rate = current borrow cost, lending_apy = lender yield. All rates are decimal fractions (1.0 = 100%, 0.06 = 6%). For APY history on a specific pool, use read.pool.info.",
-      inputSchema: {
+        "List all Arcadia lending pools: TVL, utilization, available liquidity. Key fields: interest_rate = current borrow cost, lending_apy = lender yield. All rates are decimal fractions (1.0 = 100%, 0.06 = 6%). For APY history on a specific pool, use read_pool_info.",
+      inputSchema: z.object({
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: PoolListOutput,
     },
     async ({ chain_id }) => {
@@ -56,7 +56,7 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
   );
 
   server.registerTool(
-    "read.pool.info",
+    "read_pool_info",
     {
       annotations: {
         title: "Get Pool Info",
@@ -66,12 +66,12 @@ export function registerPoolTools(server: McpServer, api: ArcadiaApiClient) {
         openWorldHint: true,
       },
       description:
-        "Get detailed info for a single lending pool including APY history over time. Useful for analyzing rate trends and comparing pools. Use read.pool.list to discover pool addresses.",
-      inputSchema: {
+        "Get detailed info for a single lending pool including APY history over time. Useful for analyzing rate trends and comparing pools. Use read_pool_list to discover pool addresses.",
+      inputSchema: z.object({
         pool_address: z.string().describe("Pool address"),
         days: z.number().default(14).describe("Number of days of APY history"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: PoolDetailOutput,
     },
     async ({ pool_address, days, chain_id }) => {

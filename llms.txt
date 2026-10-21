@@ -28,50 +28,50 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
 ### Read (19)
 
-- read.account.info: account overview with health factor, collateral, debt, positions, liquidation price, automation status
-- read.account.history: historical account value over time
-- read.account.pnl: PnL and yield data for an account
-- read.wallet.accounts: list all Arcadia accounts owned by a wallet
-- read.wallet.balances: ERC20 and native ETH balances for a wallet
-- read.wallet.allowances: check ERC20 token allowances for a spender
-- read.wallet.points: Arcadia points balance for a wallet
-- read.asset.list: supported collateral assets with addresses, types, decimals
-- read.asset.prices: USD prices for asset addresses
-- read.pool.list: all lending pools with TVL, APY, utilization, liquidity
-- read.pool.info: single pool detail with APY history
-- read.point_leaderboard: paginated points leaderboard
-- read.strategy.list: LP strategies with APY, underlyings, pool info
-- read.strategy.info: full detail for a specific LP strategy
-- read.strategy.recommendation: rebalancing recommendation for an account
-- read.guides: reference guides for automation, strategies, addresses
-- read.asset_manager.intents: automation intents and their params; pass account_address for live per-account availability
-- read.asset_manager.current: automations enabled on an account, with decoded per-manager config, mapped intents, Merkl state, and superseded managers
-- read.account.aero_upgrade: what a wallet's accounts (or one account) have to upgrade to Aero, per account status and counts, no calldata
+- read_account_info: account overview with health factor, collateral, debt, positions, liquidation price, automation status
+- read_account_history: historical account value over time
+- read_account_pnl: PnL and yield data for an account
+- read_wallet_accounts: list all Arcadia accounts owned by a wallet
+- read_wallet_balances: ERC20 and native ETH balances for a wallet
+- read_wallet_allowances: check ERC20 token allowances for a spender
+- read_wallet_points: Arcadia points balance for a wallet
+- read_asset_list: supported collateral assets with addresses, types, decimals
+- read_asset_prices: USD prices for asset addresses
+- read_pool_list: all lending pools with TVL, APY, utilization, liquidity
+- read_pool_info: single pool detail with APY history
+- read_point_leaderboard: paginated points leaderboard
+- read_strategy_list: LP strategies with APY, underlyings, pool info
+- read_strategy_info: full detail for a specific LP strategy
+- read_strategy_recommendation: rebalancing recommendation for an account
+- read_guides: reference guides for automation, strategies, addresses
+- read_asset_manager_intents: automation intents and their params; pass account_address for live per-account availability
+- read_asset_manager_current: automations enabled on an account, with decoded per-manager config, mapped intents, Merkl state, and superseded managers
+- read_account_aero_upgrade: what a wallet's accounts (or one account) have to upgrade to Aero, per account status and counts, no calldata
 
 ### Write (18)
 
-- write.wallet.approve: approve ERC20/ERC721 for spending
-- write.wallet.upgrade_velo: upgrade wallet VELO on Optimism to the new AERO on Base
-- write.pool.deposit: deposit the pool's underlying asset into an ERC-4626 tranche to earn lender yield
-- write.pool.redeem: burn tranche shares and redeem the underlying asset (lender exit)
-- write.account.create: create a new Arcadia account
-- write.account.deposit: deposit assets into an account
-- write.account.withdraw: withdraw assets from an account
-- write.account.borrow: borrow from a lending pool
-- write.account.repay: repay debt from wallet tokens
-- write.account.add_liquidity: flash-action that deposits, swaps, mints LP, and optionally leverages atomically
-- write.account.remove_liquidity: partially decrease LP position liquidity
-- write.account.swap: swap assets within an account
-- write.account.deleverage: repay debt by selling collateral
-- write.account.close: atomic close that burns LP, swaps, and repays in one tx
-- write.account.stake: stake, unstake, or claim LP rewards
-- write.account.aero_upgrade: upgrade an account to Aero in one flashAction: Slipstream positions move to Aero CL, old AERO becomes the new AERO; returns the plan and the transaction for the items that are ready
-- write.account.automations: configure automations from an intents array (complete desired state), returns the unsigned setAssetManagers tx
-- write.account.automations_delta: switch individual automations on or off, leaving the rest untouched
+- write_wallet_approve: approve ERC20/ERC721 for spending
+- write_wallet_upgrade_velo: upgrade wallet VELO on Optimism to the new AERO on Base
+- write_pool_deposit: deposit the pool's underlying asset into an ERC-4626 tranche to earn lender yield
+- write_pool_redeem: burn tranche shares and redeem the underlying asset (lender exit)
+- write_account_create: create a new Arcadia account
+- write_account_deposit: deposit assets into an account
+- write_account_withdraw: withdraw assets from an account
+- write_account_borrow: borrow from a lending pool
+- write_account_repay: repay debt from wallet tokens
+- write_account_add_liquidity: flash-action that deposits, swaps, mints LP, and optionally leverages atomically
+- write_account_remove_liquidity: partially decrease LP position liquidity
+- write_account_swap: swap assets within an account
+- write_account_deleverage: repay debt by selling collateral
+- write_account_close: atomic close that burns LP, swaps, and repays in one tx
+- write_account_stake: stake, unstake, or claim LP rewards
+- write_account_aero_upgrade: upgrade an account to Aero in one flashAction: Slipstream positions move to Aero CL, old AERO becomes the new AERO; returns the plan and the transaction for the items that are ready
+- write_account_automations: configure automations from an intents array (complete desired state), returns the unsigned setAssetManagers tx
+- write_account_automations_delta: switch individual automations on or off, leaving the rest untouched
 
 ### Dev (1)
 
-- dev.send: sign and broadcast using local private key (dev only)
+- dev_send: sign and broadcast using local private key (dev only)
 
 ## Links
 

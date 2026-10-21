@@ -3,7 +3,7 @@ import { createMockServer } from "../../test-utils.js";
 import { registerPoolTools } from "./pools.js";
 import { registerStrategyTools } from "./strategy.js";
 import { registerAssetTools } from "./assets.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 
 /**
@@ -33,9 +33,9 @@ function handler(
 
 const OBJECT_BODY = { values: { "1787011200": 1237.08 } };
 
-describe("read.pool.list wiring", () => {
+describe("read_pool_list wiring", () => {
   it("reports an error for an object body instead of an empty pool list", async () => {
-    const h = handler(registerPoolTools, "read.pool.list", {
+    const h = handler(registerPoolTools, "read_pool_list", {
       getPools: vi.fn(async () => OBJECT_BODY),
     });
     const result = await h({ chain_id: 8453 });
@@ -44,7 +44,7 @@ describe("read.pool.list wiring", () => {
 
   it("still passes a real array through", async () => {
     const pools = [{ address: "0x1", name: "wETH" }];
-    const h = handler(registerPoolTools, "read.pool.list", {
+    const h = handler(registerPoolTools, "read_pool_list", {
       getPools: vi.fn(async () => pools),
     });
     const result = await h({ chain_id: 8453 });
@@ -53,9 +53,9 @@ describe("read.pool.list wiring", () => {
   });
 });
 
-describe("read.strategy.list wiring (featured_only)", () => {
+describe("read_strategy_list wiring (featured_only)", () => {
   it("reports an error for an object body instead of an empty strategy list", async () => {
-    const h = handler(registerStrategyTools, "read.strategy.list", {
+    const h = handler(registerStrategyTools, "read_strategy_list", {
       getFeatured: vi.fn(async () => OBJECT_BODY),
     });
     const result = await h({ featured_only: true, chain_id: 8453, limit: 10, offset: 0 });
@@ -63,10 +63,10 @@ describe("read.strategy.list wiring (featured_only)", () => {
   });
 });
 
-describe("read.asset.list wiring", () => {
+describe("read_asset_list wiring", () => {
   it("accepts the wrapped shape the endpoint actually returns", async () => {
     // /assets answers { assets: [...] }, so this must NOT be treated as junk.
-    const h = handler(registerAssetTools, "read.asset.list", {
+    const h = handler(registerAssetTools, "read_asset_list", {
       getAssets: vi.fn(async () => ({
         assets: [{ address: "0x1", name: "USDG", decimals: 6, standard: "ERC20" }],
       })),
@@ -77,7 +77,7 @@ describe("read.asset.list wiring", () => {
   });
 
   it("reports an error for a body that is neither an array nor a known wrapper", async () => {
-    const h = handler(registerAssetTools, "read.asset.list", {
+    const h = handler(registerAssetTools, "read_asset_list", {
       getAssets: vi.fn(async () => ({ unexpected: "shape" })),
     });
     const result = await h({ chain_id: 4663 });
@@ -85,7 +85,7 @@ describe("read.asset.list wiring", () => {
   });
 
   it("treats a present-but-empty wrapper as an empty answer", async () => {
-    const h = handler(registerAssetTools, "read.asset.list", {
+    const h = handler(registerAssetTools, "read_asset_list", {
       getAssets: vi.fn(async () => ({ assets: [] })),
     });
     const result = await h({ chain_id: 4663 });

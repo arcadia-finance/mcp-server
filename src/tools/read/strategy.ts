@@ -1,6 +1,6 @@
 import { expectArray } from "./shapes.js";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION } from "../../config/chains.js";
 import {
@@ -11,7 +11,7 @@ import {
 
 export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "read.strategy.list",
+    "read_strategy_list",
     {
       annotations: {
         title: "Get Strategies",
@@ -21,8 +21,8 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
         openWorldHint: true,
       },
       description:
-        "Get Arcadia LP strategies. Use featured_only=true for curated top strategies (recommended first call). Returns a paginated list with 7d avg APY for each strategy's default range. Increase limit or use offset for pagination. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%). For full detail on a specific strategy (APY per range width), use read.strategy.info.",
-      inputSchema: {
+        "Get Arcadia LP strategies. Use featured_only=true for curated top strategies (recommended first call). Returns a paginated list with 7d avg APY for each strategy's default range. Increase limit or use offset for pagination. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%). For full detail on a specific strategy (APY per range width), use read_strategy_info.",
+      inputSchema: z.object({
         featured_only: z
           .boolean()
           .default(false)
@@ -30,7 +30,7 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
         limit: z.number().default(25).describe("Max strategies to return (default 25)"),
         offset: z.number().default(0).describe("Skip first N strategies for pagination"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: StrategyListOutput,
     },
     async ({ featured_only, limit, offset, chain_id }) => {
@@ -122,7 +122,7 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
   );
 
   server.registerTool(
-    "read.strategy.info",
+    "read_strategy_info",
     {
       annotations: {
         title: "Get Strategy Info",
@@ -132,11 +132,11 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
         openWorldHint: true,
       },
       description:
-        "Get full detail for a specific LP strategy by ID — includes APY per range width (narrower range = higher APY but more rebalancing cost/risk), pool info, and configuration. Use read.strategy.list to discover strategy IDs. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%).",
-      inputSchema: {
+        "Get full detail for a specific LP strategy by ID: includes APY per range width (narrower range = higher APY but more rebalancing cost/risk), pool info, and configuration. Use read_strategy_list to discover strategy IDs. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%).",
+      inputSchema: z.object({
         strategy_id: z.number().describe("Strategy ID"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: StrategyDetailOutput,
     },
     async ({ strategy_id, chain_id }) => {
@@ -161,7 +161,7 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
   );
 
   server.registerTool(
-    "read.strategy.recommendation",
+    "read_strategy_recommendation",
     {
       annotations: {
         title: "Get Recommendation",
@@ -171,11 +171,11 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
         openWorldHint: true,
       },
       description:
-        "Get a rebalancing recommendation for an Arcadia account — suggests asset changes to optimize yield. Uses 1d APY (not 7d like read.strategy.list), so recommended strategies may differ from the list ranking. APY values are decimal fractions (0.05 = 5%). weekly_earning_difference is in USD.",
-      inputSchema: {
+        "Get a rebalancing recommendation for an Arcadia account: suggests asset changes to optimize yield. Uses 1d APY (not 7d like read_strategy_list), so recommended strategies may differ from the list ranking. APY values are decimal fractions (0.05 = 5%). weekly_earning_difference is in USD.",
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: StrategyRecommendationOutput,
     },
     async ({ account_address, chain_id }) => {

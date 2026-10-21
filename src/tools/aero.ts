@@ -111,19 +111,19 @@ export function upgradeNextSteps(
   choicesPending: boolean,
 ): string[] {
   const steps = [
-    `After the transaction confirms, call read.account.info for ${accountAddress}: every moved position now shows dex_protocol metadexcl_v1 (or staked_metadexcl_v1) with a new position id, and old AERO shows as the new AERO.`,
+    `After the transaction confirms, call read_account_info for ${accountAddress}: every moved position now shows dex_protocol metadexcl_v1 (or staked_metadexcl_v1) with a new position id, and old AERO shows as the new AERO.`,
   ];
   if (choicesPending) {
     steps.push(
-      `Only then call write.account.aero_upgrade again for ${accountAddress} with the user's picks in choices for the items whose status is choose.`,
+      `Only then call write_account_aero_upgrade again for ${accountAddress} with the user's picks in choices for the items whose status is choose.`,
     );
   }
   if (managers.length > 0) {
     const kinds = [...new Set(managers.map((m) => m.kind))].join(", ");
     steps.push(
-      `Reconnect automations (${kinds}): call write.account.automations (mode save) with ${accountAddress}, the new Aero position_id and the intents read from read.asset_manager.current before the move. Omit protocol so the backend resolves metadexcl_v1 from the position.` +
+      `Reconnect automations (${kinds}): call write_account_automations (mode save) with ${accountAddress}, the new Aero position_id and the intents read from read_asset_manager_current before the move. Omit protocol so the backend resolves metadexcl_v1 from the position.` +
         (oldManagersStillNeeded
-          ? " A Slipstream position stays on this account, so keep its old managers: use write.account.automations_delta (enable) for the Aero position instead of a save that disables them."
+          ? " A Slipstream position stays on this account, so keep its old managers: use write_account_automations_delta (enable) for the Aero position instead of a save that disables them."
           : " The save disables the old Slipstream managers in the same transaction."),
     );
   }

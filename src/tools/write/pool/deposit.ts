@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { trancheAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
@@ -9,7 +9,7 @@ import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 export function registerPoolDepositTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "write.pool.deposit",
+    "write_pool_deposit",
     {
       annotations: {
         title: "Build Pool Deposit Transaction",
@@ -20,12 +20,12 @@ export function registerPoolDepositTool(server: McpServer, _chains: Record<Chain
       },
       outputSchema: SimpleTransactionOutput,
       description:
-        "Build an unsigned deposit transaction into an Arcadia lending tranche (ERC-4626). Lenders deposit the pool's underlying asset (USDC/WETH/cbBTC) and receive tranche shares that accrue interest from borrowers. Requires prior ERC-20 approval to the tranche (see write.wallet.approve). To check current lender yield, call read.pool.list or read.pool.info.",
-      inputSchema: {
+        "Build an unsigned deposit transaction into an Arcadia lending tranche (ERC-4626). Lenders deposit the pool's underlying asset (USDC/WETH/cbBTC) and receive tranche shares that accrue interest from borrowers. Requires prior ERC-20 approval to the tranche (see write_wallet_approve). To check current lender yield, call read_pool_list or read_pool_info.",
+      inputSchema: z.object({
         tranche_address: z
           .string()
           .describe(
-            "Tranche contract address (ERC-4626 vault). Get this from read.pool.list — each pool's `tranches[0].address`.",
+            "Tranche contract address (ERC-4626 vault). Get this from read_pool_list: each pool's `tranches[0].address`.",
           ),
         assets: z
           .string()
@@ -38,7 +38,7 @@ export function registerPoolDepositTool(server: McpServer, _chains: Record<Chain
             "Address that receives the minted tranche shares. Usually the depositor's own wallet.",
           ),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async (params) => {
       try {

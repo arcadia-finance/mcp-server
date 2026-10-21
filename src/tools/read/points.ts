@@ -1,11 +1,11 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { PointsLeaderboardOutput } from "../output-schemas.js";
 
 export function registerPointsTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "read.point_leaderboard",
+    "read_point_leaderboard",
     {
       annotations: {
         title: "Get Points Leaderboard",
@@ -15,11 +15,11 @@ export function registerPointsTools(server: McpServer, api: ArcadiaApiClient) {
         openWorldHint: true,
       },
       description:
-        "Get the Arcadia points leaderboard (paginated). For a specific wallet's points balance, use read.wallet.points.",
-      inputSchema: {
+        "Get the Arcadia points leaderboard (paginated). For a specific wallet's points balance, use read_wallet_points.",
+      inputSchema: z.object({
         limit: z.number().default(25).describe("Max leaderboard entries to return (default 25)"),
         offset: z.number().default(0).describe("Skip first N leaderboard entries for pagination"),
-      },
+      }),
       outputSchema: PointsLeaderboardOutput,
     },
     async ({ limit, offset }) => {

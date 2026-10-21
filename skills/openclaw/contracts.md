@@ -30,7 +30,7 @@ Protocol availability per chain:
 - **Unichain**: Slipstream V1, Uniswap V3, V4 (no V2/V3, no CoW Swap)
 - **Robinhood**: Uniswap V3, V4 and Aero CL (spot only) (no Slipstream V1-V3, no Aerodrome V1, no CoW Swap). Lending pools are WETH and USDG, there is no USDC on this chain.
 
-Use `read.asset_manager.intents` to discover available automations and their addresses per chain.
+Use `read_asset_manager_intents` to discover available automations and their addresses per chain.
 
 ## Chain-Specific Tokens
 

@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { expectArrayOrWrapped } from "./shapes.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION } from "../../config/chains.js";
 import { AssetListOutput, AssetPricesOutput } from "../output-schemas.js";
 
 export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "read.asset.list",
+    "read_asset_list",
     {
       annotations: {
         title: "List Supported Assets",
@@ -17,14 +17,14 @@ export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
         openWorldHint: true,
       },
       description:
-        "List supported collateral assets on Arcadia. Returns compact list (address, symbol, decimals, type). Use search to filter by symbol substring. For USD prices, use read.asset.prices.",
-      inputSchema: {
+        "List supported collateral assets on Arcadia. Returns compact list (address, symbol, decimals, type). Use search to filter by symbol substring. For USD prices, use read_asset_prices.",
+      inputSchema: z.object({
         search: z
           .string()
           .optional()
           .describe("Filter assets by symbol (case-insensitive substring match)"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: AssetListOutput,
     },
     async ({ search, chain_id }) => {
@@ -61,7 +61,7 @@ export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
   );
 
   server.registerTool(
-    "read.asset.prices",
+    "read_asset_prices",
     {
       annotations: {
         title: "Get Asset Prices",
@@ -72,12 +72,12 @@ export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
       },
       description:
         "Get USD prices for one or more asset addresses. Pass a single address or comma-separated addresses. Returns a price map keyed by address.",
-      inputSchema: {
+      inputSchema: z.object({
         asset_addresses: z
           .string()
           .describe("Single address or comma-separated addresses for price lookup"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
       outputSchema: AssetPricesOutput,
     },
     async ({ asset_addresses, chain_id }) => {

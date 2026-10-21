@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { getPublicClient } from "../../../clients/chain.js";
@@ -14,7 +14,7 @@ export function registerCloseTool(
   chains: Record<ChainId, ChainConfig>,
 ) {
   server.registerTool(
-    "write.account.close",
+    "write_account_close",
     {
       annotations: {
         title: "Build Close Position Transaction",
@@ -24,16 +24,16 @@ export function registerCloseTool(
         openWorldHint: true,
       },
       outputSchema: BatchedTransactionOutput,
-      description: `Atomic flash-action that closes an Arcadia account position in ONE transaction. Combines up to 3 steps atomically: [burn LP position] + [swap all tokens to a single target asset] + [repay debt]. Tokens remain in the account after closing — use write.account.withdraw to send them to your wallet.
+      description: `Atomic flash-action that closes an Arcadia account position in ONE transaction. Combines up to 3 steps atomically: [burn LP position] + [swap all tokens to a single target asset] + [repay debt]. Tokens remain in the account after closing: use write_account_withdraw to send them to your wallet.
 
-ALWAYS try this tool first when closing/exiting a position. Only fall back to individual tools (write.account.remove_liquidity, write.account.swap, write.account.deleverage, write.account.withdraw) if this tool fails.
+ALWAYS try this tool first when closing/exiting a position. Only fall back to individual tools (write_account_remove_liquidity, write_account_swap, write_account_deleverage, write_account_withdraw) if this tool fails.
 
 Supports two modes:
 - close_lp_only=true: Burns LP and leaves underlying tokens in the account. Use as step 1 if the full close fails, then call again with close_lp_only=false to swap+repay the remaining tokens.
-- close_lp_only=false (default): Full atomic close — burns LP, swaps everything to receive_assets, repays debt. Remaining tokens stay in the account. Follow up with write.account.withdraw to send to wallet. Supports multiple receive assets with custom distribution.
+- close_lp_only=false (default): Full atomic close: burns LP, swaps everything to receive_assets, repays debt. Remaining tokens stay in the account. Follow up with write_account_withdraw to send to wallet. Supports multiple receive assets with custom distribution.
 
 The returned calldata is time-sensitive — sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation.`,
-      inputSchema: {
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         assets: z
           .array(
@@ -45,7 +45,7 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
             }),
           )
           .describe(
-            "Assets to close/sell from the account. IMPORTANT: For LP positions (NFTs), always use amount='1' and decimals=1 — do NOT pass the liquidity amount. asset_address = position manager, asset_id = NFT token ID. For ERC20 tokens: asset_id = 0, amount = full balance in raw units, decimals = real token decimals. Get all values from read.account.info.",
+            "Assets to close/sell from the account. IMPORTANT: For LP positions (NFTs), always use amount='1' and decimals=1: do NOT pass the liquidity amount. asset_address = position manager, asset_id = NFT token ID. For ERC20 tokens: asset_id = 0, amount = full balance in raw units, decimals = real token decimals. Get all values from read_account_info.",
           ),
         receive_assets: z
           .array(
@@ -73,7 +73,7 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
           ),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async ({ account_address, assets, receive_assets, close_lp_only, slippage, chain_id }) => {
       try {
@@ -256,7 +256,7 @@ The returned calldata is time-sensitive — sign and broadcast within 30 seconds
         const msg = err instanceof Error ? err.message : String(err);
         const hint =
           msg.includes("500") || msg.includes("Web3")
-            ? " This usually means the position (asset_id) does not exist in the account. Verify with read.account.info first."
+            ? " This usually means the position (asset_id) does not exist in the account. Verify with read_account_info first."
             : "";
         return {
           content: [{ type: "text" as const, text: `Error: ${msg}${hint}` }],

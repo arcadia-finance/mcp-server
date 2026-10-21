@@ -101,22 +101,22 @@ function apiError(status: number, body: Record<string, unknown>) {
 function readTool(api: Record<string, unknown>) {
   const mock = createMockServer();
   registerAeroUpgradeReadTool(mock.server, api as never);
-  return mock.getHandler("read.account.aero_upgrade");
+  return mock.getHandler("read_account_aero_upgrade");
 }
 
 function writeTool(api: Record<string, unknown>) {
   const mock = createMockServer();
   registerAeroUpgradeTool(mock.server, api as never);
-  return mock.getHandler("write.account.aero_upgrade");
+  return mock.getHandler("write_account_aero_upgrade");
 }
 
 function veloTool(api: Record<string, unknown>) {
   const mock = createMockServer();
   registerUpgradeVeloTool(mock.server, api as never);
-  return mock.getHandler("write.wallet.upgrade_velo");
+  return mock.getHandler("write_wallet_upgrade_velo");
 }
 
-describe("read.account.aero_upgrade", () => {
+describe("read_account_aero_upgrade", () => {
   const candidates = {
     chain_id: 8453,
     owner_address: TEST_ADDRESS,
@@ -209,7 +209,7 @@ describe("read.account.aero_upgrade", () => {
   });
 });
 
-describe("write.account.aero_upgrade: one account", () => {
+describe("write_account_aero_upgrade: one account", () => {
   it("returns the plan with the flashAction as an unsigned transaction and the ERC-8021 suffix", async () => {
     const api = { getAeroUpgradePlan: vi.fn(async () => plan()) };
     const result = await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 });
@@ -236,8 +236,8 @@ describe("write.account.aero_upgrade: one account", () => {
     expect(data.managers_to_reconnect).toEqual(managers);
     expect(data.old_managers_still_needed).toBe(false);
     expect(data.description).toContain("1 of 1 item ready");
-    expect(data.next_steps.join(" ")).toContain("write.account.automations");
-    expect(data.next_steps.join(" ")).toContain("read.account.info");
+    expect(data.next_steps.join(" ")).toContain("write_account_automations");
+    expect(data.next_steps.join(" ")).toContain("read_account_info");
     expect(data.next_steps.join(" ")).not.toContain("automations_delta");
   });
 
@@ -568,7 +568,7 @@ describe("write.account.aero_upgrade: one account", () => {
   });
 });
 
-describe("write.account.aero_upgrade: several accounts", () => {
+describe("write_account_aero_upgrade: several accounts", () => {
   it("returns one plan per account, keeps error slots, and drops the transaction of a failed simulation", async () => {
     const api = {
       postAeroUpgradeBatch: vi.fn(async () => ({
@@ -660,7 +660,7 @@ describe("write.account.aero_upgrade: several accounts", () => {
   });
 });
 
-describe("write.wallet.upgrade_velo", () => {
+describe("write_wallet_upgrade_velo", () => {
   it("refuses an amount above the wallet balance, since the deposit would revert", async () => {
     const api = {
       getUpgradeVeloCalldata: vi.fn(async () => ({

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import type { AutomationsPlanResponse } from "../../../types/api.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
@@ -23,7 +23,7 @@ const INTENT_REFERENCE = [
 ].join("\n");
 
 const CONTEXT_NOTE =
-  "Pass position_id (from assets[] in read.account.info) and the backend fills in protocol, is_staked, token0, token1 and reward_tokens for you; anything you pass explicitly wins. claim_merkl needs no position context.";
+  "Pass position_id (from assets[] in read_account_info) and the backend fills in protocol, is_staked, token0, token1 and reward_tokens for you; anything you pass explicitly wins. claim_merkl needs no position context.";
 
 const RULES_NOTE = [
   "Rules the backend enforces (a violation is returned as an error, never written on-chain):",
@@ -157,7 +157,7 @@ function errorResult(err: unknown) {
 
 export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "write.account.automations",
+    "write_account_automations",
     {
       annotations: {
         title: "Configure Account Automations",
@@ -170,7 +170,7 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
         "Configure an account's automations from a list of intents and return the unsigned setAssetManagers transaction. " +
         "The backend resolves which asset managers each intent needs, validates that the combination is compatible, encodes the metadata and builds the calldata, so you describe the desired outcome rather than the contracts.\n\n" +
         "With mode 'save' (the default) the intents array is the complete desired state: the backend diffs it against what is currently enabled, so any automation you leave out is DISABLED by the returned transaction. Pass a single intent with enabled: false to turn everything off.\n\n" +
-        "Mode 'preview' validates and resolves the intents WITHOUT reading chain state and returns no transaction, because its calldata carries no disable entries and would only partially apply the state. Use it to check a combination is legal or to show a plan; use 'save' to get something signable. To toggle one automation without restating the rest, use write.account.automations_delta.\n\n" +
+        "Mode 'preview' validates and resolves the intents WITHOUT reading chain state and returns no transaction, because its calldata carries no disable entries and would only partially apply the state. Use it to check a combination is legal or to show a plan; use 'save' to get something signable. To toggle one automation without restating the rest, use write_account_automations_delta.\n\n" +
         INTENT_REFERENCE +
         "\n\n" +
         CONTEXT_NOTE +
@@ -178,9 +178,9 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
         RULES_NOTE +
         "\n\nReturns { valid, errors, warnings, human_summary, plan, diff, transaction }. When a compatibility rule fires the call returns an error and no transaction: read errors[].reason, adjust the intents and retry. " +
         "There is deliberately no transaction when the account already matches the request (no_changes_needed), when the Tenderly simulation predicts a revert (an error), or in preview mode (preview_only). " +
-        "Call read.asset_manager.intents first to see which intents this account can enable.",
+        "Call read_asset_manager_intents first to see which intents this account can enable.",
       outputSchema: AutomationsPlanOutput,
-      inputSchema: {
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         intents: z
           .array(AUTOMATION_INTENT)
@@ -196,7 +196,7 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
           ),
         ...POSITION_CONTEXT_SCHEMA,
         chain_id: CHAIN_ID_SCHEMA,
-      },
+      }),
     },
     async (params) => {
       try {
@@ -224,7 +224,7 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
   );
 
   server.registerTool(
-    "write.account.automations_delta",
+    "write_account_automations_delta",
     {
       annotations: {
         title: "Change Account Automations (Delta)",
@@ -235,15 +235,15 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
       },
       description:
         "Apply an explicit change to an account's automations and return the unsigned setAssetManagers transaction. " +
-        "Unlike write.account.automations this is a delta, not a full desired state: automations you do not mention are left untouched. Use it to switch one automation on or off without restating the others.\n\n" +
-        "The enable array takes intents to switch on (same shapes as write.account.automations). To turn an automation OFF, call read.asset_manager.current, take the address of the manager serving it, and pass that address in the disable array: an intent with enabled: false in `enable` is rejected because the backend would ignore it. Superseded or unreadable managers still set on the account are force-disabled in the same transaction regardless.\n\n" +
+        "Unlike write_account_automations this is a delta, not a full desired state: automations you do not mention are left untouched. Use it to switch one automation on or off without restating the others.\n\n" +
+        "The enable array takes intents to switch on (same shapes as write_account_automations). To turn an automation OFF, call read_asset_manager_current, take the address of the manager serving it, and pass that address in the disable array: an intent with enabled: false in `enable` is rejected because the backend would ignore it. Superseded or unreadable managers still set on the account are force-disabled in the same transaction regardless.\n\n" +
         INTENT_REFERENCE +
         "\n\n" +
         CONTEXT_NOTE +
         "\n\n" +
         RULES_NOTE,
       outputSchema: AutomationsPlanOutput,
-      inputSchema: {
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         enable: z
           .array(AUTOMATION_INTENT)
@@ -255,11 +255,11 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
           .array(z.string())
           .default([])
           .describe(
-            "Asset-manager addresses to switch off, as returned by read.asset_manager.current.",
+            "Asset-manager addresses to switch off, as returned by read_asset_manager_current.",
           ),
         ...POSITION_CONTEXT_SCHEMA,
         chain_id: CHAIN_ID_SCHEMA,
-      },
+      }),
     },
     async (params) => {
       try {
@@ -278,8 +278,8 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
           const kinds = disabledEntries.map((i) => i.kind).join(", ");
           throw new Error(
             `enable[] cannot carry enabled: false (got ${kinds}); it would be ignored and change nothing. ` +
-              `To turn an automation off, call read.asset_manager.current, take the address of the manager serving it, ` +
-              `and pass that address in \`disable\`. Alternatively call write.account.automations with the full set of intents you want kept.`,
+              `To turn an automation off, call read_asset_manager_current, take the address of the manager serving it, ` +
+              `and pass that address in \`disable\`. Alternatively call write_account_automations with the full set of intents you want kept.`,
           );
         }
 

@@ -68,7 +68,7 @@
         },
         {
           "name": "RATE_LIMIT_RPM",
-          "description": "Max requests per minute per session (default 60). Only used when TRANSPORT=http.",
+          "description": "Max requests per minute per client IP (default 600). Only used when TRANSPORT=http.",
           "isRequired": false,
           "isSecret": false
         }

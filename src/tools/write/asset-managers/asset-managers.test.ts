@@ -79,10 +79,10 @@ function setup(apiOverrides: Record<string, unknown> = {}) {
   return { mock, api: api as unknown as Record<string, ReturnType<typeof vi.fn>> };
 }
 
-describe("write.account.automations", () => {
+describe("write_account_automations", () => {
   it("sends the intents to /save and returns the unsigned transaction", async () => {
     const { mock, api } = setup();
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees", enabled: true }],
       mode: "save",
@@ -111,7 +111,7 @@ describe("write.account.automations", () => {
     // omitted automations enabled. It must not come back as a transaction.
     const { mock, api } = setup();
     const parsed = parseToolResponse(
-      await mock.getHandler("write.account.automations")({
+      await mock.getHandler("write_account_automations")({
         account_address: TEST_ACCOUNT,
         intents: [{ kind: "claim_merkl" }],
         mode: "preview",
@@ -134,7 +134,7 @@ describe("write.account.automations", () => {
       previewAutomations: vi.fn(async () => planResponse({ plan: [], calldata: null })),
     });
 
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees", enabled: false }],
       mode: "preview",
@@ -153,7 +153,7 @@ describe("write.account.automations", () => {
       saveAutomations: vi.fn(async () => planResponse({ calldata: null })),
     });
 
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -176,7 +176,7 @@ describe("write.account.automations", () => {
       ),
     });
 
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees", tokens: ["token0"] }],
       mode: "preview",
@@ -190,7 +190,7 @@ describe("write.account.automations", () => {
   it("appends the ERC-8021 attribution suffix to the backend calldata", async () => {
     const { mock } = setup();
     const parsed = parseToolResponse(
-      await mock.getHandler("write.account.automations")({
+      await mock.getHandler("write_account_automations")({
         account_address: TEST_ACCOUNT,
         intents: [{ kind: "compound_fees" }],
         mode: "save",
@@ -206,7 +206,7 @@ describe("write.account.automations", () => {
 
   it("translates a staked dex_protocol into protocol + is_staked", async () => {
     const { mock, api } = setup();
-    await mock.getHandler("write.account.automations")({
+    await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -223,7 +223,7 @@ describe("write.account.automations", () => {
 
   it("translates staked_metadexcl_v1 into metadexcl_v1 + is_staked true", async () => {
     const { mock, api } = setup();
-    await mock.getHandler("write.account.automations")({
+    await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -240,7 +240,7 @@ describe("write.account.automations", () => {
 
   it("posts metadexcl_v1 with is_staked false", async () => {
     const { mock, api } = setup();
-    await mock.getHandler("write.account.automations")({
+    await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -257,7 +257,7 @@ describe("write.account.automations", () => {
 
   it("lets an explicit is_staked override the protocol spelling", async () => {
     const { mock, api } = setup();
-    await mock.getHandler("write.account.automations")({
+    await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -273,7 +273,7 @@ describe("write.account.automations", () => {
 
   it("passes canonical protocol names through untouched", async () => {
     const { mock, api } = setup();
-    await mock.getHandler("write.account.automations")({
+    await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -288,7 +288,7 @@ describe("write.account.automations", () => {
 
   it("omits position-context fields that were not supplied", async () => {
     const { mock, api } = setup();
-    await mock.getHandler("write.account.automations")({
+    await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "claim_merkl" }],
       mode: "save",
@@ -316,7 +316,7 @@ describe("write.account.automations", () => {
       ),
     });
 
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [
         {
@@ -338,7 +338,7 @@ describe("write.account.automations", () => {
       saveAutomations: vi.fn(async () => planResponse({ calldata: null })),
     });
 
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -357,7 +357,7 @@ describe("write.account.automations", () => {
     });
 
     const parsed = parseToolResponse(
-      await mock.getHandler("write.account.automations")({
+      await mock.getHandler("write_account_automations")({
         account_address: TEST_ACCOUNT,
         intents: [{ kind: "compound_fees" }],
         mode: "save",
@@ -380,7 +380,7 @@ describe("write.account.automations", () => {
       ),
     });
 
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -400,7 +400,7 @@ describe("write.account.automations", () => {
     });
 
     const parsed = parseToolResponse(
-      await mock.getHandler("write.account.automations")({
+      await mock.getHandler("write_account_automations")({
         account_address: TEST_ACCOUNT,
         intents: [{ kind: "compound_fees" }],
         mode: "save",
@@ -421,7 +421,7 @@ describe("write.account.automations", () => {
     });
 
     const parsed = parseToolResponse(
-      await mock.getHandler("write.account.automations")({
+      await mock.getHandler("write_account_automations")({
         account_address: TEST_ACCOUNT,
         intents: [{ kind: "compound_fees" }],
         mode: "save",
@@ -443,7 +443,7 @@ describe("write.account.automations", () => {
     });
 
     const parsed = parseToolResponse(
-      await mock.getHandler("write.account.automations")({
+      await mock.getHandler("write_account_automations")({
         account_address: TEST_ACCOUNT,
         intents: [{ kind: "compound_fees" }],
         mode: "save",
@@ -457,7 +457,7 @@ describe("write.account.automations", () => {
 
   it("rejects an invalid account address before calling the API", async () => {
     const { mock, api } = setup();
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: "not-an-address",
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -470,7 +470,7 @@ describe("write.account.automations", () => {
 
   it("rejects an unsupported chain", async () => {
     const { mock, api } = setup();
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -488,7 +488,7 @@ describe("write.account.automations", () => {
       }),
     });
 
-    const result = await mock.getHandler("write.account.automations")({
+    const result = await mock.getHandler("write_account_automations")({
       account_address: TEST_ACCOUNT,
       intents: [{ kind: "compound_fees" }],
       mode: "save",
@@ -500,10 +500,10 @@ describe("write.account.automations", () => {
   });
 });
 
-describe("write.account.automations_delta", () => {
+describe("write_account_automations_delta", () => {
   it("forwards enable + disable to /apply", async () => {
     const { mock, api } = setup();
-    const result = await mock.getHandler("write.account.automations_delta")({
+    const result = await mock.getHandler("write_account_automations_delta")({
       account_address: TEST_ACCOUNT,
       enable: [{ kind: "rebalance" }],
       disable: [REBALANCER],
@@ -519,7 +519,7 @@ describe("write.account.automations_delta", () => {
 
   it("allows a disable-only delta", async () => {
     const { mock, api } = setup();
-    const result = await mock.getHandler("write.account.automations_delta")({
+    const result = await mock.getHandler("write_account_automations_delta")({
       account_address: TEST_ACCOUNT,
       enable: [],
       disable: [COMPOUNDER],
@@ -534,7 +534,7 @@ describe("write.account.automations_delta", () => {
 
   it("errors when neither enable nor disable is supplied", async () => {
     const { mock, api } = setup();
-    const result = await mock.getHandler("write.account.automations_delta")({
+    const result = await mock.getHandler("write_account_automations_delta")({
       account_address: TEST_ACCOUNT,
       enable: [],
       disable: [],
@@ -548,7 +548,7 @@ describe("write.account.automations_delta", () => {
   it("rejects an enabled:false entry in enable[] instead of silently doing nothing", async () => {
     // The backend resolves only enabled intents, so such an entry would be dropped.
     const { mock, api } = setup();
-    const result = await mock.getHandler("write.account.automations_delta")({
+    const result = await mock.getHandler("write_account_automations_delta")({
       account_address: TEST_ACCOUNT,
       enable: [{ kind: "compound_fees", enabled: false }],
       disable: [],
@@ -563,7 +563,7 @@ describe("write.account.automations_delta", () => {
 
   it("rejects a malformed disable address", async () => {
     const { mock, api } = setup();
-    const result = await mock.getHandler("write.account.automations_delta")({
+    const result = await mock.getHandler("write_account_automations_delta")({
       account_address: TEST_ACCOUNT,
       enable: [],
       disable: ["0xnope"],
@@ -575,11 +575,11 @@ describe("write.account.automations_delta", () => {
   });
 });
 
-describe("read.asset_manager.intents", () => {
+describe("read_asset_manager_intents", () => {
   it("returns the catalog without an account and does not call the API", async () => {
     const { mock, api } = setup();
     const parsed = parseToolResponse(
-      await mock.getHandler("read.asset_manager.intents")({ chain_id: 8453 }),
+      await mock.getHandler("read_asset_manager_intents")({ chain_id: 8453 }),
     );
 
     expect(parsed.automations.map((a: { kind: string }) => a.kind)).toEqual([
@@ -596,7 +596,7 @@ describe("read.asset_manager.intents", () => {
   it("merges live availability when an account is supplied", async () => {
     const { mock, api } = setup();
     const parsed = parseToolResponse(
-      await mock.getHandler("read.asset_manager.intents")({
+      await mock.getHandler("read_asset_manager_intents")({
         account_address: TEST_ACCOUNT,
         position_id: 7,
         chain_id: 8453,
@@ -620,7 +620,7 @@ describe("read.asset_manager.intents", () => {
     });
 
     const parsed = parseToolResponse(
-      await mock.getHandler("read.asset_manager.intents")({
+      await mock.getHandler("read_asset_manager_intents")({
         account_address: TEST_ACCOUNT,
         chain_id: 8453,
       }),
@@ -636,7 +636,7 @@ describe("read.asset_manager.intents", () => {
 
   it("rejects position_id without an account", async () => {
     const { mock } = setup();
-    const result = await mock.getHandler("read.asset_manager.intents")({
+    const result = await mock.getHandler("read_asset_manager_intents")({
       position_id: 7,
       chain_id: 8453,
     });
@@ -646,7 +646,7 @@ describe("read.asset_manager.intents", () => {
   });
 });
 
-describe("read.asset_manager.current", () => {
+describe("read_asset_manager_current", () => {
   it("splits current managers from superseded ones", async () => {
     const { mock } = setup({
       getCurrentAutomations: vi.fn(async () => ({
@@ -678,7 +678,7 @@ describe("read.asset_manager.current", () => {
     });
 
     const parsed = parseToolResponse(
-      await mock.getHandler("read.asset_manager.current")({
+      await mock.getHandler("read_asset_manager_current")({
         account_address: TEST_ACCOUNT,
         chain_id: 8453,
       }),
@@ -706,7 +706,7 @@ describe("read.asset_manager.current", () => {
     });
 
     const parsed = parseToolResponse(
-      await mock.getHandler("read.asset_manager.current")({
+      await mock.getHandler("read_asset_manager_current")({
         account_address: TEST_ACCOUNT,
         chain_id: 8453,
       }),
