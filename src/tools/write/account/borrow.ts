@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { poolAbi } from "../../../abis/index.js";
@@ -14,7 +14,7 @@ export function registerBorrowTool(
   api: ArcadiaApiClient,
 ) {
   server.registerTool(
-    "write.account.borrow",
+    "write_account_borrow",
     {
       annotations: {
         title: "Build Borrow Transaction",
@@ -25,8 +25,8 @@ export function registerBorrowTool(
       },
       outputSchema: SimpleTransactionOutput,
       description:
-        "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral. NOT needed for leveraged LP — write.account.add_liquidity handles borrowing internally when leverage > 0. Only works with margin accounts (created with a creditor/lending pool). Spot accounts (no creditor) cannot borrow — the tool will validate this and reject. Before borrowing, verify the account has positive free margin via read.account.info: collateral_value must exceed used_margin.",
-      inputSchema: {
+        "Build an unsigned transaction to borrow from an Arcadia lending pool against account collateral. NOT needed for leveraged LP: write_account_add_liquidity handles borrowing internally when leverage > 0. Only works with margin accounts (created with a creditor/lending pool). Spot accounts (no creditor) cannot borrow: the tool will validate this and reject. Before borrowing, verify the account has positive free margin via read_account_info: collateral_value must exceed used_margin.",
+      inputSchema: z.object({
         pool_address: z
           .string()
           .describe(
@@ -36,7 +36,7 @@ export function registerBorrowTool(
         amount: z.string().describe("Amount in raw units"),
         to: z.string().describe("Address to receive borrowed tokens"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async (params) => {
       try {
@@ -55,7 +55,7 @@ export function registerBorrowTool(
             content: [
               {
                 type: "text" as const,
-                text: "Error: This account has no creditor (spot account) and cannot borrow. Create a margin account with a creditor (lending pool) using write.account.create.",
+                text: "Error: This account has no creditor (spot account) and cannot borrow. Create a margin account with a creditor (lending pool) using write_account_create.",
               },
             ],
             isError: true,

@@ -81,7 +81,7 @@ const ClaimRewardsIntent = z.object({
             "Omit to defer to mode (convert_to converts all claimed tokens, as_earned converts none). Use this for a partial convert, e.g. tokens: ['token0','reward'] with convert_tokens: ['reward'] swaps only the reward and claims token0 as-is.",
         ),
     })
-    .default({}),
+    .prefault({}),
 });
 
 const AddToLpIntent = z.object({
@@ -108,7 +108,7 @@ const ClaimMerklIntent = z.object({
         .optional()
         .describe("Explicit recipient address. Overrides destination when set."),
     })
-    .default({}),
+    .prefault({}),
 });
 
 const OutOfRangeStrategy = z.object({
@@ -180,7 +180,7 @@ const RebalanceIntent = z.object({
   position_id: POSITION_ID,
   strategy: z
     .discriminatedUnion("kind", [OutOfRangeStrategy, POLStrategy, TakeProfitStrategy])
-    .default({ kind: "out_of_range" })
+    .prefault({ kind: "out_of_range" })
     .describe(
       "out_of_range repositions when price leaves the range; take_profit runs on the dedicated profit-taker contract; protocol_owned_liquidity is the POL strategy.",
     ),
@@ -254,7 +254,7 @@ export const POSITION_CONTEXT_SCHEMA = {
     .int()
     .optional()
     .describe(
-      "LP position (NFT) id, as listed in assets[] by read.account.info. Supply this and the backend fetches protocol, staked flag, tokens and reward tokens for you. Strongly preferred over passing the position fields by hand.",
+      "LP position (NFT) id, as listed in assets[] by read_account_info. Supply this and the backend fetches protocol, staked flag, tokens and reward tokens for you. Strongly preferred over passing the position fields by hand.",
     ),
   protocol: z
     .enum(PROTOCOL_VALUES)

@@ -101,22 +101,22 @@ function apiError(status: number, body: Record<string, unknown>) {
 function readTool(api: Record<string, unknown>) {
   const mock = createMockServer();
   registerAeroUpgradeReadTool(mock.server, api as never);
-  return mock.getHandler("read.account.aero_upgrade");
+  return mock.getHandler("read_account_aero_upgrade");
 }
 
 function writeTool(api: Record<string, unknown>) {
   const mock = createMockServer();
   registerAeroUpgradeTool(mock.server, api as never);
-  return mock.getHandler("write.account.aero_upgrade");
+  return mock.getHandler("write_account_aero_upgrade");
 }
 
 function veloTool(api: Record<string, unknown>) {
   const mock = createMockServer();
   registerUpgradeVeloTool(mock.server, api as never);
-  return mock.getHandler("write.wallet.upgrade_velo");
+  return mock.getHandler("write_wallet_upgrade_velo");
 }
 
-describe("read.account.aero_upgrade", () => {
+describe("read_account_aero_upgrade", () => {
   const candidates = {
     chain_id: 8453,
     owner_address: TEST_ADDRESS,
@@ -209,7 +209,97 @@ describe("read.account.aero_upgrade", () => {
   });
 });
 
-describe("write.account.aero_upgrade: one account", () => {
+describe("write_account_aero_upgrade: one account", () => {
+  it("treats an empty Tenderly url as unavailable, not as a revert", async () => {
+    const api = {
+      getAeroUpgradePlan: vi.fn(async () =>
+        plan({ simulation: { status: false, url: "", error: "simulation unavailable" } }),
+      ),
+    };
+    const result = await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 });
+    expect(result.isError).toBeUndefined();
+    const data = parseToolResponse(result);
+    expect(data.transaction.to).toBe(TEST_ACCOUNT);
+    expect(data.tenderly_sim_status).toBe("unavailable");
+    expect(data.simulation_note).toContain("Call the tool once more");
+  });
+
+  it("keeps the plan in the error when the simulation reverted", async () => {
+    const api = {
+      getAeroUpgradePlan: vi.fn(async () =>
+        plan({
+          simulation: {
+            status: false,
+            url: "https://dashboard.tenderly.co/sim/9",
+            error: "Reverted",
+          },
+        }),
+      ),
+    };
+    const result = await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 });
+    expect(result.isError).toBe(true);
+    const data = parseToolResponse(result);
+    expect(data.transaction).toBeUndefined();
+    expect(data.error).toContain("do NOT broadcast");
+    expect(data.items).toHaveLength(1);
+  });
+
+  it("passes min_block to the backend", async () => {
+    const api = { getAeroUpgradePlan: vi.fn(async () => plan()) };
+    await writeTool(api)({ account_address: TEST_ACCOUNT, min_block: 123, chain_id: 8453 });
+    expect(api.getAeroUpgradePlan).toHaveBeenCalledWith(
+      expect.objectContaining({ min_block: 123 }),
+    );
+  });
+
+  it("asks to reconnect an account whose positions already moved, naming active managers only", async () => {
+    const api = {
+      getAeroUpgradePlan: vi.fn(async () =>
+        plan({
+          status: "nothing_to_upgrade",
+          items: [],
+          calls: [],
+          simulation: { status: null, url: null, error: null },
+          managers_to_reconnect: [
+            ...managers,
+            {
+              kind: "claimer",
+              old_address: SLIPSTREAM_PM,
+              new_address: AERO_POOL,
+              initiator: null,
+            },
+          ],
+        }),
+      ),
+    };
+    const data = parseToolResponse(
+      await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 }),
+    );
+    expect(data.transaction).toBeUndefined();
+    expect(data.status_note).toContain("still run on the old Slipstream managers");
+    const steps = data.next_steps.join(" ");
+    expect(steps).toContain("write_account_automations");
+    expect(steps).not.toContain("claimer");
+  });
+
+  it("tells the agent to translate token-relative intents on a flipped pair", async () => {
+    const api = {
+      getAeroUpgradePlan: vi.fn(async () =>
+        plan({
+          items: [
+            positionItem({
+              target: { pool: AERO_POOL, pool_type: 9, tick_spacing: 100, tokens_flipped: true },
+            }),
+          ],
+        }),
+      ),
+    };
+    const data = parseToolResponse(
+      await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 }),
+    );
+    expect(data.next_steps.join(" ")).toContain("tokens_flipped");
+  });
+
   it("returns the plan with the flashAction as an unsigned transaction and the ERC-8021 suffix", async () => {
     const api = { getAeroUpgradePlan: vi.fn(async () => plan()) };
     const result = await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 });
@@ -236,8 +326,8 @@ describe("write.account.aero_upgrade: one account", () => {
     expect(data.managers_to_reconnect).toEqual(managers);
     expect(data.old_managers_still_needed).toBe(false);
     expect(data.description).toContain("1 of 1 item ready");
-    expect(data.next_steps.join(" ")).toContain("write.account.automations");
-    expect(data.next_steps.join(" ")).toContain("read.account.info");
+    expect(data.next_steps.join(" ")).toContain("write_account_automations");
+    expect(data.next_steps.join(" ")).toContain("read_account_info");
     expect(data.next_steps.join(" ")).not.toContain("automations_delta");
   });
 
@@ -326,7 +416,7 @@ describe("write.account.aero_upgrade: one account", () => {
       chainId: 8453,
     });
     expect(data.status_note).toContain("moves only the items whose status is ready");
-    expect(data.status_note).toContain("wait for the confirmation");
+    expect(data.status_note).toContain("so one transaction moves everything");
     expect(data.status_note).not.toContain("no transaction");
     expect(data.description).toContain("1 of 2 items ready");
     expect(data.next_steps.join(" ")).toContain("choices");
@@ -352,7 +442,7 @@ describe("write.account.aero_upgrade: one account", () => {
       })({ account_address: TEST_ACCOUNT, chain_id: 8453 }),
     );
     expect(waiting.transaction).toBeUndefined();
-    expect(waiting.status_note).toContain("Do not retry in a loop");
+    expect(waiting.status_note).toContain("do not retry in a loop");
 
     const notOpen = parseToolResponse(
       await writeTool({
@@ -426,6 +516,25 @@ describe("write.account.aero_upgrade: one account", () => {
     expect(data.asset_changes).toEqual(assetChanges);
   });
 
+  it("returns the transaction unsimulated when Tenderly did not answer", async () => {
+    const api = {
+      getAeroUpgradePlan: vi.fn(async () =>
+        plan({
+          simulation: {
+            status: false,
+            url: null,
+            error: "simulation unavailable (timeout or upstream error)",
+          },
+        }),
+      ),
+    };
+    const result = await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 });
+    expect(result.isError).toBeUndefined();
+    const data = parseToolResponse(result);
+    expect(data.transaction.to).toBe(TEST_ACCOUNT);
+    expect(data.tenderly_sim_status).toBe("unavailable");
+  });
+
   it("refuses to hand out a transaction whose simulation failed", async () => {
     const api = {
       getAeroUpgradePlan: vi.fn(async () =>
@@ -477,7 +586,7 @@ describe("write.account.aero_upgrade: one account", () => {
       expect(result.isError).toBeUndefined();
       const data = parseToolResponse(result);
       expect(data.status).toBe("waiting");
-      expect(data.status_note).toContain("Do not retry in a loop");
+      expect(data.status_note).toContain("do not retry in a loop");
       expect(data.items.map((i: { reason: { code: string } }) => i.reason.code)).toEqual([
         code,
         code,
@@ -568,7 +677,7 @@ describe("write.account.aero_upgrade: one account", () => {
   });
 });
 
-describe("write.account.aero_upgrade: several accounts", () => {
+describe("write_account_aero_upgrade: several accounts", () => {
   it("returns one plan per account, keeps error slots, and drops the transaction of a failed simulation", async () => {
     const api = {
       postAeroUpgradeBatch: vi.fn(async () => ({
@@ -584,7 +693,11 @@ describe("write.account.aero_upgrade: several accounts", () => {
           },
           plan({
             account_address: "0x00000000000000000000000000000000000000cc",
-            simulation: { status: false, url: null, error: "SwapFailed" },
+            simulation: {
+              status: false,
+              url: "https://dashboard.tenderly.co/sim/4",
+              error: "SwapFailed",
+            },
           }),
         ],
       })),
@@ -625,7 +738,11 @@ describe("write.account.aero_upgrade: several accounts", () => {
   it("keeps the backend's MultiSend groups in order and drops a group left without a transaction", async () => {
     const third = "0x00000000000000000000000000000000000000cc";
     const fourth = "0x00000000000000000000000000000000000000dd";
-    const failedSim = { status: false, url: null, error: "PriceOutOfRange" };
+    const failedSim = {
+      status: false,
+      url: "https://dashboard.tenderly.co/sim/5",
+      error: "PriceOutOfRange",
+    };
     const api = {
       postAeroUpgradeBatch: vi.fn(async () => ({
         chain_id: 8453,
@@ -660,7 +777,7 @@ describe("write.account.aero_upgrade: several accounts", () => {
   });
 });
 
-describe("write.wallet.upgrade_velo", () => {
+describe("write_wallet_upgrade_velo", () => {
   it("refuses an amount above the wallet balance, since the deposit would revert", async () => {
     const api = {
       getUpgradeVeloCalldata: vi.fn(async () => ({
@@ -734,7 +851,7 @@ describe("write.wallet.upgrade_velo", () => {
     const api = {
       getUpgradeVeloCalldata: vi.fn(async () => {
         throw apiError(409, {
-          name: "VELO Upgrade Unavailable",
+          name: "AERO Upgrade Unavailable",
           reason: "not_open",
           message: "The VELO migration opens at 1792627200.",
           opens_at: OPENS_AT,

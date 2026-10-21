@@ -9,12 +9,12 @@ export function parseListenPort(raw: string | undefined): number {
   return n;
 }
 
-/** Max requests per minute from RATE_LIMIT_RPM. Warns and falls back to 60 on invalid input. */
+/** Max requests per minute per client IP from RATE_LIMIT_RPM. Warns and falls back to 600 on invalid input. */
 export function parseRateLimitRpm(raw: string | undefined): number {
-  const n = parseInt(raw ?? "60", 10);
+  const n = parseInt(raw ?? "600", 10);
   if (!Number.isFinite(n) || n < 1) {
-    console.warn(`Invalid RATE_LIMIT_RPM "${raw ?? ""}", using default 60`);
-    return 60;
+    console.warn(`Invalid RATE_LIMIT_RPM "${raw ?? ""}", using default 600`);
+    return 600;
   }
   return Math.min(n, 1_000_000);
 }

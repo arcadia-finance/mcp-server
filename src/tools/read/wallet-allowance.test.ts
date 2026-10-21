@@ -31,14 +31,14 @@ vi.mock("../../clients/chain.js", () => ({
 function setup() {
   const mock = createMockServer();
   registerWalletTools(mock.server, createMockChains(), {} as ArcadiaApiClient);
-  return mock.getHandler("read.wallet.allowances");
+  return mock.getHandler("read_wallet_allowances");
 }
 
-describe("read.wallet.allowances", () => {
+describe("read_wallet_allowances", () => {
   it("registers the tool", () => {
     const mock = createMockServer();
     registerWalletTools(mock.server, createMockChains(), {} as ArcadiaApiClient);
-    expect(mock.tools.find((t) => t.name === "read.wallet.allowances")).toBeDefined();
+    expect(mock.tools.find((t) => t.name === "read_wallet_allowances")).toBeDefined();
   });
 
   it("returns allowances for multiple tokens", async () => {

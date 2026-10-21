@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../clients/api.js";
 import { validateAddress, validateChainId } from "../../utils/validation.js";
 import { AutomationsStateOutput, IntentsListOutput } from "../output-schemas.js";
@@ -66,11 +66,11 @@ const INTENT_CATALOG: IntentDoc[] = [
 ];
 
 const USAGE =
-  "Build an intents array from these kinds and pass it to write.account.automations (full desired state) or write.account.automations_delta (change one automation, leave the rest alone). The backend resolves the asset managers, validates the combination and returns the unsigned transaction.";
+  "Build an intents array from these kinds and pass it to write_account_automations (full desired state) or write_account_automations_delta (change one automation, leave the rest alone). The backend resolves the asset managers, validates the combination and returns the unsigned transaction.";
 
 export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "read.asset_manager.intents",
+    "read_asset_manager_intents",
     {
       annotations: {
         title: "List Available Automations",
@@ -84,7 +84,7 @@ export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClie
         "Pass account_address to also get per-account availability: which intents can be enabled right now and, for any that cannot, the compatibility rule blocking it. " +
         "Pass position_id as well to scope availability to one LP position. Without account_address this returns the catalog only.",
       outputSchema: IntentsListOutput,
-      inputSchema: {
+      inputSchema: z.object({
         account_address: z
           .string()
           .optional()
@@ -98,7 +98,7 @@ export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClie
           .number()
           .default(8453)
           .describe("Chain id: 8453 Base, 130 Unichain, 10 Optimism"),
-      },
+      }),
     },
     async (params) => {
       try {
@@ -135,7 +135,7 @@ export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClie
           automations,
           ...(availabilityError
             ? {
-                availability_error: `Per-account availability could not be read: ${availabilityError}. The catalog below is complete, but no intent is annotated as available or blocked. write.account.automations still validates the combination.`,
+                availability_error: `Per-account availability could not be read: ${availabilityError}. The catalog below is complete, but no intent is annotated as available or blocked. write_account_automations still validates the combination.`,
               }
             : {}),
           shared_params: [
@@ -165,7 +165,7 @@ export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClie
   );
 
   server.registerTool(
-    "read.asset_manager.current",
+    "read_asset_manager_current",
     {
       annotations: {
         title: "Read Current Account Automations",
@@ -177,16 +177,16 @@ export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClie
       description:
         "Read which asset managers are currently enabled on an account, with their decoded on-chain configuration. " +
         "Returns the active managers (address, protocol, initiator, decoded strategy metadata, slippage and value-loss caps, fee recipient), the intents they map to, and Merkl claim state including whether reward tokens still need registering. " +
-        "Managers from superseded deployments are listed separately under `deprecated`: pass their addresses to write.account.automations_delta to clear them, or run write.account.automations which disables them as part of the save. " +
+        "Managers from superseded deployments are listed separately under `deprecated`: pass their addresses to write_account_automations_delta to clear them, or run write_account_automations which disables them as part of the save. " +
         "read_ok is false when chain state could not be read, in which case the result is unreliable rather than empty.",
       outputSchema: AutomationsStateOutput,
-      inputSchema: {
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         chain_id: z
           .number()
           .default(8453)
           .describe("Chain id: 8453 Base, 130 Unichain, 10 Optimism"),
-      },
+      }),
     },
     async (params) => {
       try {

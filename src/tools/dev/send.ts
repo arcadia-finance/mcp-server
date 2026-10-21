@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createWalletClient, createPublicClient, http, type Chain } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base, optimism, unichain } from "viem/chains";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../config/chains.js";
 import { DevSendOutput } from "../output-schemas.js";
 import {
@@ -19,7 +19,7 @@ const VIEM_CHAINS: Record<number, Chain> = {
 
 export function registerSendTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "dev.send",
+    "dev_send",
     {
       annotations: {
         title: "Sign and Send Transaction",
@@ -29,14 +29,14 @@ export function registerSendTool(server: McpServer, chains: Record<ChainId, Chai
         openWorldHint: true,
       },
       description:
-        "DEV ONLY — Sign and broadcast an unsigned transaction using a local private key (PK env var). For production, use a dedicated wallet MCP server (Fireblocks, Safe, Turnkey, etc.) instead of this tool. Takes the transaction object returned by any write.* tool and submits it onchain.",
+        "DEV ONLY: Sign and broadcast an unsigned transaction using a local private key (PK env var). For production, use a dedicated wallet MCP server (Fireblocks, Safe, Turnkey, etc.) instead of this tool. Takes the transaction object returned by any write_* tool and submits it onchain.",
       outputSchema: DevSendOutput,
-      inputSchema: {
+      inputSchema: z.object({
         to: z.string().describe("Target contract address"),
         data: z.string().describe("Encoded calldata (hex)"),
         value: z.string().default("0").describe("Value in wei (default '0')"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async (params) => {
       try {

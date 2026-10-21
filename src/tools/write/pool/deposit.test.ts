@@ -13,10 +13,10 @@ import { trancheAbi } from "../../../abis/index.js";
 function setup() {
   const mock = createMockServer();
   registerPoolDepositTool(mock.server, createMockChains());
-  return mock.getHandler("write.pool.deposit");
+  return mock.getHandler("write_pool_deposit");
 }
 
-describe("write.pool.deposit", () => {
+describe("write_pool_deposit", () => {
   it("encodes tranche.deposit(assets, receiver)", async () => {
     const handler = setup();
     const result = await handler({

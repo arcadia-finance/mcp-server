@@ -1,8 +1,10 @@
 import { randomUUID } from "crypto";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { PostHog } from "posthog-node";
 
 type Capture = Pick<PostHog, "capture">;
+
+const processId = randomUUID();
 
 // Only the hosted HTTP server reports, and only with POSTHOG_KEY set. A local
 // stdio install never does, even when its environment sets POSTHOG_KEY for
@@ -21,15 +23,13 @@ export function createAnalytics(transport: string): PostHog | null {
 }
 
 // Captures one `mcp_tool_called` event per tool invocation: name, arguments,
-// outcome and the calling client. HTTP sessions are keyed by MCP session id,
-// stdio by a per-process id.
+// outcome and the calling client, keyed by the per-process id.
 export function withAnalytics(
   target: McpServer,
   mcp: McpServer,
   analytics: Capture,
   meta: { transport: string; serverVersion: string },
 ): McpServer {
-  const processId = randomUUID();
   return new Proxy(target, {
     get(t, prop, receiver) {
       if (prop !== "registerTool") return Reflect.get(t, prop, receiver);

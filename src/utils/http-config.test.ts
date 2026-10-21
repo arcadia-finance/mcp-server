@@ -25,8 +25,8 @@ describe("parseListenPort", () => {
 });
 
 describe("parseRateLimitRpm", () => {
-  it("defaults to 60", () => {
-    expect(parseRateLimitRpm(undefined)).toBe(60);
+  it("defaults to 600", () => {
+    expect(parseRateLimitRpm(undefined)).toBe(600);
   });
 
   it("parses positive integers", () => {
@@ -35,8 +35,8 @@ describe("parseRateLimitRpm", () => {
 
   it("falls back on invalid values", () => {
     const spy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(parseRateLimitRpm("-1")).toBe(60);
-    expect(parseRateLimitRpm("oops")).toBe(60);
+    expect(parseRateLimitRpm("-1")).toBe(600);
+    expect(parseRateLimitRpm("oops")).toBe(600);
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
   });

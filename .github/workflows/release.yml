@@ -85,12 +85,21 @@ jobs:
         run: |
           already=$(curl -sf --max-time 30 \
             "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=${VERSION}" \
-            | jq '[.servers[]] | length' || echo 0)
-          if [ "$already" -gt 0 ]; then
+            | jq '[.servers[]?] | length' 2>/dev/null)
+          if [ "${already:-0}" -gt 0 ]; then
             echo "MCP Registry already has ${VERSION}, skipping publish."
-          else
-            ./mcp-publisher publish
+            exit 0
           fi
+          for i in $(seq 1 30); do
+            if curl -sf --max-time 10 -o /dev/null \
+              "https://registry.npmjs.org/@arcadia-finance%2fmcp-server/${VERSION}"; then
+              ./mcp-publisher publish
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "npm still does not serve ${VERSION} after 5 minutes" >&2
+          exit 1
 
       # The CLI authenticates via SMITHERY_API_KEY only; it never reads a variable
       # named SMITHERY_TOKEN, so the previous env name meant this step silently

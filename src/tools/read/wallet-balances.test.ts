@@ -30,10 +30,10 @@ vi.mock("../../clients/chain.js", () => ({
 function setup() {
   const mock = createMockServer();
   registerWalletTools(mock.server, createMockChains(), {} as ArcadiaApiClient);
-  return mock.getHandler("read.wallet.balances");
+  return mock.getHandler("read_wallet_balances");
 }
 
-describe("read.wallet.balances", () => {
+describe("read_wallet_balances", () => {
   it("returns native ETH and token balances", async () => {
     const handler = setup();
     const result = await handler({

@@ -15,10 +15,10 @@ const MAX_UINT256 = 2n ** 256n - 1n;
 function setup() {
   const mock = createMockServer();
   registerApproveTool(mock.server, createMockChains());
-  return mock.getHandler("write.wallet.approve");
+  return mock.getHandler("write_wallet_approve");
 }
 
-describe("write.wallet.approve", () => {
+describe("write_wallet_approve", () => {
   it("encodes approve with explicit amount", async () => {
     const handler = setup();
     const result = await handler({

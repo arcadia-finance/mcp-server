@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { registerWorkflowPrompts } from "./workflows.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 
 interface RegisteredPrompt {
   name: string;
@@ -40,16 +40,16 @@ describe("workflow prompts", () => {
     expect(text).toContain("0xabc");
     expect(text).toContain("8453");
     const order = [
-      "read.account.aero_upgrade",
-      "read.account.info",
-      "read.asset_manager.current",
-      "write.account.aero_upgrade",
-      "write.account.automations",
+      "read_account_aero_upgrade",
+      "read_account_info",
+      "read_asset_manager_current",
+      "write_account_aero_upgrade",
+      "write_account_automations",
     ].map((name) => text.indexOf(name));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(text).toContain("choices_required");
-    expect(text).toContain("write.wallet.upgrade_velo");
+    expect(text).toContain("write_wallet_upgrade_velo");
   });
 
   it("analyze-account returns messages with account address", async () => {
@@ -73,8 +73,8 @@ describe("workflow prompts", () => {
     const prompt = prompts.find((p) => p.name === "setup-automation")!;
     const result = await prompt.callback({ account_address: "0xdef" });
     const text = result.messages[0].content.text;
-    expect(text).toContain("write.account.automations");
-    expect(text).toContain("read.asset_manager.current");
+    expect(text).toContain("write_account_automations");
+    expect(text).toContain("read_asset_manager_current");
     expect(text).toContain("compound_fees");
   });
 

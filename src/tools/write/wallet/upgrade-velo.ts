@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../../clients/api.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
 import { parseWeiDecimalString, validateAddress } from "../../../utils/validation.js";
@@ -10,7 +10,7 @@ const OPTIMISM = 10;
 
 export function registerUpgradeVeloTool(server: McpServer, api: ArcadiaApiClient) {
   server.registerTool(
-    "write.wallet.upgrade_velo",
+    "write_wallet_upgrade_velo",
     {
       annotations: {
         title: "Build VELO Upgrade Transactions",
@@ -22,8 +22,8 @@ export function registerUpgradeVeloTool(server: McpServer, api: ArcadiaApiClient
       outputSchema: VeloUpgradeOutput,
       description:
         "Upgrade VELO held in a wallet on Optimism to the new AERO on Base: ordered unsigned wallet transactions from owner_address, an approve when the allowance is short, then depositLiquid on the Velodrome migration with the Hyperlane fee as value. 0.044 new AERO per VELO arrives at the same address on Base once the message lands. " +
-        "VELO inside an Arcadia account must be withdrawn to the wallet first (write.account.withdraw). VELO stays usable, so this is optional. Optimism (chain_id 10) only. 'upgrade unavailable' names the contract's reason: not_open (with the opening time), paused, budget_exhausted, recipient_not_deployed (a contract wallet with no code on Base).",
-      inputSchema: {
+        "VELO inside an Arcadia account must be withdrawn to the wallet first (write_account_withdraw). VELO stays usable, so this is optional. Optimism (chain_id 10) only. 'upgrade unavailable' names the contract's reason: not_open (with the opening time), paused, budget_exhausted, recipient_not_deployed (a contract wallet with no code on Base).",
+      inputSchema: z.object({
         owner_address: z
           .string()
           .describe("Wallet holding the VELO on Optimism; receives the AERO on Base"),
@@ -32,7 +32,7 @@ export function registerUpgradeVeloTool(server: McpServer, api: ArcadiaApiClient
           .optional()
           .describe("Raw units (18 decimals). Omit for the wallet's full VELO balance."),
         chain_id: z.number().default(OPTIMISM).describe("Chain ID: 10 (Optimism)"),
-      },
+      }),
     },
     async ({ owner_address, amount, chain_id }) => {
       try {

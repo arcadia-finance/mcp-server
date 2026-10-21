@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { accountAbi, getAccountAbi } from "../../../abis/index.js";
 import { getPublicClient } from "../../../clients/chain.js";
@@ -10,7 +10,7 @@ import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "write.account.withdraw",
+    "write_account_withdraw",
     {
       annotations: {
         title: "Build Withdraw Transaction",
@@ -21,8 +21,8 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
       },
       outputSchema: SimpleTransactionOutput,
       description:
-        "Build an unsigned transaction to withdraw assets from an Arcadia account to the owner's wallet. Only the account owner can withdraw. Will revert if the account has debt and withdrawal would make it undercollateralized. Does not support max_uint256 — pass exact amounts from read.account.info. Account version is auto-detected on-chain (override with account_version if needed).",
-      inputSchema: {
+        "Build an unsigned transaction to withdraw assets from an Arcadia account to the owner's wallet. Only the account owner can withdraw. Will revert if the account has debt and withdrawal would make it undercollateralized. Does not support max_uint256: pass exact amounts from read_account_info. Account version is auto-detected on-chain (override with account_version if needed).",
+      inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         asset_addresses: z.array(z.string()).describe("Token contract addresses to withdraw"),
         asset_amounts: z.array(z.string()).describe("Amounts in raw units/wei, one per asset"),
@@ -41,7 +41,7 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
           .optional()
           .describe("Override account version (3 or 4). Auto-detected on-chain if omitted."),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async (params) => {
       try {
@@ -50,7 +50,7 @@ export function registerWithdrawTool(server: McpServer, chains: Record<ChainId, 
             content: [
               {
                 type: "text" as const,
-                text: 'Error: write.account.withdraw does not support "max_uint256". Pass exact amounts from read.account.info.',
+                text: 'Error: write_account_withdraw does not support "max_uint256". Pass exact amounts from read_account_info.',
               },
             ],
             isError: true,

@@ -13,10 +13,10 @@ import { registerDepositTool } from "./deposit.js";
 function setup() {
   const mock = createMockServer();
   registerDepositTool(mock.server, createMockChains());
-  return mock.getHandler("write.account.deposit");
+  return mock.getHandler("write_account_deposit");
 }
 
-describe("write.account.deposit", () => {
+describe("write_account_deposit", () => {
   describe("V4 account", () => {
     it("encodes deposit with assetTypes param", async () => {
       const handler = setup();

@@ -3,7 +3,7 @@ import { base, optimism } from "viem/chains";
 import type { ChainId, ChainConfig } from "../config/chains.js";
 
 // multicall3 must be declared or getChainContractAddress throws ChainDoesNotSupportContract,
-// which takes out every client.multicall() call — read.wallet.balances, read.wallet.allowances and
+// which takes out every client.multicall() call: read_wallet_balances, read_wallet_allowances and
 // the account metadata read. It is deployed at the canonical address here (3808 bytes on chain).
 const unichain = defineChain({
   id: 130,

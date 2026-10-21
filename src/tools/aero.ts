@@ -5,7 +5,6 @@ import type {
   AeroUpgradePlanResponse,
 } from "../types/api.js";
 import { appendDataSuffix } from "../utils/attribution.js";
-import { isSimulationFailed, normalizeSimStatus } from "./write/account/format-response.js";
 
 /** Chains the Aero upgrade endpoints answer for. Robinhood has no Slipstream positions, so it answers an empty list. */
 export const AERO_UPGRADE_CHAINS = [8453, 10, 4663] as const;
@@ -68,9 +67,14 @@ export function aeroErrorResult(err: unknown): ToolError {
   return toolError(err.message);
 }
 
-/** Tool error when the backend's simulation predicts a revert. */
-export function simulationFailedResult(simulation: AeroSimulation): ToolError {
-  return toolError(simulationFailedText(simulation));
+/** Tenderly ran and the transaction reverted. A false status without a url means Tenderly did not answer. */
+export function simulationReverted(simulation: AeroSimulation): boolean {
+  return simulation.status === false && Boolean(simulation.url);
+}
+
+function simulationStatus(simulation: AeroSimulation): "success" | "failure" | "unavailable" {
+  if (simulation.status === true) return "success";
+  return simulationReverted(simulation) ? "failure" : "unavailable";
 }
 
 function simulationFailedText(simulation: AeroSimulation): string {
@@ -89,17 +93,20 @@ export function describePlanStatus(plan: AeroUpgradePlanResponse): string {
       return "The transaction moves every item whose status is ready; items that wait or are blocked stay where they are, see each item's reason.";
     case "choices_required": {
       const pick =
-        "At least one position has status choose and stays where it is until the user picks one of its options whose disabled_reason is null (ask the user when unsure; tick_spacing, fee, apy, tvl_usd and range_widened differ per pool) and the tool is called again with the pick in choices.";
+        "At least one position has status choose and stays where it is until the user picks one of its options whose disabled_reason is null (ask the user; tick_spacing, fee, apy, tvl_usd and range_widened differ per pool). Ask for the picks first and call again with them in choices, so one transaction moves everything.";
       return plan.calls.length > 0
-        ? `${pick} The transaction moves only the items whose status is ready. Once it is signed, a call made before it confirms is built on the old state, so wait for the confirmation, then call again with choices.`
+        ? `${pick} The transaction here moves only the items whose status is ready: sign it alone only when the user wants to leave the choose positions where they are.`
         : `${pick} There is no transaction yet.`;
     }
     case "waiting":
-      return "Nothing can move yet. Each item's reason says what it waits for (pool_not_on_aero, staking_not_open, target_price_mismatch, account_unhealthy, ...). Do not retry in a loop; tell the user.";
+      return "Nothing moves on its own yet. Each item's reason says what it waits for (pool_not_on_aero, staking_not_open, target_price_mismatch, account_unhealthy, ...). A waiting item with an option whose disabled_reason is null can still move now with that option in choices; it lands on a different pool, so ask the user. Otherwise do not retry in a loop; tell the user.";
     case "not_open":
-      return `The AERO upgrade opens at ${isoTime(plan.opens_at)}; until then an upgrade that converts old AERO cannot be built. Tell the user when to come back.`;
+      return `The AERO upgrade contract does not accept deposits at the moment (it opens at ${isoTime(plan.opens_at)}), so an upgrade that converts old AERO cannot be built. Tell the user to try again later.`;
     case "nothing_to_upgrade":
-      return "Nothing on this account can move: it holds no Slipstream position and no old AERO, or every item is blocked (each blocked item's reason says what to do instead).";
+      return plan.managers_to_reconnect.some((m) => m.initiator) &&
+        !plan.items.some((i) => i.kind === "position")
+        ? "Nothing on this account is left to move, but its automations still run on the old Slipstream managers: reconnect them to the Aero managers (next_steps)."
+        : "Nothing on this account can move: it holds no Slipstream position and no old AERO, or every item is blocked (each blocked item's reason says what to do instead).";
   }
 }
 
@@ -109,21 +116,30 @@ export function upgradeNextSteps(
   managers: AeroManagerToReconnect[],
   oldManagersStillNeeded: boolean,
   choicesPending: boolean,
+  hasTransaction: boolean,
+  tokensFlipped: boolean,
+  positionsLeft: boolean,
 ): string[] {
-  const steps = [
-    `After the transaction confirms, call read.account.info for ${accountAddress}: every moved position now shows dex_protocol metadexcl_v1 (or staked_metadexcl_v1) with a new position id, and old AERO shows as the new AERO.`,
-  ];
-  if (choicesPending) {
+  const steps = hasTransaction
+    ? [
+        `After the transaction confirms, call read_account_info for ${accountAddress}: every moved position now shows dex_protocol metadexcl_v1 (or staked_metadexcl_v1) with a new position id, and old AERO shows as the new AERO. Pass that transaction's block as min_block on any follow-up call.`,
+      ]
+    : [];
+  if (choicesPending && hasTransaction) {
     steps.push(
-      `Only then call write.account.aero_upgrade again for ${accountAddress} with the user's picks in choices for the items whose status is choose.`,
+      `Only then call write_account_aero_upgrade again for ${accountAddress} with the user's picks in choices for the items whose status is choose.`,
     );
   }
-  if (managers.length > 0) {
-    const kinds = [...new Set(managers.map((m) => m.kind))].join(", ");
+  const active = managers.filter((m) => m.initiator);
+  if (active.length > 0 && (hasTransaction || !positionsLeft)) {
+    const kinds = [...new Set(active.map((m) => m.kind))].join(", ");
     steps.push(
-      `Reconnect automations (${kinds}): call write.account.automations (mode save) with ${accountAddress}, the new Aero position_id and the intents read from read.asset_manager.current before the move. Omit protocol so the backend resolves metadexcl_v1 from the position.` +
+      `Reconnect automations (${kinds}): call write_account_automations (mode save) with ${accountAddress}, the new Aero position_id and the intents read from read_asset_manager_current before the move. Omit protocol so the backend resolves metadexcl_v1 from the position. Each Aero manager holds one config per account: when several old Slipstream managers of one kind had different settings, ask the user which to keep. Settings are recompiled from the intents, not copied, so restate any custom rebalance settings.` +
+        (tokensFlipped
+          ? " A moved pair sorts the other way on Aero (tokens_flipped): swap token0 and token1 in the intents' token fields (tokens, convert_tokens, profit_token) and use 1e6 minus the token0 ratios, or leave that automation off and tell the user."
+          : "") +
         (oldManagersStillNeeded
-          ? " A Slipstream position stays on this account, so keep its old managers: use write.account.automations_delta (enable) for the Aero position instead of a save that disables them."
+          ? " A Slipstream position stays on this account, so keep its old managers: use write_account_automations_delta (enable) for the Aero position instead of a save that disables them."
           : " The save disables the old Slipstream managers in the same transaction."),
     );
   }
@@ -141,7 +157,7 @@ export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number
   }
   const call = plan.calls[0];
   const ready = plan.items.filter((i) => i.status === "ready").length;
-  const simFailed = call !== undefined && isSimulationFailed(plan.simulation.status);
+  const simFailed = call !== undefined && simulationReverted(plan.simulation);
   return {
     description: `Upgrade ${plan.account_address} to Aero: ${ready} of ${plan.items.length} item${plan.items.length === 1 ? "" : "s"} ready`,
     account_address: plan.account_address,
@@ -161,21 +177,29 @@ export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number
       : {}),
     ...(simFailed ? { error: simulationFailedText(plan.simulation) } : {}),
     ...(plan.simulation.url ? { tenderly_sim_url: plan.simulation.url } : {}),
-    tenderly_sim_status: normalizeSimStatus(plan.simulation.status),
+    tenderly_sim_status: simulationStatus(plan.simulation),
+    ...(call && !simFailed && simulationStatus(plan.simulation) === "unavailable"
+      ? {
+          simulation_note:
+            "Tenderly did not answer, so this transaction is unsimulated. Call the tool once more before signing; the backend simulates again.",
+        }
+      : {}),
     asset_changes: plan.simulation.asset_changes ?? [],
     opens_at: plan.opens_at,
     price_tolerance_bps: plan.price_tolerance_bps,
     items: plan.items,
     managers_to_reconnect: plan.managers_to_reconnect,
     old_managers_still_needed: plan.old_managers_still_needed,
-    next_steps:
-      call && !simFailed
-        ? upgradeNextSteps(
-            plan.account_address,
-            plan.managers_to_reconnect,
-            plan.old_managers_still_needed,
-            plan.status === "choices_required",
-          )
-        : [],
+    next_steps: simFailed
+      ? []
+      : upgradeNextSteps(
+          plan.account_address,
+          plan.managers_to_reconnect,
+          plan.old_managers_still_needed,
+          plan.status === "choices_required",
+          call !== undefined,
+          plan.items.some((i) => i.kind === "position" && i.target?.tokens_flipped === true),
+          plan.items.some((i) => i.kind === "position"),
+        ),
   };
 }

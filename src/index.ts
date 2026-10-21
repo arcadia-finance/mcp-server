@@ -10,13 +10,12 @@ try {
 }
 
 import { createRequire } from "module";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { ArcadiaApiClient } from "./clients/api.js";
 import { getChainConfigs } from "./config/chains.js";
 import { registerAllTools } from "./tools/index.js";
 import { registerAllResources } from "./resources/index.js";
 import { registerAllPrompts } from "./prompts/index.js";
-import { wrapServerForHttp, convertToolNames } from "./utils/tool-naming.js";
 import { createAnalytics, withAnalytics } from "./utils/analytics.js";
 import { applyTrustProxyFromEnv, parseListenPort, parseRateLimitRpm } from "./utils/http-config.js";
 
@@ -28,31 +27,29 @@ const chainConfigs = getChainConfigs();
 const transportMode = process.env.TRANSPORT ?? "stdio";
 const analytics = createAnalytics(transportMode);
 
-function createServer(options?: { httpMode?: boolean }) {
+function buildServer() {
   const server = new McpServer({
     name: "arcadia-finance",
     version: pkg.version,
     description:
       "Arcadia Finance. Manage concentrated liquidity positions on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage. Base, Optimism, Unichain and Robinhood.",
   });
-  const namingTarget = options?.httpMode ? wrapServerForHttp(server) : server;
-  // Outermost, so events carry the canonical dotted tool name in both transports.
-  const registrationTarget = analytics
-    ? withAnalytics(namingTarget, server, analytics, {
+  const target = analytics
+    ? withAnalytics(server, server, analytics, {
         transport: transportMode,
         serverVersion: pkg.version,
       })
-    : namingTarget;
-  registerAllTools(registrationTarget, apiClient, chainConfigs);
-  registerAllResources(registrationTarget);
-  registerAllPrompts(registrationTarget);
+    : server;
+  registerAllTools(target, apiClient, chainConfigs);
+  registerAllResources(target);
+  registerAllPrompts(target);
   return server;
 }
 
 if (transportMode === "http") {
-  const { StreamableHTTPServerTransport } =
-    await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
   const express = (await import("express")).default;
+  const { createMcpHandler } = await import("@modelcontextprotocol/server");
+  const { toNodeHandler } = await import("@modelcontextprotocol/node");
 
   const app = express();
   applyTrustProxyFromEnv(app, process.env.TRUST_PROXY);
@@ -73,9 +70,11 @@ if (transportMode === "http") {
       return false;
     }
     res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, mcp-session-id");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Expose-Headers", "mcp-session-id");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Accept, Mcp-Method, Mcp-Name, Mcp-Protocol-Version",
+    );
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     return true;
   }
 
@@ -84,152 +83,44 @@ if (transportMode === "http") {
     res.status(204).end();
   });
 
-  const { default: rateLimit, ipKeyGenerator } = await import("express-rate-limit");
-  const rpm = parseRateLimitRpm(process.env.RATE_LIMIT_RPM);
+  const { default: rateLimit } = await import("express-rate-limit");
   app.use(
     "/mcp",
     rateLimit({
       windowMs: 60_000,
-      max: rpm,
-      keyGenerator: (req: import("express").Request) =>
-        (req.headers["mcp-session-id"] as string) || ipKeyGenerator(req.ip ?? "") || "unknown",
+      max: parseRateLimitRpm(process.env.RATE_LIMIT_RPM),
       standardHeaders: true,
       legacyHeaders: false,
     }),
   );
 
-  const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
-  const sessions = new Map<
-    string,
-    {
-      server: McpServer;
-      transport: InstanceType<typeof StreamableHTTPServerTransport>;
-      timer: ReturnType<typeof setTimeout>;
-    }
-  >();
-
-  function touchSession(id: string) {
-    const entry = sessions.get(id);
-    if (!entry) return;
-    clearTimeout(entry.timer);
-    entry.timer = setTimeout(() => {
-      try {
-        entry.transport.close();
-      } catch {
-        /* already closed */
-      }
-      sessions.delete(id);
-    }, SESSION_TTL_MS);
-  }
-
-  async function createSession() {
-    const server = createServer({ httpMode: true });
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => crypto.randomUUID(),
-      onsessioninitialized: (sessionId) => {
-        sessions.set(sessionId, {
-          server,
-          transport,
-          timer: setTimeout(() => {
-            try {
-              transport.close();
-            } catch {
-              /* already closed */
-            }
-            sessions.delete(sessionId);
-          }, SESSION_TTL_MS),
-        });
-      },
-    });
-    await server.connect(transport);
-
-    transport.onclose = () => {
-      const id = transport.sessionId;
-      if (id) {
-        const entry = sessions.get(id);
-        if (entry) clearTimeout(entry.timer);
-        sessions.delete(id);
-      }
-    };
-
-    return transport;
-  }
-
   app.get("/health", (_req, res) => {
     res.send("ok");
   });
 
-  app.get("/llms.txt", async (_req, res) => {
-    const { readFile } = await import("fs/promises");
-    const { fileURLToPath } = await import("url");
-    const { dirname, join } = await import("path");
-    const dir = dirname(fileURLToPath(import.meta.url));
-    const content = await readFile(join(dir, "..", "llms.txt"), "utf-8");
-    res.type("text/plain").send(convertToolNames(content));
-  });
+  for (const file of ["llms.txt", "llms-full.txt"]) {
+    app.get(`/${file}`, async (_req, res) => {
+      const { readFile } = await import("fs/promises");
+      const { fileURLToPath } = await import("url");
+      const { dirname, join } = await import("path");
+      const dir = dirname(fileURLToPath(import.meta.url));
+      res.type("text/plain").send(await readFile(join(dir, "..", file), "utf-8"));
+    });
+  }
 
-  app.get("/llms-full.txt", async (_req, res) => {
-    const { readFile } = await import("fs/promises");
-    const { fileURLToPath } = await import("url");
-    const { dirname, join } = await import("path");
-    const dir = dirname(fileURLToPath(import.meta.url));
-    const content = await readFile(join(dir, "..", "llms-full.txt"), "utf-8");
-    res.type("text/plain").send(convertToolNames(content));
-  });
-
-  app.post("/mcp", async (req, res) => {
+  // Stateless per the 2026-07-28 spec: a fresh server per request, 2025-era clients served without sessions.
+  const mcp = toNodeHandler(
+    createMcpHandler(buildServer, { onerror: (err) => console.error("MCP handler error:", err) }),
+  );
+  app.all("/mcp", express.json(), (req, res) => {
     if (!validateOrigin(req, res)) return;
-    const sessionId = req.headers["mcp-session-id"] as string | undefined;
-    const existing = sessionId ? sessions.get(sessionId) : undefined;
-    if (existing) {
-      touchSession(sessionId!);
-      await existing.transport.handleRequest(req, res);
-    } else if (sessionId) {
-      res.status(404).send("Session not found");
-    } else {
-      const transport = await createSession();
-      try {
-        await transport.handleRequest(req, res);
-      } catch (err) {
-        if (!transport.sessionId || !sessions.has(transport.sessionId)) {
-          try {
-            transport.close();
-          } catch {
-            /* ignore */
-          }
-        }
-        throw err;
-      }
-    }
-  });
-
-  app.get("/mcp", async (req, res) => {
-    if (!validateOrigin(req, res)) return;
-    const sessionId = req.headers["mcp-session-id"] as string | undefined;
-    if (!sessionId || !sessions.has(sessionId)) {
-      res.status(400).send("Invalid or missing session ID");
-      return;
-    }
-    touchSession(sessionId);
-    await sessions.get(sessionId)!.transport.handleRequest(req, res);
-  });
-
-  app.delete("/mcp", async (req, res) => {
-    if (!validateOrigin(req, res)) return;
-    const sessionId = req.headers["mcp-session-id"] as string | undefined;
-    if (!sessionId || !sessions.has(sessionId)) {
-      res.status(400).send("Invalid or missing session ID");
-      return;
-    }
-    await sessions.get(sessionId)!.transport.handleRequest(req, res);
+    void mcp(req, res, req.body);
   });
 
   app.listen(port, () => {
     console.log(`Arcadia MCP server listening on port ${port}`);
   });
 } else {
-  const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
-  const server = createServer();
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  const { serveStdio } = await import("@modelcontextprotocol/server/stdio");
+  serveStdio(buildServer);
 }

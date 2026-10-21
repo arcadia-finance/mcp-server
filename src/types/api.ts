@@ -256,7 +256,7 @@ export interface AeroPositionItem {
     range_widened: boolean;
     tokens_flipped: boolean;
     /** How far, in bps, the pool's price may fall and rise before the mint's price check reverts. */
-    price_band_bps: { below: number; above: number };
+    price_band_bps?: { below: number; above: number };
   } | null;
   options: AeroPoolOption[];
   rewards: { token: string; amount: string; becomes: string | null } | null;

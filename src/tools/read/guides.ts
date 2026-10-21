@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { GuideOutput } from "../output-schemas.js";
 
 const TOPICS = {
@@ -45,7 +45,7 @@ export function registerGuideTools(server: McpServer) {
   }
 
   server.registerTool(
-    "read.guides",
+    "read_guides",
     {
       annotations: {
         title: "Get Guide",
@@ -56,14 +56,14 @@ export function registerGuideTools(server: McpServer) {
       },
       description:
         "Get Arcadia workflow guides and reference documentation. Call this before multi-step workflows (opening LP positions, enabling automation, closing positions) or when you need contract addresses, asset manager addresses, or strategy parameters. Topics: overview (addresses + tool catalog), automation (intent-based automation setup), strategies (step-by-step templates), selection (how to evaluate and parameterize strategies).",
-      inputSchema: {
+      inputSchema: z.object({
         topic: z
           .enum(TOPIC_KEYS)
           .optional()
           .describe(
             "overview = addresses + tool catalog, automation = intent-based automation setup, strategies = step-by-step LP templates, selection = pool evaluation + leverage sizing",
           ),
-      },
+      }),
       outputSchema: GuideOutput,
     },
     async ({ topic }) => {

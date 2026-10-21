@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { encodeFunctionData } from "viem";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { trancheAbi } from "../../../abis/index.js";
 import { appendDataSuffix } from "../../../utils/attribution.js";
@@ -9,7 +9,7 @@ import { SimpleTransactionOutput } from "../../output-schemas.js";
 
 export function registerPoolRedeemTool(server: McpServer, _chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "write.pool.redeem",
+    "write_pool_redeem",
     {
       annotations: {
         title: "Build Pool Redeem Transaction",
@@ -21,11 +21,11 @@ export function registerPoolRedeemTool(server: McpServer, _chains: Record<ChainI
       outputSchema: SimpleTransactionOutput,
       description:
         "Build an unsigned redeem transaction to withdraw from an Arcadia lending tranche (ERC-4626). Burns tranche shares and returns the corresponding amount of underlying asset, including accrued interest. The owner must be the shares holder; receiver is where the underlying asset is sent.",
-      inputSchema: {
+      inputSchema: z.object({
         tranche_address: z
           .string()
           .describe(
-            "Tranche contract address (ERC-4626 vault). Get this from read.pool.list — each pool's `tranches[0].address`.",
+            "Tranche contract address (ERC-4626 vault). Get this from read_pool_list: each pool's `tranches[0].address`.",
           ),
         shares: z
           .string()
@@ -41,7 +41,7 @@ export function registerPoolRedeemTool(server: McpServer, _chains: Record<ChainI
             "Address that owns the tranche shares being burned. Normally the signer's own wallet.",
           ),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async (params) => {
       try {

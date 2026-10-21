@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { encodeFunctionData, keccak256, concat, pad, toBytes, getAddress, slice } from "viem";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { factoryAbi } from "../../../abis/index.js";
 import { PROTOCOL } from "../../../config/addresses.js";
@@ -42,7 +42,7 @@ export function computeAccountAddress(
 
 export function registerCreateTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
-    "write.account.create",
+    "write_account_create",
     {
       annotations: {
         title: "Build Create Account Transaction",
@@ -54,7 +54,7 @@ export function registerCreateTool(server: McpServer, chains: Record<ChainId, Ch
       outputSchema: SimpleTransactionOutput,
       description:
         "Build an unsigned transaction to create a new Arcadia account via the Factory contract. account_version: 3 with creditor → V3 margin account (can borrow/leverage). account_version: 0 or 4 → V4 spot account (no borrowing, creditor is ignored, any ERC20 allowed). Returns the predicted account address (deterministic via CREATE2).",
-      inputSchema: {
+      inputSchema: z.object({
         salt: z.number().describe("Unique salt (uint32) for deterministic account address"),
         wallet_address: z
           .string()
@@ -74,7 +74,7 @@ export function registerCreateTool(server: McpServer, chains: Record<ChainId, Ch
             "Lending pool address for V3 margin account. Ignored for V4 spot accounts (version 0 or 4).",
           ),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
-      },
+      }),
     },
     async (params) => {
       try {

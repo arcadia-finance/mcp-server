@@ -32,7 +32,7 @@ describe("getPublicClient", () => {
 
   it("declares multicall3 on every supported chain", () => {
     // getChainContractAddress throws ChainDoesNotSupportContract when the entry is absent, which
-    // takes out every client.multicall() caller — read.wallet.balances, read.wallet.allowances and
+    // takes out every client.multicall() caller: read_wallet_balances, read_wallet_allowances and
     // the account metadata read — on that chain only.
     const configs = getChainConfigs();
     for (const id of SUPPORTED_CHAIN_IDS) {

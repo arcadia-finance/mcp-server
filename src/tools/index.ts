@@ -1,4 +1,4 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../clients/api.js";
 import type { ChainId, ChainConfig } from "../config/chains.js";
 import { registerAccountTools } from "./read/account.js";
