@@ -47,7 +47,7 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 
 **Batched write tools (`write_account_add_liquidity`, `write_account_close`, `write_account_deleverage`, `write_account_swap`, `write_account_remove_liquidity`, `write_account_stake`) return time-sensitive calldata**: sign and broadcast promptly; calldata may expire after 30 to 60 seconds depending on market conditions. If a transaction reverts due to price movement, rebuild and retry at least once before falling back to individual tools.
 
-## MCP Tools (34 + 1 dev)
+## MCP Tools (37 + 1 dev)
 
 ### Read Tools
 

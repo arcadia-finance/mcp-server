@@ -119,25 +119,28 @@ export function upgradeNextSteps(
   hasTransaction: boolean,
   tokensFlipped: boolean,
   positionsLeft: boolean,
+  movesPositions: boolean,
 ): string[] {
   const steps = hasTransaction
     ? [
-        `After the transaction confirms, call read_account_info for ${accountAddress}: every moved position now shows dex_protocol metadexcl_v1 (or staked_metadexcl_v1) with a new position id, and old AERO shows as the new AERO. Pass that transaction's block as min_block on any follow-up call.`,
+        `After the transaction confirms, call read_account_info for ${accountAddress}: every moved position now shows dex_protocol metadexcl_v1 (or staked_metadexcl_v1) with a new position id, and old AERO shows as the new AERO. On any later write_account_aero_upgrade call, pass that transaction's block as min_block.`,
       ]
     : [];
   if (choicesPending && hasTransaction) {
     steps.push(
-      `Only then call write_account_aero_upgrade again for ${accountAddress} with the user's picks in choices for the items whose status is choose.`,
+      `If the user signed this transaction to leave the choose positions behind for now, call write_account_aero_upgrade again for ${accountAddress} after it confirms, with their picks in choices, to move those too.`,
     );
   }
   const active = managers.filter((m) => m.initiator);
-  if (active.length > 0 && (hasTransaction || !positionsLeft)) {
+  if (active.length > 0 && (movesPositions || !positionsLeft)) {
     const kinds = [...new Set(active.map((m) => m.kind))].join(", ");
     steps.push(
-      `Reconnect automations (${kinds}): call write_account_automations (mode save) with ${accountAddress}, the new Aero position_id and the intents read from read_asset_manager_current before the move. Omit protocol so the backend resolves metadexcl_v1 from the position. Each Aero manager holds one config per account: when several old Slipstream managers of one kind had different settings, ask the user which to keep. Settings are recompiled from the intents, not copied, so restate any custom rebalance settings.` +
+      `${movesPositions ? "After the transaction confirms, reconnect" : "Reconnect"} automations (${kinds}): call write_account_automations (mode save) with ${accountAddress}, the new Aero position_id and the intents read from read_asset_manager_current before the move. Omit protocol so the backend resolves metadexcl_v1 from the position. Each Aero manager holds one config per account: when several old Slipstream managers of one kind had different settings, ask the user which to keep. Settings are recompiled from the intents, not copied, so restate any custom rebalance settings.` +
         (tokensFlipped
-          ? " A moved pair sorts the other way on Aero (tokens_flipped): swap token0 and token1 in the intents' token fields (tokens, convert_tokens, profit_token) and use 1e6 minus the token0 ratios, or leave that automation off and tell the user."
-          : "") +
+          ? " A moved pair sorts the other way on Aero (tokens_flipped): swap token0 and token1 in the intents' token fields (tokens, convert_tokens, profit_token), use 1e6 minus the token0 ratios and swap trigger_lower_tick_ratio with trigger_upper_tick_ratio, or leave that automation off and tell the user."
+          : movesPositions
+            ? ""
+            : " Compare token0 and token1 of the Aero position (read_account_info) with the old position's: when the order flipped, swap token0 and token1 in the intents' token fields, use 1e6 minus the token0 ratios and swap trigger_lower_tick_ratio with trigger_upper_tick_ratio.") +
         (oldManagersStillNeeded
           ? " A Slipstream position stays on this account, so keep its old managers: use write_account_automations_delta (enable) for the Aero position instead of a save that disables them."
           : " The save disables the old Slipstream managers in the same transaction."),
@@ -198,8 +201,13 @@ export function formatUpgradePlan(plan: AeroUpgradePlanResponse, chainId: number
           plan.old_managers_still_needed,
           plan.status === "choices_required",
           call !== undefined,
-          plan.items.some((i) => i.kind === "position" && i.target?.tokens_flipped === true),
+          plan.items.some(
+            (i) =>
+              i.kind === "position" && i.status === "ready" && i.target?.tokens_flipped === true,
+          ),
           plan.items.some((i) => i.kind === "position"),
+          call !== undefined &&
+            plan.items.some((i) => i.kind === "position" && i.status === "ready"),
         ),
   };
 }

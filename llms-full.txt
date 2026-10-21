@@ -358,7 +358,7 @@ Parameters:
 
 Upgrade one Arcadia account to Aero (MetadexCL V1) in one flashAction: every Slipstream V1/V2/V3 position (staked or not) moves to the Aero CL pool with the same pair and variant at the same range and tick spacing (when Aero has no pool at that tick spacing, the user picks another one), and every unit of old AERO (loose, in rewards, in an old-AERO pair) becomes the new AERO. Returns the plan (`items[]` with `status` and `reason`, `managers_to_reconnect`, `old_managers_still_needed`, `tenderly_sim_status`) and, when anything can go now, the unsigned `transaction` with its `gas`. The backend decides what moves; report statuses and reasons as given.
 
-- `status` ready: sign the transaction. `choices_required`: a position has status `choose` with `options[]` (every Aero pool on its pair with `apy`, `tvl_usd`, `is_new`, `tick_spacing`, `range_widened`, `default`, `disabled_reason`); pick one whose `disabled_reason` is null and call again with `choices`. A `transaction` returned with `choices_required` moves only the ready items, and the choose items stay where they are until the call with `choices`. Once that transaction is signed, a call made before it confirms is built on the old state, so wait for the confirmation before calling again. Without a `transaction` there is nothing to sign yet. `waiting`: nothing can move yet, see each item's `reason` (for example `pool_not_on_aero`, `target_price_mismatch`, `account_unhealthy`, `exposure_limit`). `not_open`: the AERO upgrade opens at `opens_at`.
+- `status` ready: sign the transaction. `choices_required`: a position has status `choose` with `options[]` (every Aero pool on its pair with `apy`, `tvl_usd`, `is_new`, `tick_spacing`, `range_widened`, `default`, `disabled_reason`); ask the user to pick one whose `disabled_reason` is null and call again with `choices`, so one transaction moves everything. A `transaction` returned with `choices_required` moves only the ready items: sign it alone only when the user wants to leave the choose positions where they are. `waiting`: see each item's `reason` (for example `pool_not_on_aero`, `target_price_mismatch`, `account_unhealthy`, `exposure_limit`); a waiting item with an option whose `disabled_reason` is null can still move with that pick. `not_open`: the AERO upgrade contract does not accept deposits at the moment.
 - When the transaction's simulation fails, the tool returns an error and no transaction. A plan without a transaction can still show `tenderly_sim_status` failure: the account's health or a lending pool limit refused the move and the items wait on `account_unhealthy` or `exposure_limit`. Report those reasons and do not rebuild.
 - Pass `accounts` (up to 10) instead of `account_address` for one plan per account (`results[]`). `multisends` groups the accounts that got a transaction, in order: a Safe signs one MultiSend per group, each below `max_gas_per_tx`.
 - After it confirms, reconnect `managers_to_reconnect` with write_account_automations (or write_account_automations_delta when `old_managers_still_needed`) and verify with read_account_info.
@@ -368,9 +368,10 @@ Spot and margin accounts can hold Aero positions, staked or not, on Base, Optimi
 Parameters:
 - `account_address` (string): the account to upgrade; pass this or `accounts`
 - `accounts` (string[], 1 to 10): one plan and transaction per account
-- `choices` (object[], optional): `{position_manager, position_id, pool}` per position with status choose
+- `choices` (object[], optional): `{position_manager, position_id, pool}` per position with status choose, or waiting with a selectable option
 - `slippage` (number, optional, 1 to 1000): price band in bps; default 150, or 500 when the owner is a contract
-- `chain_id` (number, default: 8453): 8453 (Base) or 10 (Optimism)
+- `min_block` (number, optional): block of the transaction you just confirmed, so the plan reads state at or after it
+- `chain_id` (number, default: 8453): 8453 (Base), 10 (Optimism) or 4663 (Robinhood, nothing to upgrade)
 
 ### write_account_close
 

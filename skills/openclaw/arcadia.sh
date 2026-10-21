@@ -33,14 +33,21 @@ META='{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextpr
 
 # POST one request; the body is plain JSON or a single SSE data: line.
 mcp_post() {
-  local method="$1" name="$2" payload="$3"
-  curl -sf -X POST "$MCP_URL" \
+  local method="$1" name="$2" payload="$3" body json message
+  body=$(curl -sf -X POST "$MCP_URL" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json, text/event-stream" \
     -H "Mcp-Protocol-Version: 2026-07-28" \
     -H "Mcp-Method: $method" \
     ${name:+-H "Mcp-Name: $name"} \
-    -d "$payload" | sed -n 's/^data: //p; /^{/p' | head -1
+    -d "$payload") || { echo "ERROR: request to $MCP_URL failed" >&2; return 1; }
+  json=$(printf '%s\n' "$body" | sed -n 's/^data: //p; /^{/p' | head -1)
+  message=$(jq -r '.error.message // empty' <<<"$json")
+  if [[ -n "$message" ]]; then
+    echo "ERROR: $message" >&2
+    return 1
+  fi
+  printf '%s\n' "$json"
 }
 
 if [[ "$TOOL_NAME" == "--list" ]]; then

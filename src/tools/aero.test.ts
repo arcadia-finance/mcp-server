@@ -282,6 +282,25 @@ describe("write_account_aero_upgrade: one account", () => {
     expect(steps).not.toContain("claimer");
   });
 
+  it("does not suggest reconnecting when the transaction only converts old AERO", async () => {
+    const api = {
+      getAeroUpgradePlan: vi.fn(async () =>
+        plan({
+          old_managers_still_needed: true,
+          items: [
+            positionItem({ status: "waiting", reason: { code: "staking_not_open", message: "x" } }),
+            { kind: "token", id: "old_aero", status: "ready", amount: "5", becomes: NEW_AERO },
+          ],
+        }),
+      ),
+    };
+    const data = parseToolResponse(
+      await writeTool(api)({ account_address: TEST_ACCOUNT, chain_id: 8453 }),
+    );
+    expect(data.transaction.to).toBe(TEST_ACCOUNT);
+    expect(data.next_steps.join(" ")).not.toContain("write_account_automations");
+  });
+
   it("tells the agent to translate token-relative intents on a flipped pair", async () => {
     const api = {
       getAeroUpgradePlan: vi.fn(async () =>
