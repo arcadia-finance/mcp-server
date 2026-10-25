@@ -77,6 +77,66 @@ function describePriceCheck(check: PriceCheck, tokenSymbols: Map<string, string>
   return parts.join(" ");
 }
 
+const PriceCheckAcknowledgement = z.discriminatedUnion("status", [
+  z.object({
+    pool: z.string(),
+    status: z.literal("off_market"),
+    deviation_bps: z.number(),
+    unpriced_token: z.null(),
+  }),
+  z.object({
+    pool: z.string(),
+    status: z.literal("unpriced"),
+    deviation_bps: z.null(),
+    unpriced_token: z.string(),
+  }),
+]);
+
+type PriceCheckAcknowledgement = z.infer<typeof PriceCheckAcknowledgement>;
+
+function acknowledgementFor(check: PriceCheck): PriceCheckAcknowledgement {
+  if (check.status === "off_market") {
+    if (typeof check.deviation_bps !== "number") {
+      throw new Error(
+        `Malformed price check for pool ${check.pool}: off_market without deviation_bps.`,
+      );
+    }
+    return {
+      pool: check.pool,
+      status: "off_market",
+      deviation_bps: check.deviation_bps,
+      unpriced_token: null,
+    };
+  }
+  if (!check.unpriced_token) {
+    throw new Error(
+      `Malformed price check for pool ${check.pool}: unpriced without unpriced_token.`,
+    );
+  }
+  return {
+    pool: check.pool,
+    status: "unpriced",
+    deviation_bps: null,
+    unpriced_token: check.unpriced_token,
+  };
+}
+
+function isCovered(
+  flagged: PriceCheckAcknowledgement,
+  accepted: PriceCheckAcknowledgement[],
+): boolean {
+  return accepted.some((a) => {
+    if (a.pool.toLowerCase() !== flagged.pool.toLowerCase()) return false;
+    if (a.status === "off_market" && flagged.status === "off_market") {
+      return Math.abs(flagged.deviation_bps) <= Math.abs(a.deviation_bps);
+    }
+    if (a.status === "unpriced" && flagged.status === "unpriced") {
+      return a.unpriced_token.toLowerCase() === flagged.unpriced_token.toLowerCase();
+    }
+    return false;
+  });
+}
+
 function formatTokenAmount(value: bigint, decimals: number, maxFrac = 8): string {
   const str = value.toString().padStart(decimals + 1, "0");
   const whole = str.slice(0, -decimals);
@@ -101,7 +161,7 @@ export function registerAddLiquidityTool(
       },
       outputSchema: BatchedTransactionOutput,
       description:
-        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call write_account_deposit separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (read_wallet_allowances), then approve if needed (write_wallet_approve). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call read_guides('strategies'). The returned calldata is time-sensitive: sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation. expected_value_change is in raw units of the account's numeraire token (6 decimals for USDC, 18 for WETH). Negative = cost to open, positive = value gained. Compare before.total_account_value and after.total_account_value for the full picture. If a pool's price is off market or one of its tokens has no price, the tool returns the price warnings and NO transaction. Show the warnings to the user and call again with accept_price_risk=true only after the user explicitly confirms they accept them. The acknowledgement never bypasses a backend refusal.",
+        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call write_account_deposit separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (read_wallet_allowances), then approve if needed (write_wallet_approve). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call read_guides('strategies'). The returned calldata is time-sensitive: sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up), passing only the accept_price_checks the user already confirmed. Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation. expected_value_change is in raw units of the account's numeraire token (6 decimals for USDC, 18 for WETH). Negative = cost to open, positive = value gained. Compare before.total_account_value and after.total_account_value for the full picture. If a pool's price is off market or one of its tokens has no price, the tool returns the price warnings, an accept_price_checks list and NO transaction. Show the warnings to the user and call again with that accept_price_checks list only after the user explicitly confirms they accept them. If a later call returns new warnings, even on a rebuild, show them and get a new confirmation before passing their list. The acknowledgement never bypasses a backend refusal.",
       inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         wallet_address: z.string().describe("Wallet address of the account owner"),
@@ -150,11 +210,11 @@ export function registerAddLiquidityTool(
           .default(0)
           .describe("0 = no borrow, 2 = 2x leverage. Margin accounts only."),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
-        accept_price_risk: z
-          .boolean()
+        accept_price_checks: z
+          .array(PriceCheckAcknowledgement)
           .optional()
           .describe(
-            "Set true only after the user has explicitly confirmed the price warnings returned by a previous call. Never set it on the first call.",
+            "The accept_price_checks list returned with the price warnings of a previous call, passed unchanged and only after the user has explicitly confirmed those warnings. Never set it on the first call.",
           ),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       }),
@@ -167,7 +227,7 @@ export function registerAddLiquidityTool(
       use_account_assets,
       leverage,
       slippage,
-      accept_price_risk,
+      accept_price_checks,
       chain_id,
     }) => {
       try {
@@ -446,6 +506,7 @@ export function registerAddLiquidityTool(
         const priceChecks = (res.price_checks ?? []) as PriceCheck[];
         const flagged = priceChecks.filter((c) => c.status !== "ok");
         const warnings = flagged.map((c) => describePriceCheck(c, tokenSymbols));
+        const acknowledgements = flagged.map(acknowledgementFor);
         const warningText = warnings.length > 0 ? `\nPrice warnings:\n${warnings.join("\n")}` : "";
 
         // Surface simulation failure — do NOT return calldata
@@ -467,12 +528,16 @@ export function registerAddLiquidityTool(
           };
         }
 
-        if (flagged.length > 0 && !accept_price_risk) {
+        const uncovered = acknowledgements.filter((a) => !isCovered(a, accept_price_checks ?? []));
+        if (uncovered.length > 0) {
+          const changed = accept_price_checks
+            ? " The price checks changed since the user confirmed them."
+            : "";
           return {
             content: [
               {
                 type: "text" as const,
-                text: `Error: Price warnings, no transaction returned. Show these warnings to the user. Call again with accept_price_risk=true only after the user explicitly confirms they accept them.${warningText}`,
+                text: `Error: Price warnings, no transaction returned.${changed} Show these warnings to the user. Call again with accept_price_checks set to the list below only after the user explicitly confirms they accept them.${warningText}\naccept_price_checks: ${JSON.stringify(acknowledgements)}`,
               },
             ],
             isError: true,

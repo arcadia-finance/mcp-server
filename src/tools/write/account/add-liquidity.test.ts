@@ -43,6 +43,27 @@ const UNPRICED_CHECK = {
   swap_spend_usd: 500,
 };
 
+const POOL_B = "0x2222222222222222222222222222222222222222";
+
+const OFF_MARKET_ACK = {
+  pool: POOL,
+  status: "off_market",
+  deviation_bps: -1870,
+  unpriced_token: null,
+};
+
+const UNPRICED_ACK = {
+  pool: POOL,
+  status: "unpriced",
+  deviation_bps: null,
+  unpriced_token: BRK,
+};
+
+function returnedAcknowledgements(text: string) {
+  const marker = "accept_price_checks: ";
+  return JSON.parse(text.slice(text.lastIndexOf(marker) + marker.length));
+}
+
 function bundle(overrides?: Record<string, unknown>) {
   return {
     calldata: "0xabcdef1234567890",
@@ -121,7 +142,8 @@ describe("write_account_add_liquidity price checks", () => {
     const text = result.content[0].text;
     expect(result.isError).toBe(true);
     expect(text).toContain("18.7%");
-    expect(text).toContain("accept_price_risk");
+    expect(returnedAcknowledgements(text)).toEqual([OFF_MARKET_ACK]);
+    expect(text).not.toContain("changed since");
     expect(text).not.toContain("0xabcdef1234567890");
     expect(result.structuredContent).toBeUndefined();
   });
@@ -143,6 +165,7 @@ describe("write_account_add_liquidity price checks", () => {
     expect(text).not.toContain(`no price information for ${BRK}`);
     expect(text).toContain("implies a price of 0.42 USD");
     expect(text).toContain("swaps about 500 USD");
+    expect(returnedAcknowledgements(text)).toEqual([UNPRICED_ACK]);
     expect(text).not.toContain("0xabcdef1234567890");
   });
 
@@ -164,9 +187,18 @@ describe("write_account_add_liquidity price checks", () => {
     expect(result.content[0].text).toContain("Malformed price check");
   });
 
-  it("returns the transaction with price_checks when accept_price_risk is true", async () => {
+  it("treats an unpriced entry without unpriced_token as malformed", async () => {
+    const { handler } = setup(
+      bundle({ price_checks: [{ ...UNPRICED_CHECK, unpriced_token: null }] }),
+    );
+    const result = await handler(baseArgs);
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Malformed price check");
+  });
+
+  it("returns the transaction with price_checks when the flagged entries are accepted", async () => {
     const { handler } = setup(bundle({ price_checks: [OFF_MARKET_CHECK] }));
-    const result = await handler({ ...baseArgs, accept_price_risk: true });
+    const result = await handler({ ...baseArgs, accept_price_checks: [OFF_MARKET_ACK] });
     expect(result.isError).toBeUndefined();
     const data = parseToolResponse(result);
     expect(data.transaction.data).toMatch(/^0x[0-9a-fA-F]+$/);
@@ -183,7 +215,7 @@ describe("write_account_add_liquidity price checks", () => {
         total_value_out: null,
       }),
     );
-    const result = await handler({ ...baseArgs, accept_price_risk: true });
+    const result = await handler({ ...baseArgs, accept_price_checks: [UNPRICED_ACK] });
     const data = parseToolResponse(result);
     expect(data.transaction).toBeDefined();
     expect(data.expected_value_change).toBeUndefined();
@@ -196,9 +228,9 @@ describe("write_account_add_liquidity price checks", () => {
       tenderly_sim_status: false,
       tenderly_sim_error: "execution reverted",
     });
-    for (const accept of [undefined, true]) {
+    for (const accept of [undefined, [OFF_MARKET_ACK]]) {
       const { handler } = setup(failed);
-      const result = await handler({ ...baseArgs, accept_price_risk: accept });
+      const result = await handler({ ...baseArgs, accept_price_checks: accept });
       const text = result.content[0].text;
       expect(result.isError).toBe(true);
       expect(text).toContain("simulation FAILED");
@@ -215,7 +247,7 @@ describe("write_account_add_liquidity price checks", () => {
     const result = await handler(baseArgs);
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain("simulation FAILED");
-    expect(result.content[0].text).not.toContain("accept_price_risk");
+    expect(result.content[0].text).not.toContain("accept_price_checks");
   });
 
   function setupBackendError(status: number, body: string) {
@@ -238,7 +270,7 @@ describe("write_account_add_liquidity price checks", () => {
       }),
     );
     try {
-      const result = await handler({ ...baseArgs, accept_price_risk: true });
+      const result = await handler({ ...baseArgs, accept_price_checks: [OFF_MARKET_ACK] });
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toBe("Error: This pool has no usable liquidity.");
     } finally {
@@ -275,8 +307,8 @@ describe("write_account_add_liquidity price checks", () => {
     const { handler } = setup(
       bundle({ price_checks: [{ ...OFF_MARKET_CHECK, deviation_bps: null }] }),
     );
-    for (const accept of [undefined, true]) {
-      const result = await handler({ ...baseArgs, accept_price_risk: accept });
+    for (const accept of [undefined, [OFF_MARKET_ACK]]) {
+      const result = await handler({ ...baseArgs, accept_price_checks: accept });
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain("Malformed price check");
       expect(result.content[0].text).not.toContain("0xabcdef1234567890");
@@ -294,5 +326,132 @@ describe("write_account_add_liquidity price checks", () => {
     const data = parseToolResponse(await handler(baseArgs));
     expect(data.transaction).toBeDefined();
     expect(data.expected_value_change_unavailable).toBeUndefined();
+  });
+
+  describe("acknowledgement binding", () => {
+    function registeredConfig() {
+      const mock = createMockServer();
+      registerAddLiquidityTool(mock.server, mockApi() as never, createMockChains());
+      return vi.mocked(mock.server.registerTool).mock.calls[0][1] as unknown as {
+        description: string;
+        inputSchema: { safeParse: (v: unknown) => { success: boolean } };
+      };
+    }
+
+    it("tells the agent to pass the returned list only after a new confirmation", () => {
+      const { description } = registeredConfig();
+      expect(description).toContain("accept_price_checks");
+      expect(description).not.toContain("accept_price_risk");
+      expect(description).toContain(
+        "passing only the accept_price_checks the user already confirmed",
+      );
+      expect(description).toContain("get a new confirmation");
+    });
+
+    it("accepts the returned list shape and rejects a boolean or malformed entries", () => {
+      const { inputSchema } = registeredConfig();
+      const parse = (accept: unknown) =>
+        inputSchema.safeParse({ ...baseArgs, accept_price_checks: accept }).success;
+      expect(parse([OFF_MARKET_ACK, UNPRICED_ACK])).toBe(true);
+      expect(parse(true)).toBe(false);
+      expect(parse([{ ...OFF_MARKET_ACK, deviation_bps: null }])).toBe(false);
+      expect(parse([{ ...UNPRICED_ACK, unpriced_token: null }])).toBe(false);
+      expect(parse([{ ...OFF_MARKET_ACK, status: "ok" }])).toBe(false);
+    });
+
+    function expectNewWarnings(
+      result: Awaited<ReturnType<ReturnType<typeof setup>["handler"]>>,
+      acknowledgements: unknown[],
+    ) {
+      const text = result.content[0].text;
+      expect(result.isError).toBe(true);
+      expect(text).toContain("changed since the user confirmed");
+      expect(returnedAcknowledgements(text)).toEqual(acknowledgements);
+      expect(text).not.toContain("0xabcdef1234567890");
+      expect(result.structuredContent).toBeUndefined();
+    }
+
+    it("returns new warnings when the deviation grows past the accepted value", async () => {
+      const grown = { ...OFF_MARKET_CHECK, deviation_bps: -2500 };
+      const { handler } = setup(bundle({ price_checks: [grown] }));
+      const result = await handler({ ...baseArgs, accept_price_checks: [OFF_MARKET_ACK] });
+      expectNewWarnings(result, [{ ...OFF_MARKET_ACK, deviation_bps: -2500 }]);
+      expect(result.content[0].text).toContain("25%");
+    });
+
+    it("compares the absolute deviation, so a flipped sign of larger size is not covered", async () => {
+      const flipped = { ...OFF_MARKET_CHECK, deviation_bps: 1900 };
+      const { handler } = setup(bundle({ price_checks: [flipped] }));
+      const result = await handler({ ...baseArgs, accept_price_checks: [OFF_MARKET_ACK] });
+      expectNewWarnings(result, [{ ...OFF_MARKET_ACK, deviation_bps: 1900 }]);
+    });
+
+    it("returns the transaction when the deviation is smaller than accepted", async () => {
+      const smaller = { ...OFF_MARKET_CHECK, deviation_bps: 900 };
+      const { handler } = setup(bundle({ price_checks: [smaller] }));
+      const result = await handler({ ...baseArgs, accept_price_checks: [OFF_MARKET_ACK] });
+      expect(result.isError).toBeUndefined();
+      expect(parseToolResponse(result).transaction.data).toMatch(/^0x[0-9a-fA-F]+$/);
+    });
+
+    it("returns new warnings for a newly flagged pool", async () => {
+      const second = { ...OFF_MARKET_CHECK, pool: POOL_B, deviation_bps: 500 };
+      const { handler } = setup(bundle({ price_checks: [OFF_MARKET_CHECK, second] }));
+      const result = await handler({ ...baseArgs, accept_price_checks: [OFF_MARKET_ACK] });
+      expectNewWarnings(result, [
+        OFF_MARKET_ACK,
+        { ...OFF_MARKET_ACK, pool: POOL_B, deviation_bps: 500 },
+      ]);
+      expect(result.content[0].text).toContain(POOL_B);
+    });
+
+    it("returns new warnings when a pool moves from off_market to unpriced", async () => {
+      const { handler } = setup(bundle({ price_checks: [UNPRICED_CHECK] }));
+      const result = await handler({ ...baseArgs, accept_price_checks: [OFF_MARKET_ACK] });
+      expectNewWarnings(result, [UNPRICED_ACK]);
+      expect(result.content[0].text).toContain("no price information for BRK.Bc");
+    });
+
+    it("returns new warnings when a different token is unpriced", async () => {
+      const { handler } = setup(
+        bundle({
+          price_checks: [{ ...UNPRICED_CHECK, unpriced_token: USDC, unpriced_token_name: "USDC" }],
+        }),
+      );
+      const result = await handler({ ...baseArgs, accept_price_checks: [UNPRICED_ACK] });
+      expectNewWarnings(result, [{ ...UNPRICED_ACK, unpriced_token: USDC }]);
+    });
+
+    it("returns the transaction when every flagged entry is covered", async () => {
+      const unpricedB = { ...UNPRICED_CHECK, pool: POOL_B };
+      const { handler } = setup(bundle({ price_checks: [OK_CHECK, OFF_MARKET_CHECK, unpricedB] }));
+      const result = await handler({
+        ...baseArgs,
+        accept_price_checks: [
+          { ...UNPRICED_ACK, pool: POOL_B.toUpperCase().replace("0X", "0x") },
+          OFF_MARKET_ACK,
+        ],
+      });
+      expect(result.isError).toBeUndefined();
+      const data = parseToolResponse(result);
+      expect(data.transaction.data).toMatch(/^0x[0-9a-fA-F]+$/);
+      expect(data.price_checks).toEqual([OK_CHECK, OFF_MARKET_CHECK, unpricedB]);
+    });
+
+    it("returns the transaction for a healthy bundle even with a stale acknowledgement", async () => {
+      const { handler } = setup(bundle({ price_checks: [OK_CHECK] }));
+      const result = await handler({ ...baseArgs, accept_price_checks: [OFF_MARKET_ACK] });
+      expect(result.isError).toBeUndefined();
+      expect(parseToolResponse(result).transaction).toBeDefined();
+    });
+
+    it("re-quotes on every call and returns the warnings again for the returned list", async () => {
+      const { handler } = setup(bundle({ price_checks: [OFF_MARKET_CHECK] }));
+      const first = await handler(baseArgs);
+      const shown = returnedAcknowledgements(first.content[0].text);
+      const confirmed = await handler({ ...baseArgs, accept_price_checks: shown });
+      expect(confirmed.isError).toBeUndefined();
+      expect(parseToolResponse(confirmed).transaction).toBeDefined();
+    });
   });
 });

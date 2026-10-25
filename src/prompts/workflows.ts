@@ -73,7 +73,7 @@ export function registerWorkflowPrompts(server: McpServer) {
               "",
               "Recommend the top 1-3 strategies with reasoning.",
               "",
-              "When the user wants to open a position, call write_account_add_liquidity. If it returns price_checks warnings (pool price off market, or a token with no price) it returns no transaction: show every warning to the user and call again with accept_price_risk: true only after the user explicitly confirms they accept them. Never set accept_price_risk on the first call or without that confirmation.",
+              "When the user wants to open a position, call write_account_add_liquidity. If it returns price_checks warnings (pool price off market, or a token with no price) it returns no transaction: show every warning to the user and call again with the returned accept_price_checks list only after the user explicitly confirms they accept them. Never set accept_price_checks on the first call or without that confirmation. When rebuilding after a revert, pass only the list the user already confirmed; if the rebuild returns new warnings, show them and get a new confirmation before passing their list.",
             ].join("\n"),
           },
         },
