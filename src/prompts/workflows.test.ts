@@ -91,4 +91,14 @@ describe("workflow prompts", () => {
     const result = await prompt.callback({ account_address: "0xabc" });
     expect(result.messages[0].content.text).toContain("8453");
   });
+
+  it("find-yield-strategy requires explicit user confirmation before accept_price_risk", async () => {
+    const prompts = setup();
+    const prompt = prompts.find((p) => p.name === "find-yield-strategy")!;
+    const text = (await prompt.callback({})).messages[0].content.text;
+    expect(text).toContain("write_account_add_liquidity");
+    expect(text).toContain("price_checks");
+    expect(text).toContain("accept_price_risk");
+    expect(text).toContain("explicitly confirms");
+  });
 });

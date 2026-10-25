@@ -73,13 +73,14 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
         const all = await api.getStrategies(chain_id);
         const list = Array.isArray(all) ? all : (all as Record<string, unknown>).data;
         if (Array.isArray(list)) {
-          total = list.length;
+          const visible = (list as Record<string, unknown>[]).filter((s) => {
+            const priceStatus = (s.details as Record<string, unknown> | undefined)?.price_status;
+            return priceStatus !== "off_market" && priceStatus !== "unpriced";
+          });
+          total = visible.length;
           const effectiveOffset = offset ?? 0;
           const effectiveLimit = limit ?? 25;
-          const page = (list as Record<string, unknown>[]).slice(
-            effectiveOffset,
-            effectiveOffset + effectiveLimit,
-          );
+          const page = visible.slice(effectiveOffset, effectiveOffset + effectiveLimit);
           strategies = page.map((s) => ({
             strategy_id: s.strategy_id,
             name: s.strategy_name,

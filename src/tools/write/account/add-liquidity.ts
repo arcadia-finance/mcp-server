@@ -1,12 +1,13 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
-import type { ArcadiaApiClient } from "../../../clients/api.js";
+import { ArcadiaApiError, type ArcadiaApiClient } from "../../../clients/api.js";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../../config/chains.js";
 import { getPublicClient } from "../../../clients/chain.js";
 import { readAccountMetadata } from "./metadata.js";
 import { formatBatchedResponse, isSimulationFailed } from "./format-response.js";
 import { TOKENS } from "../../../config/addresses.js";
 import { validateAddress, validateChainId } from "../../../utils/validation.js";
+import type { PriceCheck } from "../../../types/api.js";
 import { BatchedTransactionOutput } from "../../output-schemas.js";
 
 interface StrategyUnderlying {
@@ -34,6 +35,48 @@ interface AccountAsset {
   amount: string;
 }
 
+function formatUsd(value: number): string {
+  const digits =
+    Math.abs(value) >= 1 ? { maximumFractionDigits: 2 } : { maximumSignificantDigits: 4 };
+  return `${value.toLocaleString("en-US", digits)} USD`;
+}
+
+function refusalMessage(err: unknown): string | undefined {
+  if (!(err instanceof ArcadiaApiError) || err.status !== 400) return undefined;
+  const body = err.body;
+  if (body === null || typeof body !== "object") return undefined;
+  const message = (body as Record<string, unknown>).message;
+  return typeof message === "string" ? message : undefined;
+}
+
+function describePriceCheck(check: PriceCheck, tokenSymbols: Map<string, string>): string {
+  const name = (addr: string) => tokenSymbols.get(addr.toLowerCase()) ?? addr;
+  if (check.status === "off_market") {
+    if (typeof check.deviation_bps !== "number") {
+      throw new Error(
+        `Malformed price check for pool ${check.pool}: off_market without deviation_bps.`,
+      );
+    }
+    const pct = Math.abs(check.deviation_bps) / 100;
+    return `Pool ${check.pool} (${name(check.token0)}/${name(check.token1)}): pool price is ${pct}% off market.`;
+  }
+  if (!check.unpriced_token_name) {
+    throw new Error(
+      `Malformed price check for pool ${check.pool}: unpriced without unpriced_token_name.`,
+    );
+  }
+  const parts = [
+    `Pool ${check.pool} (${name(check.token0)}/${name(check.token1)}): no price information for ${check.unpriced_token_name}, so the pool price cannot be verified.`,
+  ];
+  if (check.implied_usd_price != null) {
+    parts.push(`The pool implies a price of ${formatUsd(check.implied_usd_price)}.`);
+  }
+  if (check.swap_spend_usd != null) {
+    parts.push(`The position swaps about ${formatUsd(check.swap_spend_usd)} at that price.`);
+  }
+  return parts.join(" ");
+}
+
 function formatTokenAmount(value: bigint, decimals: number, maxFrac = 8): string {
   const str = value.toString().padStart(decimals + 1, "0");
   const whole = str.slice(0, -decimals);
@@ -58,7 +101,7 @@ export function registerAddLiquidityTool(
       },
       outputSchema: BatchedTransactionOutput,
       description:
-        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call write_account_deposit separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (read_wallet_allowances), then approve if needed (write_wallet_approve). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call read_guides('strategies'). The returned calldata is time-sensitive: sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation. expected_value_change is in raw units of the account's numeraire token (6 decimals for USDC, 18 for WETH). Negative = cost to open, positive = value gained. Compare before.total_account_value and after.total_account_value for the full picture.",
+        "Multi-step flash-action: atomically combines [deposit from wallet] + [use account collateral] + [swap to optimal ratio] + [mint LP] + [borrow if leveraged] in ONE transaction. Do NOT call write_account_deposit separately. Capital sources: wallet tokens (deposits array), existing account collateral (use_account_assets=true), or both. Check allowances first (read_wallet_allowances), then approve if needed (write_wallet_approve). Supports depositing multiple tokens and minting multiple LP positions in one tx. Works with both margin accounts (can leverage) and spot accounts (no leverage). For workflows, call read_guides('strategies'). The returned calldata is time-sensitive: sign and broadcast within 30 seconds. If the transaction reverts due to price movement, rebuild and sign again immediately (retry at least once before giving up). Response includes tenderly_sim_url and tenderly_sim_status for pre-broadcast validation. expected_value_change is in raw units of the account's numeraire token (6 decimals for USDC, 18 for WETH). Negative = cost to open, positive = value gained. Compare before.total_account_value and after.total_account_value for the full picture. If a pool's price is off market or one of its tokens has no price, the tool returns the price warnings and NO transaction. Show the warnings to the user and call again with accept_price_risk=true only after the user explicitly confirms they accept them. The acknowledgement never bypasses a backend refusal.",
       inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
         wallet_address: z.string().describe("Wallet address of the account owner"),
@@ -107,6 +150,12 @@ export function registerAddLiquidityTool(
           .default(0)
           .describe("0 = no borrow, 2 = 2x leverage. Margin accounts only."),
         slippage: z.number().optional().default(100).describe("Basis points, 100 = 1%"),
+        accept_price_risk: z
+          .boolean()
+          .optional()
+          .describe(
+            "Set true only after the user has explicitly confirmed the price warnings returned by a previous call. Never set it on the first call.",
+          ),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       }),
     },
@@ -118,6 +167,7 @@ export function registerAddLiquidityTool(
       use_account_assets,
       leverage,
       slippage,
+      accept_price_risk,
       chain_id,
     }) => {
       try {
@@ -388,9 +438,15 @@ export function registerAddLiquidityTool(
           version,
           action_type: "portfolio.advanced",
           slippage: slippage ?? 100,
+          price_checks_supported: true,
         };
         const result = await api.getBundleCalldata(body);
         const res = result as unknown as Record<string, unknown>;
+
+        const priceChecks = (res.price_checks ?? []) as PriceCheck[];
+        const flagged = priceChecks.filter((c) => c.status !== "ok");
+        const warnings = flagged.map((c) => describePriceCheck(c, tokenSymbols));
+        const warningText = warnings.length > 0 ? `\nPrice warnings:\n${warnings.join("\n")}` : "";
 
         // Surface simulation failure — do NOT return calldata
         if (isSimulationFailed(res.tenderly_sim_status)) {
@@ -404,13 +460,35 @@ export function registerAddLiquidityTool(
             content: [
               {
                 type: "text" as const,
-                text: `Error: Transaction simulation FAILED — do NOT broadcast.${simError}\nCommon causes: insufficient wallet balance, missing token approval, or deposit below minimum margin.${simUrl}`,
+                text: `Error: Transaction simulation FAILED. Do NOT broadcast.${simError}\nCommon causes: insufficient wallet balance, missing token approval, or deposit below minimum margin.${simUrl}${warningText}`,
               },
             ],
             isError: true,
           };
         }
+
+        if (flagged.length > 0 && !accept_price_risk) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Error: Price warnings, no transaction returned. Show these warnings to the user. Call again with accept_price_risk=true only after the user explicitly confirms they accept them.${warningText}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+
         const response = formatBatchedResponse(res, chain_id, "Add liquidity to LP position");
+        if (priceChecks.length > 0) response.price_checks = priceChecks;
+        if (
+          priceChecks.some((c) => c.status === "unpriced") &&
+          res.expected_change_status === false &&
+          res.expected_value_change == null
+        ) {
+          response.expected_value_change_unavailable =
+            "No price information for a token, so the value change cannot be computed.";
+        }
         return {
           content: [
             {
@@ -425,7 +503,7 @@ export function registerAddLiquidityTool(
           content: [
             {
               type: "text" as const,
-              text: `Error: ${err instanceof Error ? err.message : String(err)}`,
+              text: `Error: ${refusalMessage(err) ?? (err instanceof Error ? err.message : String(err))}`,
             },
           ],
           isError: true,

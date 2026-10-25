@@ -19,6 +19,8 @@ export const BatchedTransactionOutput = z.object({
   tenderly_sim_url: z.string().optional(),
   tenderly_sim_status: z.enum(["success", "failure", "unavailable"]).optional(),
   expected_value_change: z.string().optional(),
+  expected_value_change_unavailable: z.string().optional(),
+  price_checks: z.array(z.object({ pool: z.string(), status: z.string() }).loose()).optional(),
   before: z.object({ total_account_value: z.string(), used_margin: z.string() }).loose().optional(),
   after: z.object({ total_account_value: z.string(), used_margin: z.string() }).loose().optional(),
 });
