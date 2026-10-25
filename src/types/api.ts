@@ -45,6 +45,20 @@ export interface BundleCalldataRequest {
   version: number;
   action_type: string;
   slippage: number;
+  price_checks_supported?: boolean;
+}
+
+export interface PriceCheck {
+  pool: string;
+  token0: string;
+  token1: string;
+  status: "ok" | "off_market" | "unpriced";
+  deviation_bps: number | null;
+  unpriced_token: string | null;
+  unpriced_token_name: string | null;
+  implied_usd_price: number | null;
+  swap_spend_raw: string | null;
+  swap_spend_usd: number | null;
 }
 
 // ── Automations ────────────────────────────────────────────────────
@@ -170,16 +184,17 @@ export interface BundleCalldataResponse {
     outputs: unknown[];
   };
   show_expected_change?: boolean;
-  expected_value_change?: number;
+  expected_value_change?: number | null;
   expected_change_status?: boolean;
+  price_checks?: PriceCheck[];
   tenderly_sim_url?: string;
   tenderly_sim_status?: boolean;
   tenderly_sim_error?: string;
   debt_to_take?: number;
   before?: { total_account_value: number; used_margin: number };
   after?: { total_account_value: number; used_margin: number };
-  total_value_in?: number;
-  total_value_out?: number;
+  total_value_in?: number | null;
+  total_value_out?: number | null;
 }
 
 // ── Aero (MetadexCL V1) upgrade ──────────────────────────────────
