@@ -32,7 +32,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: yarn
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
       - name: Check for version bump
         id: check
@@ -61,7 +61,7 @@ jobs:
           if npm view "@arcadia-finance/mcp-server@${{ steps.check.outputs.version }}" version --prefer-online >/dev/null 2>&1; then
             echo "npm already has ${{ steps.check.outputs.version }}, skipping publish."
           else
-            npm publish --access public --provenance
+            npm publish --access public
           fi
 
       # ─── Downstream registry publishes ───
