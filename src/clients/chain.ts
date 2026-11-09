@@ -17,8 +17,8 @@ const unichain = defineChain({
   },
 });
 
-// Robinhood is not in viem/chains either. multicall3 sits at the canonical address (3808 bytes on
-// chain) and is declared with no blockCreated, so no historical gating applies.
+// multicall3 sits at the canonical address (3808 bytes on chain) and is declared with no
+// blockCreated, so no historical gating applies.
 const robinhood = defineChain({
   id: 4663,
   name: "Robinhood",
@@ -31,7 +31,7 @@ const robinhood = defineChain({
   },
 });
 
-const viemChains = {
+export const viemChains = {
   8453: base,
   10: optimism,
   130: unichain,

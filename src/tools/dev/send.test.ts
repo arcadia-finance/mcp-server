@@ -1,8 +1,14 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { createMockServer, createMockChains } from "../../test-utils.js";
 import { registerSendTool } from "./send.js";
+import { viemChains } from "../../clients/chain.js";
+import { getChainConfigs } from "../../config/chains.js";
 
 describe("dev_send", () => {
+  it("has a viem chain for every supported chain", () => {
+    expect(Object.keys(viemChains).sort()).toEqual(Object.keys(getChainConfigs()).sort());
+  });
+
   const originalEnv = process.env.PK;
 
   afterEach(() => {

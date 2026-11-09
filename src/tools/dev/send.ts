@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { createWalletClient, createPublicClient, http, type Chain } from "viem";
+import { createWalletClient, createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { base, optimism, unichain } from "viem/chains";
 import type { McpServer } from "@modelcontextprotocol/server";
+import { viemChains } from "../../clients/chain.js";
 import { CHAIN_ID_DESCRIPTION, type ChainId, type ChainConfig } from "../../config/chains.js";
 import { DevSendOutput } from "../output-schemas.js";
 import {
@@ -10,12 +10,6 @@ import {
   validateHexCalldata,
   parseWeiDecimalString,
 } from "../../utils/validation.js";
-
-const VIEM_CHAINS: Record<number, Chain> = {
-  8453: base,
-  130: unichain,
-  10: optimism,
-};
 
 export function registerSendTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
   server.registerTool(
@@ -57,7 +51,7 @@ export function registerSendTool(server: McpServer, chains: Record<ChainId, Chai
         const calldata = validateHexCalldata(params.data, "data");
         const valueWei = parseWeiDecimalString(params.value, "value");
 
-        const chain = VIEM_CHAINS[params.chain_id];
+        const chain = viemChains[params.chain_id as ChainId];
         const chainConfig = chains[params.chain_id as ChainId];
         if (!chainConfig) {
           return {
