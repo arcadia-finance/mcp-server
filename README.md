@@ -258,7 +258,7 @@ yarn format       # Check formatting with Prettier
 
 ## Privacy
 
-When `POSTHOG_KEY` is set on an HTTP deployment, the server records one analytics event per tool call in PostHog (EU ingestion host by default): the tool name, its arguments (which can include public wallet and account addresses), whether the call failed, the duration, and the client name and version. Events carry no person profile. Running the server locally over stdio sends no analytics, and neither does an HTTP deployment without `POSTHOG_KEY`. The server never receives private keys. Questions: legal@arcadia.finance.
+When `POSTHOG_KEY` is set on an HTTP deployment, the server records one analytics event per tool call in PostHog (EU ingestion host by default): the tool name, its arguments (which can include public wallet and account addresses), whether the call failed, the duration, and the client name and version. Events carry no person profile. Running the server locally over stdio sends no analytics, and neither does an HTTP deployment without `POSTHOG_KEY`. Tool calls never carry private keys. The development-only `dev_send` tool signs with a `PK` set in the server's own environment; the hosted server has none. Questions: legal@arcadia.finance.
 
 ## License
 
