@@ -1,4 +1,4 @@
-FROM node:22.23.4-slim AS build
+FROM node:22.23.4-trixie-slim AS build
 
 WORKDIR /app
 
@@ -10,12 +10,11 @@ RUN yarn install --immutable
 COPY tsconfig.json ./
 COPY src/ src/
 RUN yarn build
+RUN yarn workspaces focus --production
 
-FROM node:22.23.4-slim
+FROM gcr.io/distroless/nodejs22-debian13:nonroot@sha256:1b90ca047c3a1046ad3527998c747c25b6a88dde91ba8c71b98669d5813aaa21
 
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules/ node_modules/
@@ -28,4 +27,4 @@ ENV PORT=3000
 ENV NODE_OPTIONS="--use-openssl-ca"
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["dist/index.js"]
