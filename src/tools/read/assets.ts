@@ -71,7 +71,7 @@ export function registerAssetTools(server: McpServer, api: ArcadiaApiClient) {
         openWorldHint: true,
       },
       description:
-        "Get USD prices for one or more asset addresses. Pass a single address or comma-separated addresses. Returns a price map keyed by address.",
+        "Get USD prices for one or more asset addresses on one chain. Pass a single address or comma-separated addresses. Returns a price map keyed by address. Unknown or unpriced addresses return 0, not an error. Prices are scoped to chain_id (default 8453, Base), so pass the chain the addresses live on. Read-only. To find asset addresses, use read_asset_list.",
       inputSchema: z.object({
         asset_addresses: z
           .string()

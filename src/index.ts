@@ -12,6 +12,7 @@ try {
 import { createRequire } from "module";
 import { McpServer } from "@modelcontextprotocol/server";
 import { ArcadiaApiClient } from "./clients/api.js";
+import { CACHE_HINTS } from "./config/cache-hints.js";
 import { getChainConfigs } from "./config/chains.js";
 import { registerAllTools } from "./tools/index.js";
 import { registerAllResources } from "./resources/index.js";
@@ -28,12 +29,15 @@ const transportMode = process.env.TRANSPORT ?? "stdio";
 const analytics = createAnalytics(transportMode);
 
 function buildServer() {
-  const server = new McpServer({
-    name: "arcadia-finance",
-    version: pkg.version,
-    description:
-      "Arcadia Finance. Manage concentrated liquidity positions on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage. Base, Optimism, Unichain and Robinhood.",
-  });
+  const server = new McpServer(
+    {
+      name: "arcadia-finance",
+      version: pkg.version,
+      description:
+        "Arcadia Finance. Manage concentrated liquidity positions on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage. Base, Optimism, Unichain and Robinhood.",
+    },
+    { cacheHints: CACHE_HINTS },
+  );
   const target = analytics
     ? withAnalytics(server, server, analytics, {
         transport: transportMode,

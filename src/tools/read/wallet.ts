@@ -241,7 +241,8 @@ export function registerWalletTools(
         idempotentHint: true,
         openWorldHint: true,
       },
-      description: "Get Arcadia points balance for a specific wallet address.",
+      description:
+        "Get the Arcadia points balance for one wallet address. Returns points and wallet_address. A wallet with no points returns points 0 and wallet_address 'unknown', not an error. Read-only, no authentication. For the ranked list of wallets, use read_point_leaderboard.",
       inputSchema: z.object({
         wallet_address: z.string().describe("Wallet address to get points for"),
       }),
