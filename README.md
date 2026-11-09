@@ -4,7 +4,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/@arcadia-finance/mcp-server)](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
-[![MCP](https://img.shields.io/badge/MCP-2025--11--25-green)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-2026--07--28-green)](https://modelcontextprotocol.io/)
 [![Smithery](https://img.shields.io/badge/Smithery-listed-6b46c1)](https://smithery.ai/servers/arcadia-finance/mcp-server)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 [![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
@@ -254,3 +254,7 @@ yarn test         # Run tests
 yarn lint         # Lint with ESLint
 yarn format       # Check formatting with Prettier
 ```
+
+## License
+
+Copyright (C) 2026 Pragma Labs. Licensed under the [GNU Affero General Public License v3.0](LICENSE.md).

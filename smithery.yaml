@@ -20,6 +20,11 @@ configSchema:
       title: Optimism RPC URL
       description: RPC URL for Optimism (10). Falls back to public RPC if not set.
       default: ""
+    rpcUrlRobinhood:
+      type: string
+      title: Robinhood RPC URL
+      description: RPC URL for Robinhood (4663). Falls back to public RPC if not set.
+      default: ""
 commandFunction: |-
   (config) => ({
     command: 'npx',
@@ -27,6 +32,7 @@ commandFunction: |-
     env: {
       ...(config.rpcUrlBase ? { RPC_URL_BASE: config.rpcUrlBase } : {}),
       ...(config.rpcUrlUnichain ? { RPC_URL_UNICHAIN: config.rpcUrlUnichain } : {}),
-      ...(config.rpcUrlOptimism ? { RPC_URL_OPTIMISM: config.rpcUrlOptimism } : {})
+      ...(config.rpcUrlOptimism ? { RPC_URL_OPTIMISM: config.rpcUrlOptimism } : {}),
+      ...(config.rpcUrlRobinhood ? { RPC_URL_ROBINHOOD: config.rpcUrlRobinhood } : {})
     }
   })
