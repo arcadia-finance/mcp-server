@@ -36,7 +36,7 @@ Requires: `curl`, `jq`. No other dependencies.
 # Account details (health factor, collateral, debt, positions)
 {baseDir}/arcadia.sh read_account_info '{"account_address":"0x..."}'
 
-# Featured LP strategies with APY
+# Featured LP strategies with APY (last 24 hours at the featured range width)
 {baseDir}/arcadia.sh read_strategy_list '{"featured_only":true}'
 
 # Lending pools (TVL, APY, utilization)

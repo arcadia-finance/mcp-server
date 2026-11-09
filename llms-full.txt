@@ -127,7 +127,7 @@ Parameters:
 
 ### read_strategy_list
 
-Get Arcadia LP strategies with 7d avg APY for each strategy's default range.
+Get Arcadia LP strategies: the 7-day average APY at each strategy's default range, or for featured strategies the last 24 hours at the featured range width.
 
 Parameters:
 - `featured_only` (boolean, default: false): Return only featured/curated strategies
