@@ -80,7 +80,7 @@ Parameters:
 
 ### read_wallet_points
 
-Get Arcadia points balance for a specific wallet address.
+Get the Arcadia points balance for one wallet address. Returns points and wallet_address. A wallet with no points returns points 0 and wallet_address 'unknown', not an error. Read-only, no authentication. For the ranked list of wallets, use read_point_leaderboard.
 
 Parameters:
 - `wallet_address` (string, required): Wallet address to get points for
@@ -95,7 +95,7 @@ Parameters:
 
 ### read_asset_prices
 
-Get USD prices for one or more asset addresses.
+Get USD prices for one or more asset addresses on one chain. Pass a single address or comma-separated addresses. Returns a price map keyed by address. Unknown or unpriced addresses return 0, not an error. Prices are scoped to chain_id (default 8453, Base), so pass the chain the addresses live on. Read-only. To find asset addresses, use read_asset_list.
 
 Parameters:
 - `asset_addresses` (string, required): Single address or comma-separated addresses
@@ -127,7 +127,7 @@ Parameters:
 
 ### read_strategy_list
 
-Get Arcadia LP strategies with 7d avg APY for each strategy's default range.
+Get Arcadia LP strategies: the 7-day average APY at each strategy's default range, or for featured strategies the last 24 hours at the featured range width.
 
 Parameters:
 - `featured_only` (boolean, default: false): Return only featured/curated strategies

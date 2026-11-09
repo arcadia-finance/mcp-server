@@ -4,10 +4,11 @@
 [![npm downloads](https://img.shields.io/npm/dm/@arcadia-finance/mcp-server)](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
-[![MCP](https://img.shields.io/badge/MCP-2025--11--25-green)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-2026--07--28-green)](https://modelcontextprotocol.io/)
 [![Smithery](https://img.shields.io/badge/Smithery-listed-6b46c1)](https://smithery.ai/servers/arcadia-finance/mcp-server)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 [![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
+[![mcptry](https://mcptry.com/badge/io.github.arcadia-finance/mcp-server)](https://mcptry.com/servers/io.github.arcadia-finance/mcp-server)
 
 MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
@@ -243,7 +244,8 @@ Pull requests for documentation fixes are welcome from agents and humans alike. 
 - **PulseMCP:** [pulsemcp.com](https://www.pulsemcp.com/servers/arcadia-finance)
 - **MCP Market:** [mcpmarket.com](https://mcpmarket.com/server/arcadia-finance)
 - **Glama:** [glama.ai](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
-- **awesome-mcp-servers:** [github.com/TensorBlock/awesome-mcp-servers](https://github.com/TensorBlock/awesome-mcp-servers)
+- **mcp.so:** [mcp.so](https://mcp.so/server/arcadia-finance/mcp-server)
+- **awesome-mcp-servers:** [github.com/punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
 
 ## Development
 
@@ -254,3 +256,11 @@ yarn test         # Run tests
 yarn lint         # Lint with ESLint
 yarn format       # Check formatting with Prettier
 ```
+
+## Privacy
+
+When `POSTHOG_KEY` is set on an HTTP deployment, the server records one analytics event per tool call in PostHog (EU ingestion host by default): the tool name, its arguments (which can include public wallet and account addresses), whether the call failed, the duration, and the client name and version. Events carry no person profile. Running the server locally over stdio sends no analytics, and neither does an HTTP deployment without `POSTHOG_KEY`. Tool calls never carry private keys. The development-only `dev_send` tool signs with a `PK` set in the server's own environment; the hosted server has none. Questions: legal@arcadia.finance.
+
+## License
+
+Copyright (C) 2026 Pragma Labs. Licensed under the [GNU Affero General Public License v3.0](LICENSE.md).

@@ -32,7 +32,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: yarn
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
       - name: Check for version bump
         id: check
@@ -51,6 +51,7 @@ jobs:
         run: |
           yarn install --immutable
           yarn build
+          npm install -g npm@^11.5.1
           # Tolerate an already-published version so a retry after a later-step
           # failure does not abort here.
           # --prefer-online for the same reason the verify step uses it: npm view
@@ -62,8 +63,6 @@ jobs:
           else
             npm publish --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # ─── Downstream registry publishes ───
       # Fire only after npm publish succeeds and only on real version bumps.
@@ -168,7 +167,6 @@ jobs:
         env:
           VERSION: ${{ steps.check.outputs.version }}
           SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           fail=0
           PKG="@arcadia-finance/mcp-server"

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/server";
 import type { ArcadiaApiClient } from "../../clients/api.js";
+import { CHAIN_ID_DESCRIPTION } from "../../config/chains.js";
 import { validateAddress, validateChainId } from "../../utils/validation.js";
 import { AutomationsStateOutput, IntentsListOutput } from "../output-schemas.js";
 
@@ -94,10 +95,7 @@ export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClie
           .int()
           .optional()
           .describe("LP position (NFT) id to scope availability to. Requires account_address."),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain id: 8453 Base, 130 Unichain, 10 Optimism"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       }),
     },
     async (params) => {
@@ -182,10 +180,7 @@ export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClie
       outputSchema: AutomationsStateOutput,
       inputSchema: z.object({
         account_address: z.string().describe("Arcadia account address"),
-        chain_id: z
-          .number()
-          .default(8453)
-          .describe("Chain id: 8453 Base, 130 Unichain, 10 Optimism"),
+        chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
       }),
     },
     async (params) => {
