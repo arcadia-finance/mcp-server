@@ -1,7 +1,7 @@
 {
   "name": "@arcadia-finance/mcp-server",
   "mcpName": "io.github.arcadia-finance/mcp-server",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "MCP server for Arcadia Finance. Deploy concentrated liquidity on Uniswap/Aero, Aerodrome and Velodrome with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Base, Optimism, Unichain and Robinhood.",
   "type": "module",
   "license": "AGPL-3.0",
@@ -67,27 +67,28 @@
     "access": "public"
   },
   "dependencies": {
-    "@modelcontextprotocol/node": "^2.1.1",
-    "@modelcontextprotocol/server": "^2.3.1",
-    "express": "^5.2.1",
-    "express-rate-limit": "^8.3.1",
-    "posthog-node": "5.56.3",
-    "viem": "^2.0.0",
+    "@modelcontextprotocol/node": "^2.1.2",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.3",
+    "posthog-node": "5.63.2",
+    "viem": "^2.57.17",
     "zod": "^4.2.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
-    "@modelcontextprotocol/client": "^2.3.1",
+    "@eslint/js": "^10",
+    "@modelcontextprotocol/client": "^2.4.0",
     "@types/express": "^5.0.6",
     "@types/node": "^22.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "eslint": "^9.0.0",
-    "eslint-config-prettier": "^10.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.1",
+    "@typescript-eslint/parser": "^8.72.1",
+    "eslint": "^10",
+    "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.0.0",
     "tsx": "^4.0.0",
-    "typescript": "^5.5.0",
-    "typescript-eslint": "^8.0.0",
-    "vitest": "^3.0.0"
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
   }
 }
