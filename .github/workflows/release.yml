@@ -51,6 +51,7 @@ jobs:
         run: |
           yarn install --immutable
           yarn build
+          npm install -g npm@^11.5.1
           # Tolerate an already-published version so a retry after a later-step
           # failure does not abort here.
           # --prefer-online for the same reason the verify step uses it: npm view
@@ -60,10 +61,8 @@ jobs:
           if npm view "@arcadia-finance/mcp-server@${{ steps.check.outputs.version }}" version --prefer-online >/dev/null 2>&1; then
             echo "npm already has ${{ steps.check.outputs.version }}, skipping publish."
           else
-            npm publish --access public
+            npm publish --access public --provenance
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # ─── Downstream registry publishes ───
       # Fire only after npm publish succeeds and only on real version bumps.
@@ -168,7 +167,6 @@ jobs:
         env:
           VERSION: ${{ steps.check.outputs.version }}
           SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           fail=0
           PKG="@arcadia-finance/mcp-server"
