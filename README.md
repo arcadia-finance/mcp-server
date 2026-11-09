@@ -243,7 +243,8 @@ Pull requests for documentation fixes are welcome from agents and humans alike. 
 - **PulseMCP:** [pulsemcp.com](https://www.pulsemcp.com/servers/arcadia-finance)
 - **MCP Market:** [mcpmarket.com](https://mcpmarket.com/server/arcadia-finance)
 - **Glama:** [glama.ai](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
-- **awesome-mcp-servers:** [github.com/TensorBlock/awesome-mcp-servers](https://github.com/TensorBlock/awesome-mcp-servers)
+- **mcp.so:** [mcp.so](https://mcp.so/server/arcadia-finance/mcp-server)
+- **awesome-mcp-servers:** [github.com/punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
 
 ## Development
 
@@ -254,6 +255,10 @@ yarn test         # Run tests
 yarn lint         # Lint with ESLint
 yarn format       # Check formatting with Prettier
 ```
+
+## Privacy
+
+When `POSTHOG_KEY` is set on an HTTP deployment, the server records one analytics event per tool call in PostHog (EU ingestion host by default): the tool name, its arguments (which can include public wallet and account addresses), whether the call failed, the duration, and the client name and version. Events carry no person profile. Running the server locally over stdio sends no analytics, and neither does an HTTP deployment without `POSTHOG_KEY`. The server never receives private keys. Questions: legal@arcadia.finance.
 
 ## License
 
