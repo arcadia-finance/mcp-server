@@ -8,6 +8,7 @@
 [![Smithery](https://img.shields.io/badge/Smithery-listed-6b46c1)](https://smithery.ai/servers/arcadia-finance/mcp-server)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 [![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
+[![mcptry](https://mcptry.com/badge/io.github.arcadia-finance/mcp-server)](https://mcptry.com/servers/io.github.arcadia-finance/mcp-server)
 
 MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
 
