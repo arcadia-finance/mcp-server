@@ -21,7 +21,7 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
         openWorldHint: true,
       },
       description:
-        "Get Arcadia LP strategies. Use featured_only=true for curated top strategies (recommended first call); their apy is measured over the last 24 hours at the featured range width. Otherwise returns a paginated list where strategy_apy_7d is the 7-day average APY at each strategy's default range. Increase limit or use offset for pagination. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%). For APY per range width over the last 24 hours, use read_strategy_info.",
+        "Get Arcadia LP strategies. Use featured_only=true for curated top strategies (recommended first call); their apy is measured over the last 24 hours at the featured range width, and is 0.0 when that measurement fails. Otherwise returns a paginated list where strategy_apy_7d is the 7-day average APY at each strategy's default range. Increase limit or use offset for pagination. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%). For APY per range width over the last 24 hours, use read_strategy_info.",
       inputSchema: z.object({
         featured_only: z
           .boolean()
@@ -133,7 +133,7 @@ export function registerStrategyTools(server: McpServer, api: ArcadiaApiClient) 
         openWorldHint: true,
       },
       description:
-        "Get full detail for a specific LP strategy by ID: includes APY per range width over the last 24 hours, each range centred on the current price (narrower range = higher APY but more rebalancing cost/risk), the 7-day average APY at the default range as yield, pool info, and configuration. Use read_strategy_list to discover strategy IDs. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%).",
+        "Get full detail for a specific concentrated-liquidity LP strategy by ID: includes APY per range width over the last 24 hours, each range anchored on the current price (narrower range = higher APY but more rebalancing cost/risk), the 7-day average APY at the default range in the yield field, pool info, and configuration. For basic (constant-product) pools, use strategy_apy_7d from read_strategy_list. Use read_strategy_list to discover strategy IDs. All APY values are decimal fractions (1.0 = 100%, 0.05 = 5%).",
       inputSchema: z.object({
         strategy_id: z.number().describe("Strategy ID"),
         chain_id: z.number().default(8453).describe(CHAIN_ID_DESCRIPTION),
