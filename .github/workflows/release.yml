@@ -121,9 +121,9 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         id: skill
         run: |
-          CURR=$(awk '/^version:/ { print $2; exit }' skills/openclaw/SKILL.md)
+          CURR=$(awk '/^version:/ { print $2; exit }' openclaw/SKILL.md)
           if [ -z "$CURR" ]; then
-            echo "Could not read version from skills/openclaw/SKILL.md frontmatter."
+            echo "Could not read version from openclaw/SKILL.md frontmatter."
             exit 1
           fi
           # Relative to the last released tag, not HEAD~1: on a manual retry after
@@ -131,7 +131,7 @@ jobs:
           # publish that failed would be the one the retry skips.
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$LAST_TAG" ]; then
-            PREV=$(git show "${LAST_TAG}:skills/openclaw/SKILL.md" 2>/dev/null | awk '/^version:/ { print $2; exit }' || echo "")
+            PREV=$(git show "${LAST_TAG}:openclaw/SKILL.md" 2>/dev/null | awk '/^version:/ { print $2; exit }' || echo "")
           else
             PREV=""
           fi
@@ -152,7 +152,7 @@ jobs:
             exit 0
           fi
           npx -y clawhub login --token "$CLAWHUB_TOKEN" --no-input
-          npx -y clawhub publish "$PWD/skills/openclaw" \
+          npx -y clawhub publish "$PWD/openclaw" \
             --slug arcadia-finance \
             --name "Arcadia Finance" \
             --version "${{ steps.skill.outputs.version }}" \
