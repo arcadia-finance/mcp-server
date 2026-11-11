@@ -10,7 +10,7 @@
 [![mcptry](https://mcptry.com/badge/io.github.arcadia-finance/mcp-server)](https://mcptry.com/servers/io.github.arcadia-finance/mcp-server)
 [![Arcadia Finance MCP on mcprush](https://mcprush.com/badge/arcadia-finance-mcp/score.svg)](https://mcprush.com/to/arcadia-finance-mcp?ref=badge)
 
-MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more. Live on Base, Optimism, Unichain and Robinhood.
+MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing and deposits. Live on Base, Optimism, Unichain and Robinhood.
 
 ## Quick start
 
@@ -277,7 +277,7 @@ Open an issue for bugs, missing features or unclear documentation: https://githu
 - What you expected vs what happened
 - The strategy or goal you were trying to execute
 
-Pull requests are welcome. Every PR needs a human review before merging.
+Pull requests for documentation fixes are welcome. Every PR needs a human review before merging.
 
 ## Where to Find Us
 

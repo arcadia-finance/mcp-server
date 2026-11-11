@@ -29,7 +29,7 @@ Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay
 
 ### Batching vs splitting
 
-**Default: always use atomic tools.** `write_account_add_liquidity` batches opening, `write_account_close` batches closing, `write_account_deleverage` batches debt repayment from collateral. These reduce transaction count and eliminate exposure to price movement between steps.
+**Default: always use atomic tools.** `write_account_add_liquidity` batches opening, `write_account_close` batches closing, `write_account_deleverage` batches debt repayment from collateral. These reduce transaction count and exposure to price movement between steps.
 
 **When to split:** In high-volatility markets or for low-liquidity pools, atomic transactions may revert because on-chain state diverges from when the backend computed the calldata. If an atomic tool fails, fall back to individual tools with tighter slippage. Always try atomic first, split only on failure.
 
@@ -43,7 +43,7 @@ Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay
 
 **Why it works:**
 
-- LP position is ~50% WETH, ~50% USDC by value at any given price
+- LP position starts roughly 50% WETH, 50% USDC by value at entry
 - You borrow WETH to provide it → WETH debt ≈ WETH held in LP
 - Net WETH exposure ≈ 0 (small residual from IL)
 - You earn LP fees on the full leveraged notional
@@ -141,7 +141,7 @@ read_account_pnl(account_address: <account_address>, chain_id: 8453)
 → If net yield is consistently negative → evaluate exit
 
 read_pool_list(chain_id: 8453)
-→ If borrow_APY risen above fee_APY → exit signal
+→ If borrow_APY has risen above fee_APY → exit signal
 ```
 
 ### Responding to health factor drops
@@ -292,7 +292,7 @@ write_account_create(
 // 3. Deposit treasury tokens
 write_account_deposit(account_address: <account>, ...)
 
-// 4. Open LP (no leverage, deposits are pulled from wallet)
+// 4. Open LP (no leverage; deposits are pulled from wallet)
 write_account_add_liquidity(
   account_address: <account>,
   wallet_address: <treasury_wallet>,
@@ -304,8 +304,7 @@ write_account_add_liquidity(
 )
 
 // 5. Enable the rebalancer on the POL strategy
-// The backend routes POL to the unified rebalancer and its POL strategy hook;
-// tuning params are part of the intent, all optional with the defaults shown.
+// Tuning params are part of the intent, all optional with the defaults shown.
 write_account_automations(
   account_address: <account>,
   position_id: <lp_nft_id>,
@@ -344,7 +343,7 @@ read_strategy_recommendation → check if rebalancing is needed
 
 ## Upgrade to Aero (MetadexCL V1)
 
-Aero CL succeeds the Slipstream pools (Aerodrome on Base, Velodrome on Optimism) at the Aero launch, and the new AERO token succeeds the old one on Base. `write_account_aero_upgrade` upgrades one account in one flashAction signed by the owner: every Slipstream V1, V2 and V3 position, staked or not, moves into the Aero CL pool with the same pair and variant at the same range and tick spacing (when Aero has no pool at that tick spacing, the user picks another one), and every unit of old AERO (loose in the account, unclaimed rewards, an old-AERO pair) becomes the new AERO. Chains: Base and Optimism. Robinhood has nothing to upgrade.
+Aero CL succeeds the Slipstream pools (Aerodrome on Base, Velodrome on Optimism) at the Aero launch, and the new AERO token succeeds the old one on Base. `write_account_aero_upgrade` upgrades one account in one flashAction signed by the owner. Every Slipstream V1, V2 and V3 position, staked or not, moves into the Aero CL pool with the same pair and variant, at the same range and tick spacing. When Aero has no pool at that tick spacing, the user picks another one. Every unit of old AERO (loose in the account, unclaimed rewards, an old-AERO pair) becomes the new AERO. Chains: Base and Optimism. Robinhood has nothing to upgrade.
 
 The backend decides what can move. Report its statuses and reasons as given; never decide eligibility yourself.
 
@@ -414,7 +413,7 @@ Pass `accounts` (up to 10 of one owner) instead of `account_address` for one pla
 
 ### Reconnecting automations
 
-The move mints a new position, so automations on the old Slipstream position stop applying. `managers_to_reconnect` lists the old managers (`kind`, `old_address`) and their Aero replacements (`new_address`). Call `write_account_automations` in `save` mode with the new `position_id` and the intents the account had. Omit `protocol` so the backend resolves `metadexcl_v1` from the position: a stale `slipstream_*` value would compile Slipstream managers. The save disables the old managers in the same transaction. When `old_managers_still_needed` is true a Slipstream position stays on the account (it waits for its Aero pool), so keep the old managers: enable the Aero position with `write_account_automations_delta` instead. Settings are recompiled from intents, not copied: restate custom rebalancer settings from `read_asset_manager_current`. Each Aero manager holds one config per account, so when several old Slipstream managers of one kind had different settings, ask the user which to keep. When an item has `target.tokens_flipped: true` the pair sorts the other way on Aero: swap `token0` and `token1` in the intents' token fields (`tokens`, `convert_tokens`, `profit_token`) use 1e6 minus the token0 ratios and swap `trigger_lower_tick_ratio` with `trigger_upper_tick_ratio`, or leave that automation off and tell the user. The reconnect is a separate transaction: until it confirms, the Aero positions run without automations, so a Safe should queue it right after the upgrade. On Optimism and Robinhood there is no CoW Swapper, so compounding a staked Aero position's xAERO reward is rejected there; `claim_rewards` works.
+The move mints a new position, so automations on the old Slipstream position stop applying. `managers_to_reconnect` lists the old managers (`kind`, `old_address`) and their Aero replacements (`new_address`). Call `write_account_automations` in `save` mode with the new `position_id` and the intents the account had. Omit `protocol` so the backend resolves `metadexcl_v1` from the position: a stale `slipstream_*` value would compile Slipstream managers. The save disables the old managers in the same transaction. When `old_managers_still_needed` is true a Slipstream position stays on the account (it waits for its Aero pool), so keep the old managers: enable the Aero position with `write_account_automations_delta` instead. Settings are recompiled from intents, not copied: restate custom rebalancer settings from `read_asset_manager_current`. Each Aero manager holds one config per account, so when several old Slipstream managers of one kind had different settings, ask the user which to keep. When an item has `target.tokens_flipped: true` the pair sorts the other way on Aero: swap `token0` and `token1` in the intents' token fields (`tokens`, `convert_tokens`, `profit_token`), use 1e6 minus the token0 ratios, and swap `trigger_lower_tick_ratio` with `trigger_upper_tick_ratio`. Or leave that automation off and tell the user. The reconnect is a separate transaction: until it confirms, the Aero positions run without automations, so a Safe should queue it right after the upgrade. On Optimism and Robinhood there is no CoW Swapper, so compounding a staked Aero position's xAERO reward is rejected there; `claim_rewards` works.
 
 ### Margin vs spot
 

@@ -6,12 +6,12 @@ user-invocable: true
 
 # Arcadia Finance clAMM Agent Guide
 
-Arcadia is a platform for managing concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage. Positions live in Arcadia accounts, which can also borrow against their collateral. This skill covers everything needed to manage clAMM positions as an agent.
+Arcadia is a platform for managing concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage. Positions live in Arcadia accounts, which can also borrow against their collateral. This skill covers clAMM position management for agents.
 
 ## Key Constraints
 
 - **All `write_*` tools return unsigned transactions** (`{ to, data, value, chainId }`): you must sign and broadcast them. See "Transaction Signing" below.
-- **Automation strategy config** (tick range, rebalance thresholds) is not settable via MCP; it requires Arcadia platform access.
+- **Automation settings**: rebalance triggers, cooldowns and the POL and take-profit parameters go in the `strategy` of the `rebalance` intent in `write_account_automations`. You choose the range width when opening the position, with `tick_lower` and `tick_upper` in `write_account_add_liquidity`.
 - **Health factor** = `1 - (used_margin / liquidation_value)`. Higher is safer. `1` = no debt, `>0` = healthy, `0` = liquidation threshold, `<0` = past liquidation. Keep above 0.5 for leveraged positions; act immediately below 0.2.
 - **Minimum margin**: each lending pool enforces a fixed minimum margin denominated in the pool's numeraire (e.g. WETH for the WETH pool, USDC for the USDC pool), typically a few dollars in value. This gets **added to the debt** when computing `used_margin` (i.e. `used_margin = open_debt + minimum_margin`). It ensures liquidations remain profitable (covering gas costs) and prevents dust attacks. For small positions the fixed minimum margin dominates the used margin, pushing health factor lower than the leverage ratio alone would suggest (e.g. HF ~0.3 at 2× leverage). Increase position size for a healthier starting HF. `write_account_add_liquidity` also validates deposits against per-asset minimum amounts from strategy risk factors.
 - **Price warnings**: if `write_account_add_liquidity` finds a pool price off market or a token with no price, it returns the warnings, an `accept_price_checks` list and no transaction. Show the warnings to the user and call again with that list only after the user explicitly confirms. Never set `accept_price_checks` on the first call. New warnings on a rebuild need a new confirmation. The acknowledgement never bypasses a backend refusal.
@@ -118,13 +118,14 @@ These tools batch multiple operations into ONE atomic transaction. Always prefer
 
 ### Lending Pools
 
-Use as `pool_address` in `write_account_borrow` / `write_account_repay`, as `creditor` in `write_account_create` / `write_account_deleverage`. Same CREATE2 addresses on Base and Optimism. Unichain has no lending pools.
+Use as `pool_address` in `write_account_borrow` / `write_account_repay`, as `creditor` in `write_account_create` / `write_account_deleverage`. A pool has the same CREATE2 address on every chain where it exists. Unichain has no lending pools.
 
-| Asset | Pool Address                                 | Chains         |
-| ----- | -------------------------------------------- | -------------- |
-| WETH  | `0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2` | Base, Optimism |
-| USDC  | `0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1` | Base, Optimism |
-| cbBTC | `0xa37E9b4369dc20940009030BfbC2088F09645e3B` | Base only      |
+| Asset | Pool Address                                 | Chains                    |
+| ----- | -------------------------------------------- | ------------------------- |
+| WETH  | `0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2` | Base, Optimism, Robinhood |
+| USDC  | `0x3ec4a293Fb906DD2Cd440c20dECB250DeF141dF1` | Base, Optimism            |
+| cbBTC | `0xa37E9b4369dc20940009030BfbC2088F09645e3B` | Base only                 |
+| USDG  | `0xf37c0C5996503Fdd2b5CCCE36E659cD30393AE59` | Robinhood only            |
 
 ### Asset Manager Addresses
 
