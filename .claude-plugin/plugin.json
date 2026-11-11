@@ -1,0 +1,17 @@
+{
+  "name": "arcadia",
+  "description": "Arcadia Finance MCP server and the clamm-liquidity skill: concentrated liquidity, leverage, lending and automations on Base, Optimism, Unichain and Robinhood.",
+  "author": {
+    "name": "Arcadia Finance"
+  },
+  "homepage": "https://github.com/arcadia-finance/mcp-server",
+  "license": "AGPL-3.0",
+  "privacyPolicyUrl": "https://github.com/arcadia-finance/mcp-server#privacy",
+  "mcpServers": {
+    "arcadia-finance": {
+      "type": "http",
+      "url": "https://mcp.arcadia.finance/mcp"
+    }
+  },
+  "version": "0.7.1"
+}
