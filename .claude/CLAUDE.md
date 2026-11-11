@@ -50,7 +50,9 @@ Supporting code:
 - `src/utils/analytics.ts`: PostHog `mcp_tool_called` event per tool call (name, args, outcome, client). Only active on the HTTP transport with `POSTHOG_KEY` set; stdio never reports
 - `src/resources/` — MCP resources (guides)
 - `src/prompts/` — MCP prompt workflows
-- `skills/` — Claude Code skills for guided workflows (shipped in npm package)
+- `skills/`: Claude Code skills for guided workflows (shipped in npm package and in the Claude Code plugin)
+- `.claude-plugin/`: Claude Code plugin (`plugin.json`, inline remote MCP server, version kept in sync by `yarn sync-version`) and its marketplace (`marketplace.json`)
+- `openclaw/`: OpenClaw skill (curl CLI wrapper), published to ClawHub by the release workflow when its `version` changes
 
 ## Conventions
 
