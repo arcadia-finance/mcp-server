@@ -16,7 +16,7 @@ const pluginJsonPath = resolve(repoRoot, ".claude-plugin", "plugin.json");
 const pkg = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 const version = pkg.version;
 if (typeof version !== "string" || version.length === 0) {
-  console.error("package.json has no version field — cannot sync.");
+  console.error("package.json has no version field, cannot sync.");
   process.exit(1);
 }
 

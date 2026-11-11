@@ -5,7 +5,6 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-2026--07--28-green)](https://modelcontextprotocol.io/)
-[![Smithery](https://img.shields.io/badge/Smithery-listed-6b46c1)](https://smithery.ai/servers/arcadia-finance/mcp-server)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 [![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
 [![mcptry](https://mcptry.com/badge/io.github.arcadia-finance/mcp-server)](https://mcptry.com/servers/io.github.arcadia-finance/mcp-server)
@@ -164,8 +163,6 @@ Write tools return unsigned transactions. Your wallet signs them, see [Transacti
 
 ### Write Tools
 
-All write tools return unsigned transactions as `{ to, data, value, chainId }`.
-
 | Tool                              | Description                                                                                                                                        |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `write_wallet_approve`            | Approve an ERC20 token for spending. Required before depositing into an account. Call `read_wallet_allowances` first to check if already approved. |
@@ -197,12 +194,11 @@ Always registered but requires `PK` env var to function.
 
 ## Transaction Signing
 
-All write tools return **unsigned transactions** as `{ to, data, value, chainId }`. This server does NOT sign or broadcast — your agent or application is responsible for that.
+All write tools return **unsigned transactions** as `{ to, data, value, chainId }`. This server does not sign or broadcast them; your agent or application does.
 
 ### Options
 
-**Wallet MCP servers (recommended for production):**
-Pair this server with a wallet MCP server that handles signing:
+**Wallet MCP servers** (recommended for production):
 
 | Wallet MCP                                                        | Provider  | Model                                                     |
 | ----------------------------------------------------------------- | --------- | --------------------------------------------------------- |
@@ -232,14 +228,12 @@ const hash = await client.sendTransaction(tx);
 The server includes a dev-only signing tool that reads a private key from the `PK` environment variable. Set `PK` via a `.env` file or your MCP client config:
 
 ```bash
-# .env in the server directory (never commit — already gitignored)
+# .env in the server directory (gitignored, never commit it)
 PK=0xYourPrivateKeyHex
 RPC_URL_BASE=https://base-mainnet.g.alchemy.com/v2/your-key
 ```
 
-The server loads `.env` automatically on startup. Works with any MCP client (Claude Desktop, Claude Code, VSCode, Cursor). MCP client `env` block settings take precedence if both are set.
-
-Not for production — use a dedicated wallet MCP server (Fireblocks, Turnkey, Safe) instead.
+The server loads `.env` on startup. Values in the MCP client `env` block take precedence.
 
 ## Configuration
 
@@ -252,7 +246,7 @@ All environment variables are optional.
 | `RPC_URL_OPTIMISM`  | No       | Public RPC                    | Both      | RPC URL for Optimism (10).                                     |
 | `RPC_URL_ROBINHOOD` | No       | Public RPC                    | Both      | RPC URL for Robinhood (4663).                                  |
 | `PK`                | No       | none                          | Both      | Private key (hex) for dev-only `dev_send` tool.                |
-| `TRANSPORT`         | No       | `stdio`                       | —         | Transport mode: `stdio` or `http`.                             |
+| `TRANSPORT`         | No       | `stdio`                       | n/a       | Transport mode: `stdio` or `http`.                             |
 | `PORT`              | No       | `3000`                        | HTTP      | Listen port for HTTP transport.                                |
 | `ALLOWED_ORIGINS`   | No       | `https://mcp.arcadia.finance` | HTTP      | Comma-separated allowed Origin headers (CORS / DNS rebinding). |
 | `RATE_LIMIT_RPM`    | No       | `600`                         | HTTP      | Max requests per minute per client IP.                         |
@@ -275,8 +269,7 @@ The [OpenClaw](https://clawhub.ai/skills/arcadia-finance) skill in `openclaw/` c
 
 ## Reporting Issues
 
-Found a bug, missing feature, or unclear documentation while using this server?
-Open an issue: https://github.com/arcadia-finance/mcp-server/issues
+Open an issue for bugs, missing features or unclear documentation: https://github.com/arcadia-finance/mcp-server/issues
 
 **For AI agents:** If you hit a gap during task execution, open an issue with:
 
@@ -284,13 +277,12 @@ Open an issue: https://github.com/arcadia-finance/mcp-server/issues
 - What you expected vs what happened
 - The strategy or goal you were trying to execute
 
-Pull requests for documentation fixes are welcome from agents and humans alike. All PRs require human review before merging.
+Pull requests are welcome. Every PR needs a human review before merging.
 
 ## Where to Find Us
 
 - **npm:** [@arcadia-finance/mcp-server](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
 - **MCP Registry:** [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/?q=arcadia)
-- **Smithery:** [smithery.ai](https://smithery.ai/servers/arcadia-finance/mcp-server)
 - **MCP Servers:** [mcpservers.org](https://mcpservers.org/en/servers/arcadia-finance/mcp-server)
 - **LobeHub:** [lobehub.com](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 - **PulseMCP:** [pulsemcp.com](https://www.pulsemcp.com/servers/arcadia-finance)

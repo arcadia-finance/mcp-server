@@ -4,19 +4,19 @@ description: Agent guide for clAMM management on Arcadia Finance. Covers 37 MCP 
 user-invocable: true
 ---
 
-# Arcadia Finance — clAMM Agent Guide
+# Arcadia Finance clAMM Agent Guide
 
 Arcadia is a platform for managing concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage. Positions live in Arcadia accounts, which can also borrow against their collateral. This skill covers everything needed to manage clAMM positions as an agent.
 
 ## Key Constraints
 
 - **All `write_*` tools return unsigned transactions** (`{ to, data, value, chainId }`): you must sign and broadcast them. See "Transaction Signing" below.
-- **Automation strategy config** (tick range, rebalance thresholds) is not currently settable via MCP — this requires Arcadia platform access.
+- **Automation strategy config** (tick range, rebalance thresholds) is not settable via MCP; it requires Arcadia platform access.
 - **Health factor** = `1 - (used_margin / liquidation_value)`. Higher is safer. `1` = no debt, `>0` = healthy, `0` = liquidation threshold, `<0` = past liquidation. Keep above 0.5 for leveraged positions; act immediately below 0.2.
 - **Minimum margin**: each lending pool enforces a fixed minimum margin denominated in the pool's numeraire (e.g. WETH for the WETH pool, USDC for the USDC pool), typically a few dollars in value. This gets **added to the debt** when computing `used_margin` (i.e. `used_margin = open_debt + minimum_margin`). It ensures liquidations remain profitable (covering gas costs) and prevents dust attacks. For small positions the fixed minimum margin dominates the used margin, pushing health factor lower than the leverage ratio alone would suggest (e.g. HF ~0.3 at 2× leverage). Increase position size for a healthier starting HF. `write_account_add_liquidity` also validates deposits against per-asset minimum amounts from strategy risk factors.
 - **Price warnings**: if `write_account_add_liquidity` finds a pool price off market or a token with no price, it returns the warnings, an `accept_price_checks` list and no transaction. Show the warnings to the user and call again with that list only after the user explicitly confirms. Never set `accept_price_checks` on the first call. New warnings on a rebuild need a new confirmation. The acknowledgement never bypasses a backend refusal.
 - **`asset_id`** is always an integer (NFT token ID for LP positions, 0 for ERC20 tokens).
-- **Wrapping ETH** — ETH must be wrapped to WETH before depositing. Call WETH's `deposit()` function (payable) with the ETH amount. No MCP tool for this, use your wallet.
+- **Wrapping ETH**: ETH must be wrapped to WETH before depositing. Call WETH's `deposit()` function (payable) with the ETH amount. No MCP tool for this, use your wallet.
 
 ## Transaction Signing
 
@@ -28,9 +28,9 @@ Write tools (`write_*`) return unsigned transaction calldata. This server does N
 
 How you sign depends on your setup:
 
-- **MPC wallet** (Fireblocks, Dfns, Turnkey) — pass the unsigned tx to your provider's signing API
-- **Smart account** (Safe, Biconomy) — wrap the tx as a UserOperation or Safe transaction
-- **Embedded wallet** (Privy, Dynamic) — use the provider's `sendTransaction` method
+- **MPC wallet** (Fireblocks, Dfns, Turnkey): pass the unsigned tx to your provider's signing API
+- **Smart account** (Safe, Biconomy): wrap the tx as a UserOperation or Safe transaction
+- **Embedded wallet** (Privy, Dynamic): use the provider's `sendTransaction` method
 - **Direct private key** (development only): use the built-in `dev_send` tool (set `PK` in a `.env` file or MCP client config), or viem/ethers `sendTransaction` with a local signer
 
 Example with viem:
@@ -42,7 +42,7 @@ const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
 ## Batching Philosophy
 
-Arcadia's flash-action tools can batch multiple DeFi operations into a single atomic transaction. **Always prefer batched tools** — they reduce transaction count, gas cost, and exposure to price movement between steps.
+Arcadia's flash-action tools can batch multiple DeFi operations into a single atomic transaction. **Always prefer batched tools**: they reduce transaction count, gas cost, and exposure to price movement between steps.
 
 **When to split:** In high-volatility markets or for low-liquidity pools, batched transactions may revert because on-chain state changes between when the backend computes calldata and when the transaction executes. If a batched tool fails, fall back to individual tools with tighter slippage. Always try batched first, split only on failure.
 
@@ -74,7 +74,7 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 | `read_account_aero_upgrade`    | Aero upgrade check: what a wallet's accounts (or one account) still have to move to Aero, with status and counts and no calldata. Empty accounts and failed_accounts lists mean nothing to do.                                                                                                                                                                 |
 | `read_guides`                  | Reference guides: `automation` (AM setup), `selection` (pool evaluation), `strategies` (step-by-step templates).                                                                                                                                                                                                                                               |
 
-### Preferred Write Tools (atomic/multi-step — use these first)
+### Preferred Write Tools (atomic/multi-step, use these first)
 
 These tools batch multiple operations into ONE atomic transaction. Always prefer these over individual tools.
 
@@ -179,9 +179,9 @@ Slipstream V3 on Optimism uses different addresses (exception to the determinist
 
 Spot vs margin is determined by whether a **creditor** (lending pool) is set at account creation, not by version number.
 
-- `account_version: 3` — **margin account** (created with a `creditor`). Can borrow, leverage, and mint LP. Uses an onchain whitelist of allowed collateral tokens.
-- `account_version: 4` or `0` (latest) — **spot account** (no creditor, no borrowing). Can hold assets and mint LP with `leverage: 0`. Accepts any ERC20 (no onchain whitelist).
-- `account_version: 1` or `2` — legacy. Not supported by current MCP tools (the automation tools require V3/V4).
+- `account_version: 3`: **margin account** (created with a `creditor`). Can borrow, leverage, and mint LP. Uses an onchain whitelist of allowed collateral tokens.
+- `account_version: 4` or `0` (latest): **spot account** (no creditor, no borrowing). Can hold assets and mint LP with `leverage: 0`. Accepts any ERC20 (no onchain whitelist).
+- `account_version: 1` or `2`: legacy. Not supported by current MCP tools (the automation tools require V3/V4).
 - For **leveraged LP strategies**, use `account_version: 3` with a creditor.
 - To check an existing account's version: call `read_account_info`: the response includes the account version.
 
@@ -237,6 +237,6 @@ Protocols: Uniswap V3, Uniswap V4, Aero CL (MetadexCL V1). No Slipstream V1-V3. 
 
 ## Reference Files
 
-- [automation.md](automation.md) — How to enable each automation type
-- [selection.md](selection.md) — How to evaluate pools, choose range width, size leverage, combine automation
+- [automation.md](automation.md): How to enable each automation type
+- [selection.md](selection.md): How to evaluate pools, choose range width, size leverage, combine automation
 - [strategies.md](strategies.md): Step-by-step strategy templates: delta neutral LP, protocol-owned liquidity, and the upgrade to Aero

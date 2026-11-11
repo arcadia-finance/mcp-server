@@ -1,6 +1,6 @@
 # Strategy Templates
 
-These are templates and examples — not the only valid approaches. Adapt parameters to current conditions. Use selection.md to evaluate whether a strategy fits before executing.
+These are templates and examples, not the only valid approaches. Adapt parameters to current conditions. Use selection.md to evaluate whether a strategy fits before executing.
 
 ## Key Parameter Notes
 
@@ -31,7 +31,7 @@ Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay
 
 **Default: always use atomic tools.** `write_account_add_liquidity` batches opening, `write_account_close` batches closing, `write_account_deleverage` batches debt repayment from collateral. These reduce transaction count and eliminate exposure to price movement between steps.
 
-**When to split:** In high-volatility markets or for low-liquidity pools, atomic transactions may revert because on-chain state diverges from when the backend computed the calldata. If an atomic tool fails, fall back to individual tools with tighter slippage. Always try atomic first — split only on failure.
+**When to split:** In high-volatility markets or for low-liquidity pools, atomic transactions may revert because on-chain state diverges from when the backend computed the calldata. If an atomic tool fails, fall back to individual tools with tighter slippage. Always try atomic first, split only on failure.
 
 ---
 
@@ -68,8 +68,8 @@ read_pool_list(chain_id: 8453)
 // 3. CREATE MARGIN ACCOUNT (V3 + creditor = can borrow/leverage)
 write_account_create(
   salt: <random uint32, e.g. 3141592653>,
-  account_version: 3,   // V3 margin — required for leverage
-  creditor: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",  // WETH lending pool — enables borrow
+  account_version: 3,   // V3 margin, required for leverage
+  creditor: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2",  // WETH lending pool, enables borrow
   chain_id: 8453
 )
 → Submit tx, note deployed account address from tx receipt
@@ -96,13 +96,13 @@ write_account_add_liquidity(
   account_address: <account_address>,
   wallet_address: <owner_wallet>,
   positions: [{ strategy_id: <integer from step 1> }],
-  deposits: [{ asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: "10000000000", decimals: 6 }],  // 10,000 USDC — pulled from wallet
+  deposits: [{ asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: "10000000000", decimals: 6 }],  // 10,000 USDC, pulled from wallet
   leverage: 2,        // 2 = 2x leverage (0 = no leverage, 3 = 3x, etc.)
   slippage: 100,      // 100 = 1% slippage tolerance (basis points)
   chain_id: 8453
 )
 
-// 6. ENABLE AUTOMATIONS — one call, one transaction
+// 6. ENABLE AUTOMATIONS: one call, one transaction
 // Include every automation you want active: the intents array is the full desired state.
 // Add claim_merkl only if the pool has Merkl incentives (check fee APY breakdown in step 1).
 write_account_automations(
@@ -115,7 +115,7 @@ write_account_automations(
   ],
   chain_id: 8453
 )
-// → Returns { valid, plan, diff, human_summary, transaction } — broadcast the transaction
+// → Returns { valid, plan, diff, human_summary, transaction }; broadcast the transaction
 ```
 
 ### Monitoring
@@ -127,14 +127,14 @@ read_account_info(account_address: <account_address>, chain_id: 8453)
     1        → no debt (safest)
     > 0.5    → healthy
     0.2–0.5  → monitor closely, consider adding collateral or reducing debt
-    < 0.2    → ACTION REQUIRED — close to liquidation
+    < 0.2    → ACTION REQUIRED: close to liquidation
     0        → liquidation threshold
     < 0      → past liquidation
 
 Note: Each lending pool adds a fixed minimum margin (denominated in the pool's numeraire,
 typically a few dollars in value) to the debt when computing used_margin
 (used_margin = open_debt + minimum_margin). For small positions this fixed overhead
-dominates, pushing HF lower than the leverage ratio suggests — e.g. HF ~0.3 at 2×
+dominates, pushing HF lower than the leverage ratio suggests, e.g. HF ~0.3 at 2×
 instead of ~0.5–0.7. Increase position size for a healthier starting HF.
 
 read_account_pnl(account_address: <account_address>, chain_id: 8453)
@@ -148,13 +148,13 @@ read_pool_list(chain_id: 8453)
 
 ```
 // Option A: Add collateral (raises health factor, cheapest)
-// Check allowance first — skip approve if already sufficient
+// Check allowance first; skip approve if already sufficient
 read_wallet_allowances(owner_address: <wallet>, spender_address: <account>, token_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], chain_id: 8453)
 write_wallet_approve(token_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender_address: <account>, amount: "max_uint256", chain_id: 8453)
 write_account_deposit(account_address: <account>, asset_addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"], asset_amounts: ["<amount>"], chain_id: 8453)
 
 // Option B: Repay some WETH debt (reduces leverage)
-// NOTE: you must approve the WETH pool to spend WETH from your wallet first — check allowance, then approve if needed
+// NOTE: you must approve the WETH pool to spend WETH from your wallet first: check allowance, then approve if needed
 read_wallet_allowances(owner_address: <wallet>, spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", token_addresses: ["0x4200000000000000000000000000000000000006"], chain_id: 8453)
 write_wallet_approve(token_address: "0x4200000000000000000000000000000000000006", spender_address: "0x803ea69c7e87D1d6C86adeB40CB636cC0E6B98E2", amount: "max_uint256", chain_id: 8453)
 write_account_repay(
@@ -178,7 +178,7 @@ write_account_deleverage(
 
 ### Closing
 
-**ALWAYS try the atomic close first** — it batches everything into 1-2 transactions instead of 6+.
+**ALWAYS try the atomic close first**: it batches everything into 1-2 transactions instead of 6+.
 
 #### Preferred: Atomic close (1-2 transactions)
 
@@ -192,13 +192,13 @@ write_account_automations_delta(
   chain_id: 8453
 )
 
-// 1. Get account state — need asset list for the close call
+// 1. Get account state (the close call needs the asset list)
 read_account_info(account_address: <account>, chain_id: 8453)
 
 // 2. Unstake if staked (required before close)
 write_account_stake(action: "unstake", asset_address: <staked_pm_address>, asset_id: <nft_id>, account_address: <account>, chain_id: 8453)
 
-// 3. Atomic close: burns LP + swaps all tokens to USDC + repays debt — ONE transaction
+// 3. Atomic close: burns LP + swaps all tokens to USDC + repays debt in ONE transaction
 write_account_close(
   account_address: <account>,
   assets: [
@@ -242,7 +242,7 @@ write_account_withdraw(...)                            // withdraw all to wallet
 - IL: WETH price deviation from entry accumulates IL. Rebalancer mitigates but doesn't eliminate.
 - Liquidation: If WETH pumps sharply, health factor drops toward 0. Keep health factor above 0.5.
 - Borrow cost: WETH utilization spikes can make strategy unprofitable quickly.
-- Agent role: periodic health monitoring only — the rebalancer handles range management.
+- Agent role: periodic health monitoring only; the rebalancer handles range management.
 
 ---
 
@@ -263,8 +263,8 @@ write_account_withdraw(...)                            // withdraw all to wallet
 | Objective      | Maximize fees + yield      | Reliable market presence             |
 | Range          | Narrow (high fee capture)  | Wide or dynamic (capital protection) |
 | Rebalancing    | Aggressive (stay in range) | Conservative (minimize cost)         |
-| Leverage       | Yes                        | No — protect principal               |
-| IL tolerance   | Moderate (offset by fees)  | Low — preserving treasury            |
+| Leverage       | Yes                        | No, protect principal                |
+| IL tolerance   | Moderate (offset by fees)  | Low, preserving treasury             |
 | Success metric | Fee APY > borrow APY       | Liquidity depth maintained           |
 
 ### POL rebalancer behavior
@@ -274,7 +274,7 @@ The `protocol_owned_liquidity` strategy type uses a dynamic range algorithm (k1/
 ### Setup
 
 ```
-// Same tools, different intent — no leverage, wider slippage tolerance
+// Same tools, different intent: no leverage, wider slippage tolerance
 
 // 1. Check allowance + approve treasury tokens (skip approve if already sufficient)
 read_wallet_allowances(owner_address: <treasury_wallet>, spender_address: <account>, token_addresses: [<token>], chain_id: 8453)
@@ -285,21 +285,21 @@ write_wallet_approve(token_address: <token>, spender_address: <account>, amount:
 // Use V3 + creditor only if you want the option to leverage later.
 write_account_create(
   salt: <random uint32>,
-  account_version: 0,  // V4 spot — no leverage needed for POL
+  account_version: 0,  // V4 spot, no leverage needed for POL
   chain_id: 8453
 )
 
 // 3. Deposit treasury tokens
 write_account_deposit(account_address: <account>, ...)
 
-// 4. Open LP (no leverage — deposits are pulled from wallet)
+// 4. Open LP (no leverage, deposits are pulled from wallet)
 write_account_add_liquidity(
   account_address: <account>,
   wallet_address: <treasury_wallet>,
   positions: [{ strategy_id: <from step 1> }],
   deposits: [{ asset: <token_address>, amount: <raw_amount>, decimals: <decimals> }],
-  leverage: 0,        // 0 = no leverage (NOT 1 — use 0 for unleveraged)
-  slippage: 200,      // 2% — wider tolerance for POL
+  leverage: 0,        // 0 = no leverage (NOT 1; use 0 for unleveraged)
+  slippage: 200,      // 2%, wider tolerance for POL
   chain_id: 8453
 )
 
@@ -340,7 +340,7 @@ read_account_pnl  → track IL vs. fee income
 read_strategy_recommendation → check if rebalancing is needed
 ```
 
-**POL monitoring goal:** Ensure sufficient liquidity is deployed and treasury capital is not eroding excessively — not maximizing return.
+**POL monitoring goal:** Ensure sufficient liquidity is deployed and treasury capital is not eroding excessively, not maximizing return.
 
 ## Upgrade to Aero (MetadexCL V1)
 
