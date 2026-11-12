@@ -6,12 +6,22 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { format, resolveConfig } from "prettier";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
 const packageJsonPath = resolve(repoRoot, "package.json");
 const serverJsonPath = resolve(repoRoot, "server.json");
 const pluginJsonPath = resolve(repoRoot, ".claude-plugin", "plugin.json");
+
+const writeJson = async (path, value) =>
+  writeFileSync(
+    path,
+    await format(JSON.stringify(value, null, 2), {
+      ...(await resolveConfig(path)),
+      filepath: path,
+    }),
+  );
 
 const pkg = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 const version = pkg.version;
@@ -33,7 +43,7 @@ if (Array.isArray(server.packages) && server.packages.length > 0) {
   }
 }
 if (serverChanged) {
-  writeFileSync(serverJsonPath, `${JSON.stringify(server, null, 2)}\n`);
+  await writeJson(serverJsonPath, server);
   console.log(`server.json synced to ${version}.`);
 } else {
   console.log(`server.json already at ${version}, no change.`);
@@ -42,7 +52,7 @@ if (serverChanged) {
 const plugin = JSON.parse(readFileSync(pluginJsonPath, "utf8"));
 if (plugin.version !== version) {
   plugin.version = version;
-  writeFileSync(pluginJsonPath, `${JSON.stringify(plugin, null, 2)}\n`);
+  await writeJson(pluginJsonPath, plugin);
   console.log(`plugin.json synced to ${version}.`);
 } else {
   console.log(`plugin.json already at ${version}, no change.`);

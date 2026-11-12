@@ -3,7 +3,7 @@
   "name": "io.github.arcadia-finance/mcp-server",
   "title": "Arcadia Finance",
   "description": "Concentrated liquidity on Uniswap/Aero (rebalance, compound, leverage) or single-sided lending.",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "websiteUrl": "https://arcadia.finance",
   "icons": [
     {
@@ -20,7 +20,7 @@
     {
       "registryType": "npm",
       "identifier": "@arcadia-finance/mcp-server",
-      "version": "0.7.1",
+      "version": "0.7.2",
       "transport": {
         "type": "stdio"
       },
