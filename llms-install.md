@@ -37,7 +37,6 @@ Requires Node.js 22 or newer.
 Every variable is optional. RPC URLs fall back to public endpoints.
 
 - `RPC_URL_BASE`, `RPC_URL_OPTIMISM`, `RPC_URL_UNICHAIN`, `RPC_URL_ROBINHOOD`: private RPC endpoints per chain.
-- `PK`: private key for the development-only `dev_send` tool. Do not set it for production use.
 
 ## Verify the install
 

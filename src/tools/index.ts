@@ -19,7 +19,6 @@ import { registerApproveTool } from "./write/wallet/approve.js";
 import { registerPoolDepositTool } from "./write/pool/deposit.js";
 import { registerPoolRedeemTool } from "./write/pool/redeem.js";
 import { registerAutomationsTools } from "./write/asset-managers/automations.js";
-import { registerSendTool } from "./dev/send.js";
 import { registerAddLiquidityTool } from "./write/account/add-liquidity.js";
 import { registerRemoveLiquidityTool } from "./write/account/remove-liquidity.js";
 import { registerSwapTool } from "./write/account/swap.js";
@@ -69,7 +68,4 @@ export function registerAllTools(
 
   // Write tools: asset managers (intent-based, compiled by the backend)
   registerAutomationsTools(server, api);
-
-  // Dev tools
-  registerSendTool(server, chains);
 }
