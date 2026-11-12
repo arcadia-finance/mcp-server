@@ -13,7 +13,7 @@ yarn lint       # eslint src/
 yarn format     # prettier
 ```
 
-Node >= 22, yarn 4.13.0. All env vars are optional: RPC URLs fall back to public RPCs, `PK` enables dev-only signing.
+Node >= 22, yarn 4.13.0. All env vars are optional: RPC URLs fall back to public RPCs.
 
 ## Architecture
 
@@ -38,7 +38,6 @@ Tools in `src/tools/`, organized by category and entity:
 - **write/wallet/**: Wallet transaction builders (2 tools): `approve.ts` and `upgrade-velo.ts` (`write_wallet_upgrade_velo`, VELO on Optimism to the new AERO on Base through `/bundles/upgrade_velo`)
 - **write/asset-managers/**: Intent-based automation tools (2 tools: `write_account_automations` + `write_account_automations_delta`) in `automations.ts`. `intents.ts` holds the zod mirror of the backend intent union; `shared.ts` is a formatting helper.
   - Automation config is **compiled by the backend**, not encoded here. These tools POST intents to `/v1/api/automations/{account}/{preview,save,apply}` and wrap the returned `setAssetManagers` calldata (plus the ERC-8021 suffix) into an unsigned tx. The asset-manager address book, compatibility rules and v3 packed metadata live in `fallback-asset-managers/app/services/automation_config/` and must not be duplicated here.
-- **dev/**: Dev-only tools. `send.ts` (1 tool)
 
 Supporting code:
 - `src/clients/api.ts`: Centralized API client with `throwApiError` for error handling
@@ -57,7 +56,6 @@ Supporting code:
 ## Conventions
 
 - All `write_*` tools return **unsigned** transaction objects: signing is the client's responsibility
-- Tool names are snake_case with a `{namespace}_{singular-entity}_{action}` hierarchy, the same on every transport (model APIs accept only `[a-zA-Z0-9_-]{1,64}`). Total: 37 tools (19 read, 18 write), plus `dev_send` when `PK` is set.
+- Tool names are snake_case with a `{namespace}_{singular-entity}_{action}` hierarchy, the same on every transport (model APIs accept only `[a-zA-Z0-9_-]{1,64}`). Total: 37 tools (19 read, 18 write).
 - Batched write tool responses go through `formatBatchedResponse()` which appends the ERC-8021 suffix to calldata
 - Tests: unit tests use mock fetch, integration tests (`*.integration.test.ts`) hit live APIs; exclude them from CI
-- `dev_send` is registered only when the `PK` env var is set

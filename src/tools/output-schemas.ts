@@ -101,15 +101,6 @@ export const WalletAllowanceOutput = z.object({
   ),
 });
 
-export const DevSendOutput = z.object({
-  signer: z.string(),
-  txHash: z.string(),
-  status: z.string(),
-  blockNumber: z.number(),
-  gasLimit: z.number(),
-  gasUsed: z.number(),
-});
-
 export const AccountInfoOutput = z
   .object({
     account_version: z.number().nullable(),

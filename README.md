@@ -155,14 +155,6 @@ Write tools return unsigned transactions. Your wallet signs them, see [Transacti
 | `write_account_automations`       | Configure automations from an intents array (full desired state). Returns the unsigned setAssetManagers tx.                                        |
 | `write_account_automations_delta` | Enable/disable individual automations, leaving the rest untouched.                                                                                 |
 
-### Dev Tools
-
-Registered only when the `PK` env var is set.
-
-| Tool       | Description                                                                                                                                         |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dev_send` | Sign and broadcast an unsigned transaction using a local private key (`PK` env var). Not for production: use a dedicated wallet MCP server instead. |
-
 ## Transaction Signing
 
 All write tools return **unsigned transactions** as `{ to, data, value, chainId }`. This server does not sign or broadcast them; your agent or application does.
@@ -195,20 +187,9 @@ const client = createWalletClient({ account, chain: base, transport: http() });
 const hash = await client.sendTransaction(tx);
 ```
 
-**Built-in `dev_send` tool (development only):**
-The server includes a dev-only signing tool that reads a private key from the `PK` environment variable. Set `PK` via a `.env` file or your MCP client config:
-
-```bash
-# .env in the server directory (gitignored, never commit it)
-PK=0xYourPrivateKeyHex
-RPC_URL_BASE=https://base-mainnet.g.alchemy.com/v2/your-key
-```
-
-The server loads `.env` on startup. Values in the MCP client `env` block take precedence.
-
 ## Configuration
 
-All environment variables are optional.
+All environment variables are optional. Set them in a `.env` file in the server directory (gitignored, never commit it) or in your MCP client `env` block, which takes precedence.
 
 | Variable            | Required | Default                       | Transport | Description                                                    |
 | ------------------- | -------- | ----------------------------- | --------- | -------------------------------------------------------------- |
@@ -216,7 +197,6 @@ All environment variables are optional.
 | `RPC_URL_UNICHAIN`  | No       | Public RPC                    | Both      | RPC URL for Unichain (130).                                    |
 | `RPC_URL_OPTIMISM`  | No       | Public RPC                    | Both      | RPC URL for Optimism (10).                                     |
 | `RPC_URL_ROBINHOOD` | No       | Public RPC                    | Both      | RPC URL for Robinhood (4663).                                  |
-| `PK`                | No       | none                          | Both      | Private key (hex) for dev-only `dev_send` tool.                |
 | `TRANSPORT`         | No       | `stdio`                       | n/a       | Transport mode: `stdio` or `http`.                             |
 | `PORT`              | No       | `3000`                        | HTTP      | Listen port for HTTP transport.                                |
 | `ALLOWED_ORIGINS`   | No       | `https://mcp.arcadia.finance` | HTTP      | Comma-separated allowed Origin headers (CORS / DNS rebinding). |
@@ -277,7 +257,7 @@ To point a client at your build, use `"command": "node"` with `"args": ["/absolu
 
 ## Privacy
 
-When `POSTHOG_KEY` is set on an HTTP deployment, the server records one analytics event per tool call in PostHog (EU ingestion host by default): the tool name, its arguments (which can include public wallet and account addresses), whether the call failed, the duration, and the client name and version. Events carry no person profile. Running the server locally over stdio sends no analytics, and neither does an HTTP deployment without `POSTHOG_KEY`. Tool calls never carry private keys. The development-only `dev_send` tool signs with a `PK` set in the server's own environment; the hosted server has none. Questions: legal@arcadia.finance.
+When `POSTHOG_KEY` is set on an HTTP deployment, the server records one analytics event per tool call in PostHog (EU ingestion host by default): the tool name, its arguments (which can include public wallet and account addresses), whether the call failed, the duration, and the client name and version. Events carry no person profile. Running the server locally over stdio sends no analytics, and neither does an HTTP deployment without `POSTHOG_KEY`. The server never handles private keys. Questions: legal@arcadia.finance.
 
 ## License
 

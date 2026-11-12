@@ -18,7 +18,6 @@ describe("published catalog", () => {
   let client: Client;
 
   beforeAll(async () => {
-    delete process.env.PK;
     const server = new McpServer({ name: "arcadia-finance", version: "0.0.0" });
     registerAllTools(server, new ArcadiaApiClient(), getChainConfigs());
     registerAllPrompts(server);

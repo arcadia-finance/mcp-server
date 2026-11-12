@@ -3,7 +3,7 @@
   "name": "io.github.arcadia-finance/mcp-server",
   "title": "Arcadia Finance",
   "description": "Concentrated liquidity on Uniswap/Aero (rebalance, compound, leverage) or single-sided lending.",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "websiteUrl": "https://arcadia.finance",
   "icons": [
     {
@@ -20,7 +20,7 @@
     {
       "registryType": "npm",
       "identifier": "@arcadia-finance/mcp-server",
-      "version": "0.7.2",
+      "version": "0.7.3",
       "transport": {
         "type": "stdio"
       },
@@ -46,12 +46,6 @@
         {
           "name": "RPC_URL_ROBINHOOD",
           "description": "RPC URL for Robinhood (4663). Falls back to public RPC if not set.",
-          "isRequired": false,
-          "isSecret": true
-        },
-        {
-          "name": "PK",
-          "description": "Private key for dev-only signing (not for production).",
           "isRequired": false,
           "isSecret": true
         },

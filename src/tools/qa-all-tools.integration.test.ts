@@ -336,7 +336,6 @@ describe("QA: every tool via real MCP SDK", { timeout: 60_000 }, () => {
   beforeAll(async () => {
     const api = new ArcadiaApiClient();
     const chains = getChainConfigs();
-    delete process.env.PK;
     server = new McpServer({ name: "qa", version: "0.0.0" });
     registerAllTools(server, api, chains);
 

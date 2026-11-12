@@ -31,7 +31,7 @@ const robinhood = defineChain({
   },
 });
 
-export const viemChains = {
+const viemChains = {
   8453: base,
   10: optimism,
   130: unichain,
