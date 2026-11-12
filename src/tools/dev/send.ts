@@ -12,6 +12,9 @@ import {
 } from "../../utils/validation.js";
 
 export function registerSendTool(server: McpServer, chains: Record<ChainId, ChainConfig>) {
+  const pk = process.env.PK;
+  if (!pk) return;
+
   server.registerTool(
     "dev_send",
     {
@@ -34,19 +37,6 @@ export function registerSendTool(server: McpServer, chains: Record<ChainId, Chai
     },
     async (params) => {
       try {
-        const pk = process.env.PK;
-        if (!pk) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: "Error: PK not set. Either create a .env file with PK=0x... in the server directory, or set PK in your MCP client config env block. This tool is for development only — use a dedicated wallet MCP server for production.",
-              },
-            ],
-            isError: true,
-          };
-        }
-
         const validTo = validateAddress(params.to, "to");
         const calldata = validateHexCalldata(params.data, "data");
         const valueWei = parseWeiDecimalString(params.value, "value");

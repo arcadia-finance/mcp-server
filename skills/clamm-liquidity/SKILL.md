@@ -31,7 +31,7 @@ How you sign depends on your setup:
 - **MPC wallet** (Fireblocks, Dfns, Turnkey): pass the unsigned tx to your provider's signing API
 - **Smart account** (Safe, Biconomy): wrap the tx as a UserOperation or Safe transaction
 - **Embedded wallet** (Privy, Dynamic): use the provider's `sendTransaction` method
-- **Direct private key** (development only): use the built-in `dev_send` tool (set `PK` in a `.env` file or MCP client config), or viem/ethers `sendTransaction` with a local signer
+- **Direct private key** (development only): use the built-in `dev_send` tool, which the server lists only when `PK` is set in a `.env` file or the MCP client config, or viem/ethers `sendTransaction` with a local signer
 
 Example with viem:
 

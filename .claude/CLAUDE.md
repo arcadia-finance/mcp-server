@@ -57,7 +57,7 @@ Supporting code:
 ## Conventions
 
 - All `write_*` tools return **unsigned** transaction objects: signing is the client's responsibility
-- Tool names are snake_case with a `{namespace}_{singular-entity}_{action}` hierarchy, the same on every transport (model APIs accept only `[a-zA-Z0-9_-]{1,64}`). Total: 38 tools (19 read, 18 write, 1 dev).
+- Tool names are snake_case with a `{namespace}_{singular-entity}_{action}` hierarchy, the same on every transport (model APIs accept only `[a-zA-Z0-9_-]{1,64}`). Total: 37 tools (19 read, 18 write), plus `dev_send` when `PK` is set.
 - Batched write tool responses go through `formatBatchedResponse()` which appends the ERC-8021 suffix to calldata
 - Tests: unit tests use mock fetch, integration tests (`*.integration.test.ts`) hit live APIs; exclude them from CI
-- `dev_send` is always registered but checks `PK` env var at runtime: returns error if not set
+- `dev_send` is registered only when the `PK` env var is set

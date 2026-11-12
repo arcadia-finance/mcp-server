@@ -186,7 +186,7 @@ Write tools return unsigned transactions. Your wallet signs them, see [Transacti
 
 ### Dev Tools
 
-Always registered but requires `PK` env var to function.
+Registered only when the `PK` env var is set.
 
 | Tool       | Description                                                                                                                                         |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
