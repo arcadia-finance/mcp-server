@@ -20,10 +20,13 @@ The hosted server needs no install and no API key:
 https://mcp.arcadia.finance/mcp
 ```
 
+[![Add to Claude](https://img.shields.io/badge/Claude-Add_Connector-D97757?logo=claude&logoColor=white)](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Arcadia%20Finance&connectorUrl=https%3A%2F%2Fmcp.arcadia.finance%2Fmcp)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0078d4?logo=visualstudiocode)](https://insiders.vscode.dev/redirect/mcp/install?name=arcadia-finance&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.arcadia.finance%2Fmcp%22%7D)
 [![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-black?logo=cursor)](https://cursor.com/en/install-mcp?name=arcadia-finance&config=eyJ1cmwiOiJodHRwczovL21jcC5hcmNhZGlhLmZpbmFuY2UvbWNwIn0%3D)
 
-Most clients accept this config:
+The Claude button opens **Customize > Connectors > Add custom connector** with the name and URL filled in. Claude Free allows one custom connector. On Team and Enterprise, an owner adds it under **Organization settings > Connectors**.
+
+Most clients accept this config. Cursor reads it from `.cursor/mcp.json` or `~/.cursor/mcp.json`. VS Code uses `.vscode/mcp.json` with `"servers"` in place of `"mcpServers"` and `"type": "http"` on the server.
 
 ```json
 {
@@ -53,13 +56,6 @@ claude mcp add --transport http arcadia-finance https://mcp.arcadia.finance/mcp
 </details>
 
 <details>
-<summary>Claude Desktop and claude.ai</summary>
-
-Go to **Customize > Connectors > + Add > Add custom connector**, then enter `Arcadia Finance` and `https://mcp.arcadia.finance/mcp`. The Free plan allows one custom connector. On Team and Enterprise plans, an owner adds it under **Organization settings > Connectors**.
-
-</details>
-
-<details>
 <summary>ChatGPT</summary>
 
 Add `https://mcp.arcadia.finance/mcp` as a custom MCP app. Availability depends on your plan and workspace settings, see [OpenAI's guide](https://help.openai.com/en/articles/12584461).
@@ -80,31 +76,6 @@ codex mcp add arcadia-finance --url https://mcp.arcadia.finance/mcp
 
 ```bash
 gemini mcp add --transport http arcadia-finance https://mcp.arcadia.finance/mcp
-```
-
-</details>
-
-<details>
-<summary>Cursor</summary>
-
-Use the button above, or add the config above to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global).
-
-</details>
-
-<details>
-<summary>VS Code (GitHub Copilot)</summary>
-
-Use the button above, or add this to `.vscode/mcp.json`:
-
-```json
-{
-  "servers": {
-    "arcadia-finance": {
-      "type": "http",
-      "url": "https://mcp.arcadia.finance/mcp"
-    }
-  }
-}
 ```
 
 </details>
