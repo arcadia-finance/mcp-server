@@ -4,7 +4,7 @@
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 38 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 37 tools, plus `dev_send` when `PK` is set:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -24,7 +24,7 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Tools (38 total)
+## Tools (37, plus dev_send when PK is set)
 
 ### Read (19)
 
@@ -69,7 +69,7 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - write_account_automations: configure automations from an intents array (complete desired state), returns the unsigned setAssetManagers tx
 - write_account_automations_delta: switch individual automations on or off, leaving the rest untouched
 
-### Dev (1)
+### Dev (only when PK is set)
 
 - dev_send: sign and broadcast using local private key (dev only)
 

@@ -18,6 +18,7 @@ describe("published catalog", () => {
   let client: Client;
 
   beforeAll(async () => {
+    delete process.env.PK;
     const server = new McpServer({ name: "arcadia-finance", version: "0.0.0" });
     registerAllTools(server, new ArcadiaApiClient(), getChainConfigs());
     registerAllPrompts(server);
@@ -28,8 +29,8 @@ describe("published catalog", () => {
     tools = (await client.listTools()).tools;
   });
 
-  it("lists 38 tools, 4 prompts and 4 guide resources", async () => {
-    expect(tools).toHaveLength(38);
+  it("lists 37 tools, 4 prompts and 4 guide resources", async () => {
+    expect(tools).toHaveLength(37);
     expect((await client.listPrompts()).prompts.map((p) => p.name)).toEqual([
       "analyze-account",
       "find-yield-strategy",

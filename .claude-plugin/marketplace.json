@@ -1,0 +1,12 @@
+{
+  "name": "arcadia-finance",
+  "description": "Arcadia Finance plugins for Claude Code.",
+  "owner": { "name": "Arcadia Finance" },
+  "plugins": [
+    {
+      "name": "arcadia",
+      "source": "./",
+      "description": "Arcadia Finance MCP server and the clamm-liquidity skill."
+    }
+  ]
+}

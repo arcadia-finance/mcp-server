@@ -13,17 +13,17 @@ yarn lint       # eslint src/
 yarn format     # prettier
 ```
 
-Node >= 22, yarn 4.13.0. All env vars are optional — RPC URLs fall back to public RPCs, `PK` enables dev-only signing.
+Node >= 22, yarn 4.13.0. All env vars are optional: RPC URLs fall back to public RPCs, `PK` enables dev-only signing.
 
 ## Architecture
 
 Entry point: `src/index.ts`. Two transport modes controlled by `TRANSPORT` env var:
-- **stdio** (default) — for local MCP clients (Claude Desktop, Cursor, Claude Code)
+- **stdio** (default): for local MCP clients (Claude Desktop, Cursor, Claude Code)
 - **http**: Streamable HTTP on Express, stateless per the MCP 2026-07-28 spec (`createMcpHandler` from `@modelcontextprotocol/server` v2: a fresh server per request, 2025-era clients served without sessions, GET/DELETE answer 405). Deployed at `https://mcp.arcadia.finance/mcp`. Routes: `POST /mcp`, `GET /health`, `GET /llms.txt`, `GET /llms-full.txt`. Configurable via env vars: `PORT` (default 3000), `ALLOWED_ORIGINS` (CORS, default `https://mcp.arcadia.finance`), `RATE_LIMIT_RPM` (per client IP, default 600). See README for full env var table.
 
 Tools in `src/tools/`, organized by category and entity:
 
-- **read/** — Query tools. One file per entity group:
+- **read/**: Query tools. One file per entity group:
   - `account.ts` (3 tools: `read_account_info`, `read_account_history`, `read_account_pnl`)
   - `wallet.ts` (4 tools: `read_wallet_balances`, `read_wallet_allowances`, `read_wallet_accounts`, `read_wallet_points`)
   - `strategy.ts` (3 tools: `read_strategy_list`, `read_strategy_info`, `read_strategy_recommendation`)
@@ -38,24 +38,26 @@ Tools in `src/tools/`, organized by category and entity:
 - **write/wallet/**: Wallet transaction builders (2 tools): `approve.ts` and `upgrade-velo.ts` (`write_wallet_upgrade_velo`, VELO on Optimism to the new AERO on Base through `/bundles/upgrade_velo`)
 - **write/asset-managers/**: Intent-based automation tools (2 tools: `write_account_automations` + `write_account_automations_delta`) in `automations.ts`. `intents.ts` holds the zod mirror of the backend intent union; `shared.ts` is a formatting helper.
   - Automation config is **compiled by the backend**, not encoded here. These tools POST intents to `/v1/api/automations/{account}/{preview,save,apply}` and wrap the returned `setAssetManagers` calldata (plus the ERC-8021 suffix) into an unsigned tx. The asset-manager address book, compatibility rules and v3 packed metadata live in `fallback-asset-managers/app/services/automation_config/` and must not be duplicated here.
-- **dev/** — Dev-only tools. `send.ts` (1 tool)
+- **dev/**: Dev-only tools. `send.ts` (1 tool)
 
 Supporting code:
-- `src/clients/api.ts` — Centralized API client with `throwApiError` for error handling
-- `src/clients/chain.ts` — viem public clients per chain
-- `src/config/addresses.ts` — Contract addresses per chain
-- `src/config/chains.ts` — Chain resolution and config
-- `src/abis/` — Contract ABIs (JSON, copied to dist/ at build time)
-- `src/utils/attribution.ts` — ERC-8021 builder code suffix (`bc_u3g3444p`), appended to all transaction calldata via `appendDataSuffix()`
+- `src/clients/api.ts`: Centralized API client with `throwApiError` for error handling
+- `src/clients/chain.ts`: viem public clients per chain
+- `src/config/addresses.ts`: Contract addresses per chain
+- `src/config/chains.ts`: Chain resolution and config
+- `src/abis/`: Contract ABIs (JSON, copied to dist/ at build time)
+- `src/utils/attribution.ts`: ERC-8021 builder code suffix (`bc_u3g3444p`), appended to all transaction calldata via `appendDataSuffix()`
 - `src/utils/analytics.ts`: PostHog `mcp_tool_called` event per tool call (name, args, outcome, client). Only active on the HTTP transport with `POSTHOG_KEY` set; stdio never reports
-- `src/resources/` — MCP resources (guides)
-- `src/prompts/` — MCP prompt workflows
-- `skills/` — Claude Code skills for guided workflows (shipped in npm package)
+- `src/resources/`: MCP resources (guides)
+- `src/prompts/`: MCP prompt workflows
+- `skills/`: Claude Code skills for guided workflows (shipped in npm package and in the Claude Code plugin)
+- `.claude-plugin/`: Claude Code plugin (`plugin.json`, inline remote MCP server, version kept in sync by `yarn sync-version`) and its marketplace (`marketplace.json`)
+- `openclaw/`: OpenClaw skill (curl CLI wrapper), published to ClawHub by the release workflow when its `version` changes
 
 ## Conventions
 
 - All `write_*` tools return **unsigned** transaction objects: signing is the client's responsibility
-- Tool names are snake_case with a `{namespace}_{singular-entity}_{action}` hierarchy, the same on every transport (model APIs accept only `[a-zA-Z0-9_-]{1,64}`). Total: 38 tools (19 read, 18 write, 1 dev).
+- Tool names are snake_case with a `{namespace}_{singular-entity}_{action}` hierarchy, the same on every transport (model APIs accept only `[a-zA-Z0-9_-]{1,64}`). Total: 37 tools (19 read, 18 write), plus `dev_send` when `PK` is set.
 - Batched write tool responses go through `formatBatchedResponse()` which appends the ERC-8021 suffix to calldata
-- Tests: unit tests use mock fetch, integration tests (`*.integration.test.ts`) hit live APIs — exclude from CI
-- `dev_send` is always registered but checks `PK` env var at runtime: returns error if not set
+- Tests: unit tests use mock fetch, integration tests (`*.integration.test.ts`) hit live APIs; exclude them from CI
+- `dev_send` is registered only when the `PK` env var is set

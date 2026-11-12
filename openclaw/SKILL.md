@@ -1,6 +1,6 @@
 ---
 name: arcadia-finance
-version: 1.5.0
+version: 1.5.1
 description: "DeFi liquidity management on Uniswap and Aero, live on Base, Optimism, Unichain and Robinhood. Deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools."
 metadata:
   openclaw:
@@ -90,7 +90,7 @@ The CLI connects to `https://mcp.arcadia.finance/mcp` by default. Set `ARCADIA_M
 
 ## Data and Safety
 
-This skill connects to Arcadia's public API at `https://mcp.arcadia.finance/mcp` (override via `ARCADIA_MCP_URL`). Tool calls send public wallet addresses, account addresses, and transaction parameters to this server. This is the same data that is publicly visible on-chain. No private keys or signing capabilities are transmitted.
+Tool calls go to the server set under Configuration and send public wallet addresses, account addresses, and transaction parameters to this server. This is the same data that is publicly visible on-chain. No private keys or signing capabilities are transmitted.
 
 - Write tools return unsigned transactions only. Never auto-sign.
 - Always confirm transaction details with the user before signing.

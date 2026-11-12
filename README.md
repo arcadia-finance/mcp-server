@@ -3,21 +3,137 @@
 [![npm](https://img.shields.io/npm/v/@arcadia-finance/mcp-server)](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
 [![npm downloads](https://img.shields.io/npm/dm/@arcadia-finance/mcp-server)](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue)](LICENSE.md)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-2026--07--28-green)](https://modelcontextprotocol.io/)
-[![Smithery](https://img.shields.io/badge/Smithery-listed-6b46c1)](https://smithery.ai/servers/arcadia-finance/mcp-server)
 [![MCP Badge](https://lobehub.com/badge/mcp/arcadia-finance-mcp-server)](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 [![arcadia-finance-mcp-server MCP server](https://glama.ai/mcp/servers/arcadia-finance/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
 [![mcptry](https://mcptry.com/badge/io.github.arcadia-finance/mcp-server)](https://mcptry.com/servers/io.github.arcadia-finance/mcp-server)
+[![Arcadia Finance MCP on mcprush](https://mcprush.com/badge/arcadia-finance-mcp/score.svg)](https://mcprush.com/to/arcadia-finance-mcp?ref=badge)
 
-MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing, deposits, and more.
+MCP server for [Arcadia Finance](https://arcadia.finance), a platform for concentrated liquidity on Uniswap and Aero with automated rebalancing, compounding, yield optimization, and leverage, or single-sided liquidity into lending pools. Read protocol data and build unsigned transactions for LP management, borrowing and deposits. Live on Base, Optimism, Unichain and Robinhood.
 
-Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
+## Quick start
 
-## Install
+The hosted server needs no install and no API key:
 
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0078d4?logo=visualstudiocode)](https://vscode.dev/redirect/mcp/install?name=arcadia-finance&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40arcadia-finance%2Fmcp-server%22%5D%7D)
-[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-black?logo=cursor)](https://cursor.com/en/install-mcp?name=arcadia-finance&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBhcmNhZGlhLWZpbmFuY2UvbWNwLXNlcnZlciJdfQ==)
+```
+https://mcp.arcadia.finance/mcp
+```
+
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0078d4?logo=visualstudiocode)](https://insiders.vscode.dev/redirect/mcp/install?name=arcadia-finance&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.arcadia.finance%2Fmcp%22%7D)
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_Server-black?logo=cursor)](https://cursor.com/en/install-mcp?name=arcadia-finance&config=eyJ1cmwiOiJodHRwczovL21jcC5hcmNhZGlhLmZpbmFuY2UvbWNwIn0%3D)
+
+Most clients accept this config:
+
+```json
+{
+  "mcpServers": {
+    "arcadia-finance": {
+      "url": "https://mcp.arcadia.finance/mcp"
+    }
+  }
+}
+```
+
+<details>
+<summary>Claude Code</summary>
+
+Install the plugin, which adds the server and the `clamm-liquidity` skill:
+
+```
+/plugin install arcadia --marketplace arcadia-finance/mcp-server
+```
+
+On Claude Code older than 2.1.275, run `/plugin marketplace add arcadia-finance/mcp-server`, then `/plugin install arcadia@arcadia-finance`. To add only the server:
+
+```bash
+claude mcp add --transport http arcadia-finance https://mcp.arcadia.finance/mcp
+```
+
+</details>
+
+<details>
+<summary>Claude Desktop and claude.ai</summary>
+
+Go to **Customize > Connectors > + Add > Add custom connector**, then enter `Arcadia Finance` and `https://mcp.arcadia.finance/mcp`. The Free plan allows one custom connector. On Team and Enterprise plans, an owner adds it under **Organization settings > Connectors**.
+
+</details>
+
+<details>
+<summary>ChatGPT</summary>
+
+Add `https://mcp.arcadia.finance/mcp` as a custom MCP app. Availability depends on your plan and workspace settings, see [OpenAI's guide](https://help.openai.com/en/articles/12584461).
+
+</details>
+
+<details>
+<summary>Codex CLI</summary>
+
+```bash
+codex mcp add arcadia-finance --url https://mcp.arcadia.finance/mcp
+```
+
+</details>
+
+<details>
+<summary>Gemini CLI</summary>
+
+```bash
+gemini mcp add --transport http arcadia-finance https://mcp.arcadia.finance/mcp
+```
+
+</details>
+
+<details>
+<summary>Cursor</summary>
+
+Use the button above, or add the config above to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global).
+
+</details>
+
+<details>
+<summary>VS Code (GitHub Copilot)</summary>
+
+Use the button above, or add this to `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "arcadia-finance": {
+      "type": "http",
+      "url": "https://mcp.arcadia.finance/mcp"
+    }
+  }
+}
+```
+
+</details>
+
+### Run it locally
+
+To run the server as a local process instead (Node.js 22 or newer):
+
+```json
+{
+  "mcpServers": {
+    "arcadia-finance": {
+      "command": "npx",
+      "args": ["-y", "@arcadia-finance/mcp-server"]
+    }
+  }
+}
+```
+
+In Claude Code: `claude mcp add arcadia-finance -- npx -y @arcadia-finance/mcp-server`. Optional environment variables are listed under [Configuration](#configuration).
+
+### Try it
+
+- "Which Arcadia strategies on Base have the highest APY right now?"
+- "Show the health factor and positions of Arcadia account 0x..."
+- "Open the top WETH/USDC strategy with 1,000 USDC and turn on compounding."
+- "What do the Arcadia lending pools pay lenders?"
+
+Write tools return unsigned transactions. Your wallet signs them, see [Transaction Signing](#transaction-signing).
 
 ## Tools
 
@@ -47,8 +163,6 @@ Designed for AI agents (Claude, Cursor, etc.) to interact with Arcadia onchain.
 
 ### Write Tools
 
-All write tools return unsigned transactions as `{ to, data, value, chainId }`.
-
 | Tool                              | Description                                                                                                                                        |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `write_wallet_approve`            | Approve an ERC20 token for spending. Required before depositing into an account. Call `read_wallet_allowances` first to check if already approved. |
@@ -72,7 +186,7 @@ All write tools return unsigned transactions as `{ to, data, value, chainId }`.
 
 ### Dev Tools
 
-Always registered but requires `PK` env var to function.
+Registered only when the `PK` env var is set.
 
 | Tool       | Description                                                                                                                                         |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -80,12 +194,11 @@ Always registered but requires `PK` env var to function.
 
 ## Transaction Signing
 
-All write tools return **unsigned transactions** as `{ to, data, value, chainId }`. This server does NOT sign or broadcast — your agent or application is responsible for that.
+All write tools return **unsigned transactions** as `{ to, data, value, chainId }`. This server does not sign or broadcast them; your agent or application does.
 
 ### Options
 
-**Wallet MCP servers (recommended for production):**
-Pair this server with a wallet MCP server that handles signing:
+**Wallet MCP servers** (recommended for production):
 
 | Wallet MCP                                                        | Provider  | Model                                                     |
 | ----------------------------------------------------------------- | --------- | --------------------------------------------------------- |
@@ -115,25 +228,16 @@ const hash = await client.sendTransaction(tx);
 The server includes a dev-only signing tool that reads a private key from the `PK` environment variable. Set `PK` via a `.env` file or your MCP client config:
 
 ```bash
-# .env in the server directory (never commit — already gitignored)
+# .env in the server directory (gitignored, never commit it)
 PK=0xYourPrivateKeyHex
 RPC_URL_BASE=https://base-mainnet.g.alchemy.com/v2/your-key
 ```
 
-The server loads `.env` automatically on startup. Works with any MCP client (Claude Desktop, Claude Code, VSCode, Cursor). MCP client `env` block settings take precedence if both are set.
+The server loads `.env` on startup. Values in the MCP client `env` block take precedence.
 
-Not for production — use a dedicated wallet MCP server (Fireblocks, Turnkey, Safe) instead.
+## Configuration
 
-## Setup
-
-**Prerequisites:** Node.js >= 22
-
-```bash
-yarn install
-yarn build
-```
-
-**Environment variables:**
+All environment variables are optional.
 
 | Variable            | Required | Default                       | Transport | Description                                                    |
 | ------------------- | -------- | ----------------------------- | --------- | -------------------------------------------------------------- |
@@ -142,89 +246,30 @@ yarn build
 | `RPC_URL_OPTIMISM`  | No       | Public RPC                    | Both      | RPC URL for Optimism (10).                                     |
 | `RPC_URL_ROBINHOOD` | No       | Public RPC                    | Both      | RPC URL for Robinhood (4663).                                  |
 | `PK`                | No       | none                          | Both      | Private key (hex) for dev-only `dev_send` tool.                |
-| `TRANSPORT`         | No       | `stdio`                       | —         | Transport mode: `stdio` or `http`.                             |
+| `TRANSPORT`         | No       | `stdio`                       | n/a       | Transport mode: `stdio` or `http`.                             |
 | `PORT`              | No       | `3000`                        | HTTP      | Listen port for HTTP transport.                                |
 | `ALLOWED_ORIGINS`   | No       | `https://mcp.arcadia.finance` | HTTP      | Comma-separated allowed Origin headers (CORS / DNS rebinding). |
 | `RATE_LIMIT_RPM`    | No       | `600`                         | HTTP      | Max requests per minute per client IP.                         |
 | `POSTHOG_KEY`       | No       | none                          | HTTP      | PostHog project key. Unset = no analytics are sent.            |
 | `POSTHOG_HOST`      | No       | `https://eu.i.posthog.com`    | HTTP      | PostHog ingestion host.                                        |
 
-**Supported chains:** Base (8453), Unichain (130), Optimism (10), Robinhood (4663)
-
-## MCP Client Configuration
-
-**Remote (no install needed):**
-
-```json
-{
-  "mcpServers": {
-    "arcadia-finance": {
-      "url": "https://mcp.arcadia.finance/mcp"
-    }
-  }
-}
-```
-
-**Via npx** (local stdio):
-
-```json
-{
-  "mcpServers": {
-    "arcadia-finance": {
-      "command": "npx",
-      "args": ["-y", "@arcadia-finance/mcp-server"],
-      "env": {
-        "RPC_URL_BASE": "https://base-mainnet.g.alchemy.com/v2/your-key"
-      }
-    }
-  }
-}
-```
-
-**Claude Code:**
-
-```bash
-# Remote
-claude mcp add arcadia-finance --transport http https://mcp.arcadia.finance/mcp
-
-# Local
-claude mcp add arcadia-finance -- npx -y @arcadia-finance/mcp-server
-```
-
-**From source** (local development):
-
-```json
-{
-  "mcpServers": {
-    "arcadia-finance": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-server/dist/index.js"],
-      "env": {
-        "RPC_URL_BASE": "https://base-mainnet.g.alchemy.com/v2/your-key"
-      }
-    }
-  }
-}
-```
-
 ## Skills
 
-The `skills/` directory contains Claude Code skills that teach AI agents how to use this MCP server effectively. To install a skill, symlink it into your Claude skills directory:
+The `skills/` directory contains skills that teach AI agents how to use this MCP server. The Claude Code plugin (see [Quick start](#quick-start)) installs them together with the server. To install a skill on its own, symlink it into your skills directory:
 
 ```bash
 ln -s /path/to/mcp-server/skills/clamm-liquidity ~/.claude/skills/clamm-liquidity
 ```
 
-Available skills:
-
 | Skill             | Description                                                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------------- |
 | `clamm-liquidity` | Concentrated liquidity management: concepts, intent-based automation, and step-by-step workflows. |
 
+The [OpenClaw](https://clawhub.ai/skills/arcadia-finance) skill in `openclaw/` calls the hosted server through a curl script, for agents without MCP support.
+
 ## Reporting Issues
 
-Found a bug, missing feature, or unclear documentation while using this server?
-Open an issue: https://github.com/arcadia-finance/mcp-server/issues
+Open an issue for bugs, missing features or unclear documentation: https://github.com/arcadia-finance/mcp-server/issues
 
 **For AI agents:** If you hit a gap during task execution, open an issue with:
 
@@ -232,13 +277,12 @@ Open an issue: https://github.com/arcadia-finance/mcp-server/issues
 - What you expected vs what happened
 - The strategy or goal you were trying to execute
 
-Pull requests for documentation fixes are welcome from agents and humans alike. All PRs require human review before merging.
+Pull requests for documentation fixes are welcome. Every PR needs a human review before merging.
 
 ## Where to Find Us
 
 - **npm:** [@arcadia-finance/mcp-server](https://www.npmjs.com/package/@arcadia-finance/mcp-server)
 - **MCP Registry:** [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/?q=arcadia)
-- **Smithery:** [smithery.ai](https://smithery.ai/servers/arcadia-finance/mcp-server)
 - **MCP Servers:** [mcpservers.org](https://mcpservers.org/en/servers/arcadia-finance/mcp-server)
 - **LobeHub:** [lobehub.com](https://lobehub.com/mcp/arcadia-finance-mcp-server)
 - **PulseMCP:** [pulsemcp.com](https://www.pulsemcp.com/servers/arcadia-finance)
@@ -250,12 +294,15 @@ Pull requests for documentation fixes are welcome from agents and humans alike. 
 ## Development
 
 ```bash
-yarn dev          # Run with tsx (hot reload)
+yarn install
 yarn build        # Compile TypeScript
+yarn dev          # Run with tsx (hot reload)
 yarn test         # Run tests
 yarn lint         # Lint with ESLint
 yarn format       # Check formatting with Prettier
 ```
+
+To point a client at your build, use `"command": "node"` with `"args": ["/absolute/path/to/mcp-server/dist/index.js"]`.
 
 ## Privacy
 

@@ -5,8 +5,6 @@ on:
     paths:
       - package.json
       - server.json
-  # Manual retry: the version-bump gate still applies, so this is a no-op unless
-  # the tag for the current package.json version is absent.
   workflow_dispatch:
 
 concurrency:
@@ -15,7 +13,7 @@ concurrency:
 
 permissions:
   contents: write
-  id-token: write # required for MCP Registry OIDC authentication
+  id-token: write # OIDC for npm trusted publishing and the MCP Registry
 
 jobs:
   release:
@@ -24,9 +22,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          # actions/checkout passes --no-tags unless this is set, so without it the
-          # version gate below runs `git rev-parse` against a tagless clone and can
-          # never detect an already-released version.
           fetch-tags: true
       - run: corepack enable
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -52,12 +47,6 @@ jobs:
           yarn install --immutable
           yarn build
           npm install -g npm@^11.5.1
-          # Tolerate an already-published version so a retry after a later-step
-          # failure does not abort here.
-          # --prefer-online for the same reason the verify step uses it: npm view
-          # answers from the packument cache for max-age=300. A cold runner makes this
-          # correct today, but a warm cache would let the guard skip a publish that
-          # never happened.
           if npm view "@arcadia-finance/mcp-server@${{ steps.check.outputs.version }}" version --prefer-online >/dev/null 2>&1; then
             echo "npm already has ${{ steps.check.outputs.version }}, skipping publish."
           else
@@ -65,7 +54,6 @@ jobs:
           fi
 
       # ─── Downstream registry publishes ───
-      # Fire only after npm publish succeeds and only on real version bumps.
 
       - name: Install mcp-publisher
         if: steps.check.outputs.skip == 'false'
@@ -74,9 +62,6 @@ jobs:
       - name: Authenticate to MCP Registry (OIDC)
         if: steps.check.outputs.skip == 'false'
         run: ./mcp-publisher login github-oidc
-      # The registry rejects republishing an existing version outright, so without
-      # this pre-check a retry after a later-step failure would fail here forever
-      # and the release would only be recoverable via a version bump.
       - name: Publish to MCP Registry
         if: steps.check.outputs.skip == 'false'
         env:
@@ -100,10 +85,6 @@ jobs:
           echo "npm still does not serve ${VERSION} after 5 minutes" >&2
           exit 1
 
-      # The CLI authenticates via SMITHERY_API_KEY only; it never reads a variable
-      # named SMITHERY_TOKEN, so the previous env name meant this step silently
-      # no-opped on every release. The qualified name is org/name with no leading
-      # @ (the npm-style @scope/name form is not a valid Smithery identifier).
       - name: Publish to Smithery
         if: steps.check.outputs.skip == 'false'
         env:
@@ -121,17 +102,14 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         id: skill
         run: |
-          CURR=$(awk '/^version:/ { print $2; exit }' skills/openclaw/SKILL.md)
+          CURR=$(awk '/^version:/ { print $2; exit }' openclaw/SKILL.md)
           if [ -z "$CURR" ]; then
-            echo "Could not read version from skills/openclaw/SKILL.md frontmatter."
+            echo "Could not read version from openclaw/SKILL.md frontmatter."
             exit 1
           fi
-          # Relative to the last released tag, not HEAD~1: on a manual retry after
-          # further commits, HEAD~1 already carries the new skill version and the
-          # publish that failed would be the one the retry skips.
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -n "$LAST_TAG" ]; then
-            PREV=$(git show "${LAST_TAG}:skills/openclaw/SKILL.md" 2>/dev/null | awk '/^version:/ { print $2; exit }' || echo "")
+            PREV=$(git show "${LAST_TAG}:openclaw/SKILL.md" 2>/dev/null | awk '/^version:/ { print $2; exit }' || echo "")
           else
             PREV=""
           fi
@@ -152,16 +130,13 @@ jobs:
             exit 0
           fi
           npx -y clawhub login --token "$CLAWHUB_TOKEN" --no-input
-          npx -y clawhub publish "$PWD/skills/openclaw" \
+          npx -y clawhub publish "$PWD/openclaw" \
             --slug arcadia-finance \
             --name "Arcadia Finance" \
             --version "${{ steps.skill.outputs.version }}" \
             --no-input
 
       # ─── Verify before tagging ───
-      # Every publish above can exit 0 without shipping: a missing credential hits a
-      # guard, and npm's own step tolerates an existing version. Assert the release
-      # is actually visible, and do it before the tag so a failure stays retryable.
       - name: Verify publishes landed
         if: steps.check.outputs.skip == 'false'
         env:
@@ -173,14 +148,6 @@ jobs:
           REGISTRY_URL="https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest"
           SMITHERY_URL="https://registry.smithery.ai/servers/arcadia-finance/mcp-server"
 
-          # --prefer-online is load-bearing, not a nicety. npm view answers from the
-          # on-disk packument cache, and the registry serves it with
-          # cache-control: max-age=300, so npm returns the cached copy without
-          # revalidating for five minutes. The retry-tolerance pre-check in the
-          # publish step above necessarily runs BEFORE the publish and caches a
-          # packument that lacks the new version; npm publish does not invalidate it.
-          # That is what failed 0.5.1 five seconds after a successful publish, and no
-          # amount of polling inside the TTL would have changed the answer.
           npm_has_version() {
             npm view "${PKG}@${VERSION}" version --prefer-online >/dev/null 2>&1
           }
@@ -191,8 +158,6 @@ jobs:
                   >/dev/null 2>&1
           }
 
-          # Both are polled in one loop, each dropped as it satisfies, so a genuine
-          # failure in one does not serially burn the other's budget.
           npm_ok=0
           registry_ok=0
           slept=0
@@ -212,9 +177,6 @@ jobs:
             slept=$((slept + 10))
           done
 
-          # On failure, re-run without suppressing output: the silent form exits
-          # non-zero identically for a 404, a network blip and an auth failure, which
-          # is why the 0.5.1 failure needed a re-run to understand.
           if [ "$npm_ok" -eq 0 ]; then
             echo "::group::npm view output"
             npm view "${PKG}@${VERSION}" version --prefer-online || true
@@ -230,10 +192,6 @@ jobs:
             fail=1
           fi
 
-          # Advisory. Smithery accepts a publish as PENDING and applies it
-          # asynchronously, so a short poll keeps this from warning on every release
-          # and going unread. This is the one check with a proven catch, so the
-          # signal is worth protecting.
           if [ -n "$SMITHERY_API_KEY" ]; then
             smithery_slept=0
             while :; do
@@ -254,9 +212,6 @@ jobs:
           exit $fail
 
       # ─── Tag and release LAST ───
-      # The version-bump gate above keys off this tag, so creating it only after
-      # every publish has succeeded keeps a failed run fully retryable. Creating
-      # it first would make the gate skip everything on the next attempt.
       - name: Create tag and release
         if: steps.check.outputs.skip == 'false'
         env:
@@ -264,8 +219,6 @@ jobs:
         run: |
           git tag "${{ steps.check.outputs.tag }}"
           git push origin "${{ steps.check.outputs.tag }}"
-          # Not atomic with the tag push above: if the tag lands and this fails, the
-          # gate would skip everything next run with no release created.
           gh release create "${{ steps.check.outputs.tag }}" \
             --title "${{ steps.check.outputs.tag }}" \
             --generate-notes \
