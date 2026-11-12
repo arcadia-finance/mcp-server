@@ -85,19 +85,6 @@ jobs:
           echo "npm still does not serve ${VERSION} after 5 minutes" >&2
           exit 1
 
-      - name: Publish to Smithery
-        if: steps.check.outputs.skip == 'false'
-        env:
-          SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
-        run: |
-          if [ -z "$SMITHERY_API_KEY" ]; then
-            echo "::warning::SMITHERY_API_KEY not set, skipping Smithery publish."
-            exit 0
-          fi
-          npx -y @smithery/cli mcp publish \
-            https://mcp.arcadia.finance/mcp \
-            -n arcadia-finance/mcp-server
-
       - name: Check openclaw skill version
         if: steps.check.outputs.skip == 'false'
         id: skill
@@ -141,12 +128,10 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         env:
           VERSION: ${{ steps.check.outputs.version }}
-          SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
         run: |
           fail=0
           PKG="@arcadia-finance/mcp-server"
           REGISTRY_URL="https://registry.modelcontextprotocol.io/v0/servers?search=io.github.arcadia-finance/mcp-server&version=latest"
-          SMITHERY_URL="https://registry.smithery.ai/servers/arcadia-finance/mcp-server"
 
           npm_has_version() {
             npm view "${PKG}@${VERSION}" version --prefer-online >/dev/null 2>&1
@@ -190,23 +175,6 @@ jobs:
             echo "::endgroup::"
             echo "::error::MCP Registry does not report ${VERSION} after ${slept}s"
             fail=1
-          fi
-
-          if [ -n "$SMITHERY_API_KEY" ]; then
-            smithery_slept=0
-            while :; do
-              if curl -sf --max-time 30 "$SMITHERY_URL" \
-                | jq -e '.deploymentUrl == "https://mcp.arcadia.finance/mcp"' >/dev/null 2>&1; then
-                echo "Smithery: listing points at the current deployment"
-                break
-              fi
-              if [ "$smithery_slept" -ge 30 ]; then
-                echo "::warning::Smithery listing still points at the previous deployment after ${smithery_slept}s. The publish is accepted asynchronously, so check the releases page if this persists."
-                break
-              fi
-              sleep 10
-              smithery_slept=$((smithery_slept + 10))
-            done
           fi
 
           exit $fail

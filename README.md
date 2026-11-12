@@ -261,6 +261,9 @@ Pull requests for documentation fixes are welcome. Every PR needs a human review
 - **Glama:** [glama.ai](https://glama.ai/mcp/servers/arcadia-finance/mcp-server)
 - **mcp.so:** [mcp.so](https://mcp.so/server/arcadia-finance/mcp-server)
 - **awesome-mcp-servers:** [github.com/punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
+- **mcptry:** [mcptry.com](https://mcptry.com/servers/io.github.arcadia-finance/mcp-server)
+- **mcprush:** [mcprush.com](https://mcprush.com/arcadia-finance/arcadia-finance-mcp)
+- **ClawHub (OpenClaw skill):** [clawhub.ai](https://clawhub.ai/skills/arcadia-finance)
 
 ## Development
 
