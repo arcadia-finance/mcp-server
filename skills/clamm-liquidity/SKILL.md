@@ -133,7 +133,7 @@ Standalone AMs (not tied to a DEX protocol, same address on all supported chains
 | -------------- | -------------------------------------------- | ------------------------ |
 | Merkl Operator | `0x969F0251360b9Cf11c68f6Ce9587924c1B8b42C6` | Base, Optimism, Unichain |
 | Gas Relayer    | `0xD938C8d04cF91094fecAF0A2018EAac483a40137` | Base, Optimism, Unichain |
-| CoW Swapper    | `0xb988a32DeF54821Dde0D7382e8a74f1BE4da1f23` | Base only                |
+| CoW Swapper    | `0x3BfDff5365F325032aaDB685a580e06D61e68a42` | Base only                |
 
 Protocol-specific AMs (rebalancer, compounder, yield claimer). Slipstream V2 is Base-only. All other addresses apply to every chain where the protocol exists:
 

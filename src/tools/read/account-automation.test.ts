@@ -10,8 +10,8 @@ const OWNER = "0x000000000000000000000000000000000000beef";
 // address book: the automations backend reports whatever version an account is
 // registered on, so an older deployment is still reported as active.
 const REBALANCER_V2_1_0_SLIPSTREAM_V1 = "0xE07A9383AF8E0B1320419dFeF205bb9bA75f3Ef2";
-// Superseded CowSwapper V1.0, still set on a small number of accounts.
-const COW_SWAPPER_OLD = "0xc928013A219EC9F18dE7B2dee6A50Ba626811854";
+// Superseded CowSwapper V1.1.1, still set on a number of accounts.
+const COW_SWAPPER_OLD = "0xb988a32DeF54821Dde0D7382e8a74f1BE4da1f23";
 
 const GAS_RELAYER = "0xD938C8d04cF91094fecAF0A2018EAac483a40137";
 
@@ -129,7 +129,7 @@ describe("read_account_info automation", () => {
       enabled: [
         manager({
           manager: "cow_swapper",
-          address: "0xb988a32DeF54821Dde0D7382e8a74f1BE4da1f23",
+          address: "0x3BfDff5365F325032aaDB685a580e06D61e68a42",
         }),
       ],
     });
@@ -148,7 +148,7 @@ describe("read_account_info automation", () => {
           manager: "cow_swapper",
           address: COW_SWAPPER_OLD,
           deprecated: true,
-          version: "1.0",
+          version: "1.1.1",
         }),
       ],
     });
@@ -158,7 +158,7 @@ describe("read_account_info automation", () => {
 
     expect(data.automation.cow_swapper).toBe(false);
     expect(data.automation.deprecated_managers).toEqual([
-      { manager: "cow_swapper", address: COW_SWAPPER_OLD, version: "1.0" },
+      { manager: "cow_swapper", address: COW_SWAPPER_OLD, version: "1.1.1" },
     ]);
   });
 
