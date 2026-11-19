@@ -176,6 +176,7 @@ export function registerAssetManagerTools(server: McpServer, api: ArcadiaApiClie
         "Read which asset managers are currently enabled on an account, with their decoded on-chain configuration. " +
         "Returns the active managers (address, protocol, initiator, decoded strategy metadata, slippage and value-loss caps, fee recipient), the intents they map to, and Merkl claim state including whether reward tokens still need registering. " +
         "Managers from superseded deployments are listed separately under `deprecated`: pass their addresses to write_account_automations_delta to clear them, or run write_account_automations which disables them as part of the save. " +
+        "A deprecated cow_swapper no longer swaps: a delta apply moves the account to the current CowSwapper and keeps its auto-swap target (buy token, sell tokens); a save keeps it only when its intents restate that target from the deprecated entry's metadata. " +
         "read_ok is false when chain state could not be read, in which case the result is unreliable rather than empty.",
       outputSchema: AutomationsStateOutput,
       inputSchema: z.object({
