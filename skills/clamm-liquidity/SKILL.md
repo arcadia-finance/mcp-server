@@ -123,11 +123,11 @@ Use as `pool_address` in `write_account_borrow` / `write_account_repay`, as `cre
 
 ### Asset Manager Addresses
 
-Asset-manager addresses are resolved by the backend, not by this server, and are not passed to or returned by the automation tools. All require V3/V4 accounts. Older asset-manager versions remain on-chain for users who registered before the latest version shipped: `read_asset_manager_current` reports those as `deprecated` so they can be disabled, and reports the dex_protocol with no version suffix.
+Asset-manager addresses are resolved by the backend, not by this server, and are not passed to or returned by the automation tools. All require V3/V4 accounts. Older asset-manager versions remain on-chain for users who registered before the latest version shipped: `read_asset_manager_current` reports those as `deprecated` so they can be disabled, and reports the dex_protocol with no version suffix. Old CowSwappers no longer swap: a delta apply moves the Account to the current CowSwapper and keeps its auto-swap target, and a save does the same when its intents restate that target.
 
 The addresses below are for reference and orientation only. The one you may actually need is the gas relayer, for paying for extra rebalances with AAA.
 
-Standalone AMs (not tied to a DEX protocol, same address on all supported chains):
+Standalone AMs (not tied to a DEX protocol, same address on all supported chains). The CoW Swapper is used on Base only:
 
 | Type           | Address                                      | Chains                   |
 | -------------- | -------------------------------------------- | ------------------------ |

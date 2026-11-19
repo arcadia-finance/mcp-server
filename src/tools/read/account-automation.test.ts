@@ -141,6 +141,40 @@ describe("read_account_info automation", () => {
     expect(data.automation.dex_protocol).toBeUndefined();
   });
 
+  it("reports an account-level manager the backend marks inactive as false", async () => {
+    const handler = setup({
+      enabled: [
+        manager({
+          manager: "cow_swapper",
+          address: "0x3BfDff5365F325032aaDB685a580e06D61e68a42",
+          active: false,
+        }),
+      ],
+    });
+    const data = parseToolResponse(
+      await handler({ account_address: BASE_ACCOUNT, chain_id: 8453 }),
+    );
+
+    expect(data.automation.cow_swapper).toBe(false);
+  });
+
+  it("reports an account-level manager with active null as true", async () => {
+    const handler = setup({
+      enabled: [
+        manager({
+          manager: "cow_swapper",
+          address: "0x3BfDff5365F325032aaDB685a580e06D61e68a42",
+          active: null,
+        }),
+      ],
+    });
+    const data = parseToolResponse(
+      await handler({ account_address: BASE_ACCOUNT, chain_id: 8453 }),
+    );
+
+    expect(data.automation.cow_swapper).toBe(true);
+  });
+
   it("does not count a superseded manager as active, and lists it for cleanup", async () => {
     const handler = setup({
       enabled: [

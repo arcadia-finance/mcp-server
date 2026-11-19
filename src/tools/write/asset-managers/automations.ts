@@ -236,7 +236,7 @@ export function registerAutomationsTools(server: McpServer, api: ArcadiaApiClien
       description:
         "Apply an explicit change to an account's automations and return the unsigned setAssetManagers transaction. " +
         "Unlike write_account_automations this is a delta, not a full desired state: automations you do not mention are left untouched. Use it to switch one automation on or off without restating the others.\n\n" +
-        "The enable array takes intents to switch on (same shapes as write_account_automations). To turn an automation OFF, call read_asset_manager_current, take the address of the manager serving it, and pass that address in the disable array: an intent with enabled: false in `enable` is rejected because the backend would ignore it. Superseded or unreadable managers still set on the account are force-disabled in the same transaction regardless.\n\n" +
+        "The enable array takes intents to switch on (same shapes as write_account_automations). To turn an automation OFF, call read_asset_manager_current, take the address of the manager serving it, and pass that address in the disable array: an intent with enabled: false in `enable` is rejected because the backend would ignore it. Superseded or unreadable managers still set on the account are force-disabled in the same transaction regardless, except a superseded cow_swapper: it is moved to the current CowSwapper with its auto-swap target (buy token, sell tokens) kept.\n\n" +
         INTENT_REFERENCE +
         "\n\n" +
         CONTEXT_NOTE +
