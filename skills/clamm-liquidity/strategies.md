@@ -23,7 +23,7 @@ These are templates and examples, not the only valid approaches. Adapt parameter
 ```
 Open:    check allowances → approve tokens if needed → create account → add liquidity (atomic: deposit + swap + mint + borrow) → enable automation
 Monitor: read_account_info (health), read_account_pnl (profitability)
-Adjust:  add collateral or repay debt if health drops; remove + re-add liquidity to manually rebalance range
+Adjust:  add collateral or repay debt if health drops; write_account_adjust_range to move a position to a new range
 Close:   disable rebalancer → unstake → atomic close (burn LP + swap + repay) → withdraw
 ```
 

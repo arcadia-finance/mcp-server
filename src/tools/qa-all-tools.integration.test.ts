@@ -269,6 +269,22 @@ const fixtures: Record<string, Fixture> = {
     // Needs on-chain LP position ownership; backend rejects on read-only discovered accounts.
     successExpected: false,
   },
+  write_account_adjust_range: {
+    args: (c) => {
+      const lp = c.account.lpPositions[0];
+      if (!lp) throw new Error("fixture requires discovered account with LP position");
+      return {
+        account_address: c.account.accountAddress,
+        position_manager: lp.address,
+        position_id: lp.id,
+        tick_lower: -600,
+        tick_upper: 600,
+        chain_id: CHAIN_ID,
+      };
+    },
+    // Fixed ticks need not fit the discovered position's tick spacing; accept a backend refusal.
+    successExpected: false,
+  },
   write_pool_deposit: {
     args: (c) => ({
       tranche_address: CBBTC_TRANCHE,

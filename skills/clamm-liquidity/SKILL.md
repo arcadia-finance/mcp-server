@@ -1,6 +1,6 @@
 ---
 name: clamm-liquidity
-description: Agent guide for clAMM management on Arcadia Finance. Covers 37 MCP tools (+1 dev), intent-based automation setup (compound fees, claim rewards, add to LP, rebalance, claim Merkl), the Slipstream to Aero migration, single-sided liquidity via ERC-4626 tranches, strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
+description: Agent guide for clAMM management on Arcadia Finance. Covers 38 MCP tools, intent-based automation setup (compound fees, claim rewards, add to LP, rebalance, claim Merkl), the Slipstream to Aero migration, single-sided liquidity via ERC-4626 tranches, strategy selection framework, and strategy templates including delta neutral leveraged LP and protocol-owned liquidity.
 user-invocable: true
 ---
 
@@ -46,9 +46,9 @@ Arcadia's flash-action tools can batch multiple DeFi operations into a single at
 
 **When to split:** In high-volatility markets or for low-liquidity pools, batched transactions may revert because on-chain state changes between when the backend computes calldata and when the transaction executes. If a batched tool fails, fall back to individual tools with tighter slippage. Always try batched first, split only on failure.
 
-**Batched write tools (`write_account_add_liquidity`, `write_account_close`, `write_account_deleverage`, `write_account_swap`, `write_account_remove_liquidity`, `write_account_stake`) return time-sensitive calldata**: sign and broadcast promptly; calldata may expire after 30 to 60 seconds depending on market conditions. If a transaction reverts due to price movement, rebuild and retry at least once before falling back to individual tools.
+**Batched write tools (`write_account_add_liquidity`, `write_account_adjust_range`, `write_account_close`, `write_account_deleverage`, `write_account_swap`, `write_account_remove_liquidity`, `write_account_stake`) return time-sensitive calldata**: sign and broadcast promptly; calldata may expire after 30 to 60 seconds depending on market conditions. If a transaction reverts due to price movement, rebuild and retry at least once before falling back to individual tools.
 
-## MCP Tools (37 + 1 dev)
+## MCP Tools (38)
 
 ### Read Tools
 
@@ -82,6 +82,7 @@ These tools batch multiple operations into ONE atomic transaction. Always prefer
 | ----------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | `write_account_add_liquidity` | deposit + swap + mint LP + optional borrow             | Open LP position. Do NOT call `write_account_deposit` separately: this handles wallet transfer atomically.     |
 | `write_account_close`         | burn LP + swap + repay debt (up to 3 steps)            | Close/exit a position. ALWAYS try this first. Tokens stay in account: follow up with `write_account_withdraw`. |
+| `write_account_adjust_range`  | burn LP + swap its own tokens + mint at the new range  | Re-range one held position. Other collateral and debt stay as they are.                                        |
 | `write_account_deleverage`    | swap collateral + repay debt                           | Repay debt using account collateral (no wallet tokens needed). Preferred for health factor fixes.              |
 | `write_account_automations`   | resolve intents + validate + build setAssetManagers tx | Configure automations. Pass the full desired intents array; the backend picks the managers and encodes them.   |
 

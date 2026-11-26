@@ -150,6 +150,7 @@ Write tools return unsigned transactions. Your wallet signs them, see [Transacti
 | `write_account_swap`              | Swap assets within an account (backend-routed).                                                                                                    |
 | `write_account_deleverage`        | Repay debt by selling collateral (swap + repay in one tx).                                                                                         |
 | `write_account_close`             | Atomic close: burn LP + swap + repay debt in one tx.                                                                                               |
+| `write_account_adjust_range`      | Move one LP position to a new range: burn, swap its own tokens, mint. Other collateral and debt stay.                                              |
 | `write_account_stake`             | Stake, unstake, or claim rewards for LP positions.                                                                                                 |
 | `write_account_aero_upgrade`      | Upgrade an account to Aero: its Slipstream positions move to Aero CL and its old AERO becomes the new AERO, in one flashAction.                    |
 | `write_account_automations`       | Configure automations from an intents array (full desired state). Returns the unsigned setAssetManagers tx.                                        |

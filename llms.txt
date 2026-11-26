@@ -4,7 +4,7 @@
 
 ## Overview
 
-Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 37 tools:
+Arcadia lets users deploy concentrated liquidity positions with automated rebalancing, compounding, yield optimization, and leverage, or provide single-sided liquidity to lending pools to earn borrower interest. This MCP server exposes the full protocol as 38 tools:
 
 - **Account management**: health factor, collateral, debt, positions, PnL, history
 - **Wallet**: ERC20 balances, allowances, owned accounts, points
@@ -24,7 +24,7 @@ npx -y @arcadia-finance/mcp-server
 
 Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 
-## Tools (37 total)
+## Tools (38 total)
 
 ### Read (19)
 
@@ -64,6 +64,7 @@ Or connect to the remote server: `https://mcp.arcadia.finance/mcp`
 - write_account_swap: swap assets within an account
 - write_account_deleverage: repay debt by selling collateral
 - write_account_close: atomic close that burns LP, swaps, and repays in one tx
+- write_account_adjust_range: move one LP position to a new range (burn, swap its own tokens, mint); other collateral and debt stay as they are
 - write_account_stake: stake, unstake, or claim LP rewards
 - write_account_aero_upgrade: upgrade an account to Aero in one flashAction: Slipstream positions move to Aero CL, old AERO becomes the new AERO; returns the plan and the transaction for the items that are ready
 - write_account_automations: configure automations from an intents array (complete desired state), returns the unsigned setAssetManagers tx

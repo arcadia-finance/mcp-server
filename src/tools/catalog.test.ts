@@ -28,8 +28,8 @@ describe("published catalog", () => {
     tools = (await client.listTools()).tools;
   });
 
-  it("lists 37 tools, 4 prompts and 4 guide resources", async () => {
-    expect(tools).toHaveLength(37);
+  it("lists 38 tools, 4 prompts and 4 guide resources", async () => {
+    expect(tools).toHaveLength(38);
     expect((await client.listPrompts()).prompts.map((p) => p.name)).toEqual([
       "analyze-account",
       "find-yield-strategy",
