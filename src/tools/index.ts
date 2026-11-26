@@ -26,6 +26,7 @@ import { registerDeleverageTool } from "./write/account/deleverage.js";
 import { registerStakeTool } from "./write/account/stake.js";
 import { registerCloseTool } from "./write/account/close.js";
 import { registerAeroUpgradeTool } from "./write/account/aero-upgrade.js";
+import { registerAdjustRangeTool } from "./write/account/adjust-range.js";
 import { registerUpgradeVeloTool } from "./write/wallet/upgrade-velo.js";
 
 export function registerAllTools(
@@ -57,6 +58,7 @@ export function registerAllTools(
   registerStakeTool(server, api);
   registerCloseTool(server, api, chains);
   registerAeroUpgradeTool(server, api);
+  registerAdjustRangeTool(server, api);
 
   // Write tools — wallet
   registerApproveTool(server, chains);

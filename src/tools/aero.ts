@@ -72,12 +72,14 @@ export function simulationReverted(simulation: AeroSimulation): boolean {
   return simulation.status === false && Boolean(simulation.url);
 }
 
-function simulationStatus(simulation: AeroSimulation): "success" | "failure" | "unavailable" {
+export function simulationStatus(
+  simulation: AeroSimulation,
+): "success" | "failure" | "unavailable" {
   if (simulation.status === true) return "success";
   return simulationReverted(simulation) ? "failure" : "unavailable";
 }
 
-function simulationFailedText(simulation: AeroSimulation): string {
+export function simulationFailedText(simulation: AeroSimulation): string {
   const simError = simulation.error ? `\nRevert reason: ${simulation.error}` : "";
   const simUrl = simulation.url ? `\nTenderly simulation: ${simulation.url}` : "";
   return `Transaction simulation FAILED, do NOT broadcast.${simError}${simUrl}`;

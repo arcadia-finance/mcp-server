@@ -33,7 +33,7 @@ Tools in `src/tools/`, organized by category and entity:
   - `pools.ts` (2 tools: `read_pool_list`, `read_pool_info`)
   - `points.ts` (1 tool: `read_point_leaderboard`)
   - `guides.ts` (1 tool: `read_guides`)
-- **write/account/**: Account transaction builders (12 tools). Simple tools encode via viem; batched tools (add-liquidity, close, swap, deleverage, remove-liquidity, stake, aero-upgrade) proxy through backend API. `aero-upgrade.ts` (`write_account_aero_upgrade`) wraps `/bundles/aero_upgrade` and `/bundles/aero_upgrade/batch`: the one-flashAction upgrade of an account (Slipstream positions and old AERO) with its plan; `src/tools/aero.ts` shapes the plan, the status notes, the next steps and the backend errors (422 codes, 404, 409 VELO reasons). `format-response.ts` and `metadata.ts` are shared helpers.
+- **write/account/**: Account transaction builders (13 tools). Simple tools encode via viem; batched tools (add-liquidity, adjust-range, close, swap, deleverage, remove-liquidity, stake, aero-upgrade) proxy through backend API. `adjust-range.ts` (`write_account_adjust_range`) wraps `/bundles/adjust_range`; `price-checks.ts` holds the price warning helpers it shares with add-liquidity. `aero-upgrade.ts` (`write_account_aero_upgrade`) wraps `/bundles/aero_upgrade` and `/bundles/aero_upgrade/batch`: the one-flashAction upgrade of an account (Slipstream positions and old AERO) with its plan; `src/tools/aero.ts` shapes the plan, the status notes, the next steps and the backend errors (422 codes, 404, 409 VELO reasons). `format-response.ts` and `metadata.ts` are shared helpers.
 - **write/pool/**: Lending-tranche transaction builders (2 tools: `deposit.ts` and `redeem.ts`). ERC-4626 deposit / redeem for lenders earning yield on USDC / WETH / cbBTC pools.
 - **write/wallet/**: Wallet transaction builders (2 tools): `approve.ts` and `upgrade-velo.ts` (`write_wallet_upgrade_velo`, VELO on Optimism to the new AERO on Base through `/bundles/upgrade_velo`)
 - **write/asset-managers/**: Intent-based automation tools (2 tools: `write_account_automations` + `write_account_automations_delta`) in `automations.ts`. `intents.ts` holds the zod mirror of the backend intent union; `shared.ts` is a formatting helper.
@@ -56,6 +56,6 @@ Supporting code:
 ## Conventions
 
 - All `write_*` tools return **unsigned** transaction objects: signing is the client's responsibility
-- Tool names are snake_case with a `{namespace}_{singular-entity}_{action}` hierarchy, the same on every transport (model APIs accept only `[a-zA-Z0-9_-]{1,64}`). Total: 37 tools (19 read, 18 write).
+- Tool names are snake_case with a `{namespace}_{singular-entity}_{action}` hierarchy, the same on every transport (model APIs accept only `[a-zA-Z0-9_-]{1,64}`). Total: 38 tools (19 read, 19 write).
 - Batched write tool responses go through `formatBatchedResponse()` which appends the ERC-8021 suffix to calldata
 - Tests: unit tests use mock fetch, integration tests (`*.integration.test.ts`) hit live APIs; exclude them from CI

@@ -324,6 +324,50 @@ export interface AeroSimulation {
   asset_changes?: AeroAssetChange[];
 }
 
+export interface AdjustRangeResponse {
+  chain_id: number;
+  account_address: string;
+  owner: string;
+  is_spot: boolean;
+  position: {
+    asset: string;
+    position_id: number;
+    protocol: string;
+    pool: string;
+    token0: string;
+    token1: string;
+    tick_spacing: number;
+    tick_lower: number;
+    tick_upper: number;
+    tick_current: number;
+    sqrt_price_x96: string;
+    amount0: string;
+    amount1: string;
+  };
+  range: {
+    tick_lower: number;
+    tick_upper: number;
+    swap: { token_in: string; amount_in: string; value_usd: number } | null;
+  };
+  swap: {
+    token_in: string;
+    token_out: string;
+    amount_in: string;
+    amount_out: string;
+    min_amount_out: string;
+    router: string;
+    value_in_usd: number;
+    value_out_usd: number;
+  } | null;
+  value_moved_usd: number;
+  price_impact_usd: number;
+  calls: Array<{ kind: string; to: string; data: string; value: string; gas: string }>;
+  price_checks: PriceCheck[];
+  simulation: AeroSimulation;
+  slippage_bps: number;
+  price_tolerance_bps: number;
+}
+
 export interface AeroUpgradePlanResponse {
   chain_id: number;
   account_address: string;

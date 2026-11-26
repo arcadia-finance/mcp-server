@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
+  AdjustRangeResponse,
   AeroUpgradeBatchResponse,
   AeroUpgradeCandidatesResponse,
   AeroUpgradePlanResponse,
@@ -297,6 +298,20 @@ export class ArcadiaApiClient {
       asset: asset_address,
       position_id: asset_id,
     } as Record<string, string | number>);
+  }
+
+  /** Burns the position and mints it again at the new range, swapping only its own tokens. */
+  async getAdjustRange(params: {
+    chain_id: number;
+    account_address: string;
+    position_manager: string;
+    position_id: number;
+    tick_lower: number;
+    tick_upper: number;
+    slippage?: number;
+    min_block?: number;
+  }) {
+    return this.get<AdjustRangeResponse>("/bundles/adjust_range", params);
   }
 
   // ── Aero (MetadexCL V1) upgrade ──────────────────────────────────
